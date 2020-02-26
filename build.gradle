@@ -95,7 +95,7 @@ configure(allLeafProjects()) {
             url = uri("https://maven.pkg.github.com/sigmarkarl/gor")
             credentials {
                 username = "sigmarkarl" //project.findProperty("gpr.user") ?: System.getenv("USERNAME")
-                password = "e65a617233ef8a4a3f187d9e9945a4d01641c1fb" // "8aa096792757bdd9a8a4b54f81fbf3a1590570bf"
+                password = System.getenv("MAVEN_TOKEN")
             }
         }
         maven {
@@ -103,7 +103,7 @@ configure(allLeafProjects()) {
             url = uri("https://maven.pkg.github.com/sigmarkarl/glow")
             credentials {
                 username = "sigmarkarl" //project.findProperty("gpr.user") ?: System.getenv("USERNAME")
-                password = "e65a617233ef8a4a3f187d9e9945a4d01641c1fb" // "8aa096792757bdd9a8a4b54f81fbf3a1590570bf"
+                password = System.getenv("MAVEN_TOKEN")
             }
         }
     }
