@@ -2,8 +2,8 @@ package gorsat.process;
 
 import com.nextcode.gor.spark.GorSparkRow;
 import com.nextcode.gor.spark.SparkGorUtilities;
-import is.hail.HailContext;
-import is.hail.methods.Skat;
+//import is.hail.HailContext;
+//import is.hail.methods.Skat;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class HailInputSource extends RowSource {
-    static HailContext hl;
+    //static HailContext hl;
     Dataset<Row> ds;
     Iterator<Row> it;
     String parquetPath;
