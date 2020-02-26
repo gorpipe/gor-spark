@@ -1,0 +1,5 @@
+chrom	pos	stringCol	intCol	doubleCol	doubleMixed	stringMixed
+chr1	23	a	100	1.333	10	val1
+chr2	10	b	100	1.333	10	10
+chr3	11	c	100	1.333	10.3	10.4
+chr4	12	d	100	1.333	1	10
