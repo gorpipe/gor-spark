@@ -11,11 +11,17 @@ project(':spark') {
     sourceSets.main.java.srcDirs = []
 
     dependencies {
-        implementation project(':base:config')
+        implementation 'org.gorpipe.gor:gor-base-config:2.3'
+        implementation 'org.gorpipe.gor:gor-base-logging:2.3'
+        implementation 'org.gorpipe.gor:gor-base-exception:2.3'
+        implementation 'org.gorpipe.gor:gor-model:2.3'
+        implementation 'org.gorpipe.gor:gor-gortools:2.3'
+
+        /*implementation project(':base:config')
         implementation project(':base:logging')
         implementation project(':base:exception')
         implementation project(':model')
-        implementation project(':gortools')
+        implementation project(':gortools')*/
 
         implementation 'org.apache.spark:spark-core_2.12:3.0.0-preview2'
         implementation 'org.apache.spark:spark-sql_2.12:3.0.0-preview2'
@@ -44,7 +50,7 @@ project(':spark') {
 
         //implementation 'io.projectglow:glow_2.12:0.3.0'
         //implementation files('../hail/hail/build/libs/hail-all-spark.jar')
-        implementation files('../../glow/core/target/scala-2.12/glow_2.12-0.3.1-SNAPSHOT.jar')
+        //implementation files('../../glow/core/target/scala-2.12/glow_2.12-0.3.1-SNAPSHOT.jar')
         compile group: 'com.typesafe.scala-logging', name: 'scala-logging_2.12', version: '3.9.2'
         compile group: 'org.jdbi', name: 'jdbi', version: '2.78'
         compile group: 'org.seqdoop', name: 'hadoop-bam', version: '7.10.0'
