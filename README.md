@@ -32,7 +32,7 @@ cd sparkgor
 ./gradlew clean installDist
 ```
 
-##Usage
+## Usage
 Now you can use SparkSQL from within GOR
 ```bash
 gorpipe "spark select * from genes.gor limit 10"
