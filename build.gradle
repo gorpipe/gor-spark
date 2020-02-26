@@ -98,6 +98,14 @@ configure(allLeafProjects()) {
         mavenLocal()
         jcenter()
         mavenCentral()
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/sigmarkarl/gor")
+            credentials {
+                username = "sigmarkarl" //project.findProperty("gpr.user") ?: System.getenv("USERNAME")
+                password = "8aa096792757bdd9a8a4b54f81fbf3a1590570bf"
+            }
+        }
     }
 
     jar {
