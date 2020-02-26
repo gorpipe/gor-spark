@@ -28,14 +28,6 @@ buildscript {
         jcenter()
         mavenCentral()
         maven { url "https://plugins.gradle.org/m2/" }
-        maven {
-            name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/sigmarkarl/gor")
-            credentials {
-                username = "sigmarkarl" //project.findProperty("gpr.user") ?: System.getenv("USERNAME")
-                password = "8aa096792757bdd9a8a4b54f81fbf3a1590570bf"
-            }
-        }
     }
     dependencies {
         classpath "kr.motd.gradle:sphinx-gradle-plugin:2.6.1"
@@ -99,11 +91,19 @@ configure(allLeafProjects()) {
         jcenter()
         mavenCentral()
         maven {
-            name = "GitHubPackages"
+            name = "gor"
             url = uri("https://maven.pkg.github.com/sigmarkarl/gor")
             credentials {
                 username = "sigmarkarl" //project.findProperty("gpr.user") ?: System.getenv("USERNAME")
-                password = "8aa096792757bdd9a8a4b54f81fbf3a1590570bf"
+                password = "e65a617233ef8a4a3f187d9e9945a4d01641c1fb" // "8aa096792757bdd9a8a4b54f81fbf3a1590570bf"
+            }
+        }
+        maven {
+            name = "glow"
+            url = uri("https://maven.pkg.github.com/sigmarkarl/glow")
+            credentials {
+                username = "sigmarkarl" //project.findProperty("gpr.user") ?: System.getenv("USERNAME")
+                password = "e65a617233ef8a4a3f187d9e9945a4d01641c1fb" // "8aa096792757bdd9a8a4b54f81fbf3a1590570bf"
             }
         }
     }

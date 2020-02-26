@@ -49,7 +49,7 @@ project(':spark') {
         compile group: 'javax.jms', name: 'javax.jms-api', version: '2.0.1'
 
         //implementation 'io.projectglow:glow_2.12:0.3.0'
-        implementation 'io.projectglow:glow:3.0'
+        implementation 'io.projectglow:glow:3.1'
         //implementation files('../hail/hail/build/libs/hail-all-spark.jar')
         //implementation files('../../glow/core/target/scala-2.12/glow_2.12-0.3.1-SNAPSHOT.jar')
         compile group: 'com.typesafe.scala-logging', name: 'scala-logging_2.12', version: '3.9.2'
