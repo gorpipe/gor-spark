@@ -28,6 +28,14 @@ buildscript {
         jcenter()
         mavenCentral()
         maven { url "https://plugins.gradle.org/m2/" }
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/sigmarkarl/gor")
+            credentials {
+                username = "sigmarkarl" //project.findProperty("gpr.user") ?: System.getenv("USERNAME")
+                password = "8aa096792757bdd9a8a4b54f81fbf3a1590570bf"
+            }
+        }
     }
     dependencies {
         classpath "kr.motd.gradle:sphinx-gradle-plugin:2.6.1"
