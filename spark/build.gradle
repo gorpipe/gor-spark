@@ -1,0 +1,134 @@
+project(':spark') {
+    apply plugin: 'scala'
+
+    configurations.all {
+        if (name.startsWith("incrementalScalaAnalysis")) {
+            extendsFrom = []
+        }
+    }
+
+    sourceSets.main.scala.srcDirs "src/main/java"
+    sourceSets.main.java.srcDirs = []
+
+    dependencies {
+        /*implementation 'org.gorpipe.gor:gor-base-config:2.3'
+        implementation 'org.gorpipe.gor:gor-base-logging:2.3'
+        implementation 'org.gorpipe.gor:gor-base-exception:2.3'
+        implementation 'org.gorpipe.gor:gor-model:2.3'
+        implementation 'org.gorpipe.gor:gor-gortools:2.3'*/
+
+        implementation project(':base:config')
+        implementation project(':base:logging')
+        implementation project(':base:exception')
+        implementation project(':model')
+        implementation project(':gortools')
+
+        implementation 'org.apache.spark:spark-core_2.12:3.0.0-preview2'
+        implementation 'org.apache.spark:spark-sql_2.12:3.0.0-preview2'
+        implementation 'org.apache.spark:spark-mllib_2.12:3.0.0-preview2'
+        implementation 'org.apache.spark:spark-tags_2.12:3.0.0-preview2'
+        implementation('org.apache.spark:spark-kubernetes_2.12:3.0.0-preview2') {
+            exclude group: 'org.apache.spark', module: 'spark-tags_2.12'
+        }
+        implementation 'org.apache.spark:spark-catalyst_2.12:3.0.0-preview2'
+        implementation 'org.apache.spark:spark-repl_2.12:3.0.0-preview2'
+
+        compile('org.broadinstitute:gatk:4.1.4.1') {
+            exclude group: 'com.esotericsoftware'
+            exclude group: 'org.apache.commons', module: 'commons-vfs2'
+            exclude group: 'org.apache.spark'
+            exclude group: 'org.bdgenomics.adam'
+        }
+        compile group: 'org.broadinstitute', name: 'gatk-native-bindings', version: '1.0.0'
+
+        compile group: 'org.apache.logging.log4j', name: 'log4j', version: '2.13.0', ext: 'pom'
+        compile group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.13.0', ext: 'pom'
+        compile group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.13.0', ext: 'pom'
+        compile group: 'org.apache.logging.log4j', name: 'log4j-jcl', version: '2.13.0', ext: 'pom'
+        compile group: 'org.apache.logging.log4j', name: 'log4j-slf4j-impl', version: '2.13.0'
+        compile group: 'org.apache.logging.log4j', name: 'log4j-1.2-api', version: '2.13.0'
+
+        compile group: 'javax.jms', name: 'javax.jms-api', version: '2.0.1'
+
+        //implementation 'io.projectglow:glow_2.12:0.3.0'
+        implementation 'io.projectglow:glow:3.1'
+        //implementation files('../hail/hail/build/libs/hail-all-spark.jar')
+        //implementation files('../../glow/core/target/scala-2.12/glow_2.12-0.3.1-SNAPSHOT.jar')
+        compile group: 'com.typesafe.scala-logging', name: 'scala-logging_2.12', version: '3.9.2'
+        compile group: 'org.jdbi', name: 'jdbi', version: '2.78'
+        compile group: 'org.seqdoop', name: 'hadoop-bam', version: '7.10.0'
+
+        compile group: 'com.clearspring.analytics', name: 'stream', version: '2.9.8'
+        compile group: 'com.esotericsoftware', name: 'kryo-shaded', version: '4.0.2'
+        compile group: 'org.lz4', name: 'lz4-java', version: '1.7.0'
+        compile group: 'org.apache.xbean', name: 'xbean-asm7-shaded', version: '4.15'
+        compile group: 'com.univocity', name: 'univocity-parsers', version: '2.8.4'
+        compile group: 'org.fusesource.leveldbjni', name: 'leveldbjni', version: '1.8'
+
+        compile "org.codehaus.janino:janino:3.0.15"
+        compile "org.codehaus.janino:commons-compiler:3.0.15"
+
+        compile "org.json4s:json4s-core_2.12:3.6.7"
+        compile "org.json4s:json4s-ast_2.12:3.6.7"
+        compile "org.json4s:json4s-jackson_2.12:3.6.7"
+        compile "org.apache.commons:commons-lang3:3.9"
+
+        implementation("redis.clients:jedis:3.1.+")
+
+        compile group: 'io.fabric8', name: 'kubernetes-client', version: '4.7.1'
+
+        //testImplementation project(':gortools')
+    }
+
+    jar {
+        manifest.attributes 'Main-Class': "gorsat.process.GorPipe"
+    }
+
+    // Distribution
+    apply plugin: 'application'
+
+    distributions {
+        main {
+            baseName "gor-scripts"
+            /*contents {
+                from(project(":documentation").jar.outputs.files.getFiles()) { into "lib" }
+            }*/
+        }
+    }
+
+    def scripts = [
+            'gorpipe'   : ['className'     : 'gorsat.process.SparkPipe',
+                           'defaultJvmOpts': ['-Djava.security.egd=file:/dev/./urandom',
+                                              '-Dgor.querylimits.writequota.mb=0',
+                                              '-Dgor.querylimits.timeout.seconds=0',
+                                              '-Dlogback.configurationFile=__APP_HOME__/config/logback-console.xml']],
+
+            'gor'       : ['className'     : 'org.gorpipe.gor.cli.GorCLI',
+                           'defaultJvmOpts': ['-Djava.security.egd=file:/dev/./urandom',
+                                              '-Dgor.querylimits.writequota.mb=0',
+                                              '-Dgor.querylimits.timeout.seconds=0',
+                                              '-Dlogback.configurationFile=__APP_HOME__/config/logback-console.xml']],
+
+            'jessica'   : ['override'      : 'startScripts',
+                           'className'     : 'org.gorpipe.jessica.Jessica',
+                           'defaultJvmOpts': []],
+
+            'gormanager': ['className'     : 'org.gorpipe.gor.manager.TableManagerCLI',
+                           'defaultJvmOpts': ['-Djava.security.egd=file:/dev/./urandom',
+                                              '-Dgor.querylimits.writequota.mb=0',
+                                              '-Dgor.querylimits.timeout.seconds=0',
+                                              '-Dlogback.configurationFile=__APP_HOME__/config/logback.xml']],
+
+            'gortool'   : ['className'     : 'org.gorpipe.gor.tools.GorToolsCLI',
+                           'defaultJvmOpts': ['-Dlogback.configurationFile=__APP_HOME__/config/logback.xml']]
+    ]
+
+    scripts.each() { scriptName, params ->
+        def t = params.containsKey('override') ? tasks.getByName(params.override) : tasks.create(name: scriptName + 'StartScript', type: CreateStartScripts)
+        updateScriptTask("GOR", scriptName, params, t, project)
+    }
+}
+
+/*if (file("build.deploy.gradle").exists()) {
+    apply from: "build.deploy.gradle"
+}*/

@@ -1,0 +1,38 @@
+rootProject.name = 'sparkgor'
+rootProject.buildFileName = "build.gradle"
+
+include 'spark'
+
+include 'querydialogs'
+include 'gortools'
+include 'model'
+include 'gordrivers'
+include 'base:config'
+include 'base:exception'
+include 'base:logging'
+include 'base:test'
+
+include 'util:net:http'
+include 'util:collection'
+include 'util:string'
+include 'util:gorutil'
+include 'clientbase'
+include 'external'
+
+//include 'documentation'
+
+project(":gortools").projectDir = file("../gor/gortools")
+project(":model").projectDir = file("../gor/model")
+project(":querydialogs").projectDir = file("../gor/querydialogs")
+project(":gordrivers").projectDir = file("../gor/gordrivers")
+project(":base:config").projectDir = file("../gor/base/config")
+project(":base:exception").projectDir = file("../gor/base/exception")
+project(":base:logging").projectDir = file("../gor/base/logging")
+project(":base:test").projectDir = file("../gor/base/test")
+project(":util:net:http").projectDir = file("../gor/util/net/http")
+project(":util:collection").projectDir = file("../gor/util/collection")
+project(":util:string").projectDir = file("../gor/util/string")
+project(":util:gorutil").projectDir = file("../gor/util/gorutil")
+project(":clientbase").projectDir = file("../gor/clientbase")
+project(":external").projectDir = file("../gor/external")
+//project(":documentation").projectDir = file("../gor/documentation")

@@ -1,0 +1,22 @@
+project(':spark') {
+    apply plugin: 'maven-publish'
+
+    publishing {
+        publications {
+            mavenJar(MavenPublication) {
+
+                artifactId getProjectFullName()
+                groupId getCustomGroupId()
+                artifact jar
+                artifact sourcesJar
+                pom.withXml{updateDependenciesNode(asNode().appendNode('dependencies'), configurations)}
+            }
+
+            mavenDistZip(MavenPublication) {
+                artifactId getProjectFullName() + "-dist"
+                groupId getCustomGroupId()
+                artifact distZip
+            }
+        }
+    }
+}
