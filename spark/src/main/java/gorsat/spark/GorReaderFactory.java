@@ -131,7 +131,6 @@ public class GorReaderFactory implements PartitionReaderFactory {
                             return sparkGorMonitor.getValue(JobField.CancelFlag) != null;
                         }
                     };
-
                     SparkSessionFactory sessionFactory = new SparkSessionFactory(null, Paths.get(".").toAbsolutePath().normalize().toString(), "result_cache", sparkGorMonitor);
                     SparkGORSession gorPipeSession = (SparkGORSession) sessionFactory.create();
                     PipeInstance pi = new PipeInstance(gorPipeSession.getGorContext());
@@ -184,7 +183,7 @@ public class GorReaderFactory implements PartitionReaderFactory {
 
             @Override
             public void close() {
-                iterator.close();
+                if(iterator != null) iterator.close();
             }
         };
         return partitionReader;

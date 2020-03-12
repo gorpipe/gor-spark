@@ -90,20 +90,20 @@ configure(allLeafProjects()) {
         mavenLocal()
         jcenter()
         mavenCentral()
-        maven {
+        /*maven {
             name = "gor"
             url = uri("https://maven.pkg.github.com/sigmarkarl/gor")
             credentials {
                 username = "sigmarkarl" //project.findProperty("gpr.user") ?: System.getenv("USERNAME")
                 password = System.getenv("MAVEN_TOKEN")
             }
-        }
+        }*/
         maven {
             name = "glow"
             url = uri("https://maven.pkg.github.com/sigmarkarl/glow")
             credentials {
-                username = "sigmarkarl" //project.findProperty("gpr.user") ?: System.getenv("USERNAME")
-                password = System.getenv("MAVEN_TOKEN")
+                username = project.findProperty('github_user') ?: System.getenv("GITHUB_USER")
+                password = project.findProperty('github_token') ?: System.getenv("GITHUB_TOKEN")
             }
         }
     }

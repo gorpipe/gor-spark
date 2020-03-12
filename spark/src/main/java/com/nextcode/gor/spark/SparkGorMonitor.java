@@ -24,11 +24,13 @@ public class SparkGorMonitor extends GorMonitor implements Serializable {
     public SparkGorMonitor(String uri, String jobId) {
         this.uri = uri;
         this.jobId = jobId;
-        try {
-            jedisPool = SharedRedisPools.getJedisPool(JedisURIHelper.create(uri));
-        } catch (Exception e) {
-            working = false;
-        }
+        if(uri != null && uri.length() > 0) {
+            try {
+                jedisPool = SharedRedisPools.getJedisPool(JedisURIHelper.create(uri));
+            } catch (Exception e) {
+                working = false;
+            }
+        } else working = false;
     }
 
     public String getRedisUri() {
