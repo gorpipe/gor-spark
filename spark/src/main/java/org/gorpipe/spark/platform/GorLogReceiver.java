@@ -1,4 +1,4 @@
-package com.nextcode.gor.platform;
+package org.gorpipe.spark.platform;
 
 /**
  * Receives private log messages from cluster jobs

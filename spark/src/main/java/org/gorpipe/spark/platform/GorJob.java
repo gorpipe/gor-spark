@@ -1,4 +1,4 @@
-package com.nextcode.gor.platform;
+package org.gorpipe.spark.platform;
 
 import java.time.Duration;
 import java.util.Map;

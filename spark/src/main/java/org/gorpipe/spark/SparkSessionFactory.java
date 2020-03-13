@@ -1,6 +1,5 @@
-package com.nextcode.gor.spark;
+package org.gorpipe.spark;
 
-import org.gorpipe.spark.SparkGORSession;
 import gorsat.process.FreemarkerReportBuilder;
 import gorsat.process.GenericRunnerFactory;
 import gorsat.process.SessionBasedQueryEvaluator;

@@ -1,4 +1,4 @@
-package com.nextcode.gor.spark;
+package org.gorpipe.spark;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -13,7 +13,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.IntStream;
 
-import com.nextcode.gor.platform.*;
 import org.gorpipe.spark.GorQueryRDD;
 import org.gorpipe.spark.SparkGORSession;
 import gorsat.Commands.CommandParseUtilities;
@@ -23,6 +22,7 @@ import org.apache.spark.sql.SparkSession;
 import org.gorpipe.gor.GorRunner;
 import org.gorpipe.model.genome.files.gor.GorMonitor;
 import org.gorpipe.model.genome.files.gor.GorParallelQueryHandler;
+import org.gorpipe.spark.platform.*;
 import redis.clients.jedis.JedisPool;
 
 public class GeneralSparkQueryHandler implements GorParallelQueryHandler {

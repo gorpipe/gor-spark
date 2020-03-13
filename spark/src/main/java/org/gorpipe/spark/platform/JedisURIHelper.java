@@ -1,4 +1,4 @@
-package com.nextcode.gor.platform;
+package org.gorpipe.spark.platform;
 
 import org.apache.http.client.utils.URIBuilder;
 import redis.clients.jedis.Protocol;

@@ -1,6 +1,6 @@
 package gorsat.spark;
 
-import com.nextcode.spark.SparkGOR;
+import org.gorpipe.spark.SparkGOR;
 import gorsat.process.SparkRowSource;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;

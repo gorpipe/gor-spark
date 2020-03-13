@@ -1,4 +1,4 @@
-package com.nextcode.gor.spark;
+package org.gorpipe.spark;
 
 import org.apache.spark.api.java.function.MapFunction;
 import org.apache.spark.sql.types.DataTypes;

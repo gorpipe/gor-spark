@@ -1,4 +1,4 @@
-package com.nextcode.gor.spark;
+package org.gorpipe.spark;
 
 import org.aeonbits.owner.Config;
 import org.gorpipe.base.config.annotations.Documentation;

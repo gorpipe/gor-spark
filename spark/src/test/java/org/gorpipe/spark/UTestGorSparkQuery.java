@@ -1,6 +1,5 @@
 package org.gorpipe.spark;
 
-import com.nextcode.gor.spark.SparkSessionFactory;
 import gorsat.process.PipeInstance;
 import gorsat.process.PipeOptions;
 import org.apache.spark.sql.SparkSession;

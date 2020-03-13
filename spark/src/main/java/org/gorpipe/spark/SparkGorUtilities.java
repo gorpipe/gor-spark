@@ -1,4 +1,4 @@
-package com.nextcode.gor.spark;
+package org.gorpipe.spark;
 
 import io.projectglow.GlowBase;
 import org.apache.spark.SparkConf;

@@ -2,7 +2,6 @@ package org.gorpipe.spark
 
 import java.nio.file.{Files, Paths}
 
-import com.nextcode.gor.spark._
 import gorsat.Commands.Analysis
 import org.gorpipe.model.gor.RowObj
 import gorsat.DynIterator.DynamicRowSource

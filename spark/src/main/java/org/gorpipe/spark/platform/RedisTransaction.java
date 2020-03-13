@@ -1,4 +1,4 @@
-package com.nextcode.gor.platform;
+package org.gorpipe.spark.platform;
 
 import java.io.Closeable;
 import java.util.List;

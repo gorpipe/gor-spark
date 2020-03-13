@@ -1,12 +1,12 @@
-package com.nextcode.gor.spark;
+package org.gorpipe.spark;
 
 import java.io.Serializable;
 import java.time.Duration;
 
-import com.nextcode.gor.platform.JedisURIHelper;
-import com.nextcode.gor.platform.JobField;
-import com.nextcode.gor.platform.SharedRedisPools;
 import org.gorpipe.model.genome.files.gor.GorMonitor;
+import org.gorpipe.spark.platform.JedisURIHelper;
+import org.gorpipe.spark.platform.JobField;
+import org.gorpipe.spark.platform.SharedRedisPools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;

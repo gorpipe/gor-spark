@@ -1,4 +1,4 @@
-package com.nextcode.gor.spark;
+package org.gorpipe.spark;
 
 import gorsat.BatchedReadSource;
 import gorsat.Commands.Output;

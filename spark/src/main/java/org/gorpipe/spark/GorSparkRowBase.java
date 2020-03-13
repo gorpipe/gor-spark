@@ -1,4 +1,4 @@
-package com.nextcode.gor.spark;
+package org.gorpipe.spark;
 
 import org.apache.spark.sql.types.StructType;
 import org.gorpipe.model.genome.files.gor.Row;

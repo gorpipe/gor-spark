@@ -3,7 +3,7 @@ package gorsat.InputSources
 import java.io.File
 import java.nio.file.{Files, Paths}
 
-import com.nextcode.spark.SparkGORSession
+import org.gorpipe.spark.SparkGORSession
 import gorsat.Commands.CommandParseUtilities._
 import gorsat.Commands.{CommandArguments, GenomicRange, InputSourceInfo, InputSourceParsingResult}
 import gorsat.process.{GorJavaUtilities, SparkRowSource}

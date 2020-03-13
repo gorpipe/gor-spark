@@ -1,9 +1,9 @@
-package com.nextcode.gor.spark;
+package org.gorpipe.spark;
 
-import com.nextcode.gor.platform.*;
 import org.gorpipe.exceptions.GorSystemException;
 import org.gorpipe.model.genome.files.gor.GorMonitor;
 import org.gorpipe.model.genome.files.gor.GorParallelQueryHandler;
+import org.gorpipe.spark.platform.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;

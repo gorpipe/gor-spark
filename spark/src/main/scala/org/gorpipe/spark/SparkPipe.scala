@@ -1,6 +1,5 @@
 package org.gorpipe.spark
 
-import com.nextcode.gor.spark.{SparkGorConfig, SparkGorExecutionEngine, SparkGorMonitor}
 import gorsat._
 import gorsat.process.{GorPipeFirstOrderCommands, PipeOptions}
 import org.gorpipe.base.config.ConfigManager

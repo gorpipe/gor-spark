@@ -1,4 +1,4 @@
-package com.nextcode.gor.spark;
+package org.gorpipe.spark;
 
 import java.util.Iterator;
 import gorsat.Commands.Analysis;

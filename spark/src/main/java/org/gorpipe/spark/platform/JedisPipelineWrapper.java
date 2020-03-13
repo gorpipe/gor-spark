@@ -1,4 +1,4 @@
-package com.nextcode.gor.platform;
+package org.gorpipe.spark.platform;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Pipeline;

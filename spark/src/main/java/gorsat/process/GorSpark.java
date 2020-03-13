@@ -5,8 +5,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Iterator;
 import java.util.stream.StreamSupport;
-import com.nextcode.gor.spark.SparkGorMonitor;
-import com.nextcode.gor.spark.SparkGorRow;
 import gorsat.BatchedPipeStepIteratorAdaptor;
 import gorsat.Commands.Analysis;
 import org.apache.spark.api.java.function.MapPartitionsFunction;
@@ -14,6 +12,8 @@ import org.apache.spark.sql.types.StructType;
 import org.gorpipe.gor.GorSession;
 import org.gorpipe.model.genome.files.gor.GorMonitor;
 import org.gorpipe.model.genome.files.gor.Row;
+import org.gorpipe.spark.SparkGorMonitor;
+import org.gorpipe.spark.SparkGorRow;
 
 public class GorSpark implements MapPartitionsFunction<Row, Row> {
     StructType schema;

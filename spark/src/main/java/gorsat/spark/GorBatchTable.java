@@ -1,6 +1,6 @@
 package gorsat.spark;
 
-import com.nextcode.spark.SparkGOR;
+import org.gorpipe.spark.SparkGOR;
 import gorsat.process.SparkRowSource;
 import org.apache.spark.sql.connector.catalog.SupportsRead;
 import org.apache.spark.sql.connector.catalog.SupportsWrite;

@@ -2,7 +2,6 @@ package org.gorpipe.spark
 
 import java.util.concurrent.ConcurrentHashMap
 
-import com.nextcode.gor.spark._
 import org.gorpipe.model.genome.files.gor.RowBase
 import org.gorpipe.model.gor.RowObj.splitArray
 import gorsat.InputSources.Spark

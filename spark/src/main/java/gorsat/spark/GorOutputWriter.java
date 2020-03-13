@@ -1,6 +1,5 @@
 package gorsat.spark;
 
-import com.nextcode.gor.spark.GorSparkRow;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.analysis.SimpleAnalyzer$;
@@ -11,6 +10,7 @@ import org.apache.spark.sql.execution.datasources.OutputWriter;
 import org.apache.spark.sql.types.StructType;
 import org.gorpipe.model.genome.files.binsearch.GorIndexType;
 import org.gorpipe.model.genome.files.binsearch.GorZipLexOutputStream;
+import org.gorpipe.spark.GorSparkRow;
 import scala.collection.JavaConverters;
 import scala.collection.Seq;
 

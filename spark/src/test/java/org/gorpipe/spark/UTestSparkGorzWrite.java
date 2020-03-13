@@ -1,7 +1,5 @@
 package org.gorpipe.spark;
 
-import com.nextcode.gor.spark.GorzFlatMap;
-import com.nextcode.gor.spark.GorzIterator;
 import org.apache.spark.api.java.function.MapFunction;
 import org.apache.spark.sql.*;
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder;

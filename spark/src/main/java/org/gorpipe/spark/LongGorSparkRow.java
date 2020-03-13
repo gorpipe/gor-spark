@@ -1,4 +1,4 @@
-package com.nextcode.gor.spark;
+package org.gorpipe.spark;
 
 public class LongGorSparkRow extends GorSparkRow {
     public LongGorSparkRow(org.apache.spark.sql.Row sparkrow) {

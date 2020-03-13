@@ -2,7 +2,6 @@ package org.gorpipe.spark
 
 import java.nio.file.{Files, Path, Paths}
 
-import com.nextcode.gor.spark.{GorPartition, SparkGorExecutionEngine, SparkGorMonitor}
 import gorsat.AnalysisUtilities
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession

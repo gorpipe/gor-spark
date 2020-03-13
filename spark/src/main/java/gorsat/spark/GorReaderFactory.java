@@ -9,11 +9,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.stream.Collectors;
 
-import com.nextcode.gor.platform.JobField;
-import com.nextcode.gor.spark.SparkGorMonitor;
-import com.nextcode.gor.spark.SparkGorRow;
-import com.nextcode.gor.spark.SparkSessionFactory;
-import com.nextcode.spark.SparkGORSession;
+import org.gorpipe.spark.SparkGORSession;
 import gorsat.BatchedReadSource;
 import gorsat.process.GorPipe;
 import gorsat.process.PipeInstance;
@@ -30,6 +26,10 @@ import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.unsafe.types.UTF8String;
 import org.gorpipe.model.gor.iterators.RowSource;
+import org.gorpipe.spark.SparkGorMonitor;
+import org.gorpipe.spark.SparkGorRow;
+import org.gorpipe.spark.SparkSessionFactory;
+import org.gorpipe.spark.platform.JobField;
 
 
 import static org.apache.spark.sql.types.DataTypes.*;
