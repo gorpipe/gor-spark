@@ -6,7 +6,7 @@ include 'spark'
 include 'querydialogs'
 include 'gortools'
 include 'model'
-include 'gordrivers'
+include 'drivers'
 include 'base:config'
 include 'base:exception'
 include 'base:logging'
@@ -19,12 +19,12 @@ include 'util:gorutil'
 include 'clientbase'
 include 'external'
 
-//include 'documentation'
+include 'documentation'
 
 project(":gortools").projectDir = file("../gor/gortools")
 project(":model").projectDir = file("../gor/model")
 project(":querydialogs").projectDir = file("../gor/querydialogs")
-project(":gordrivers").projectDir = file("../gor/gordrivers")
+project(":drivers").projectDir = file("../gor/drivers")
 project(":base:config").projectDir = file("../gor/base/config")
 project(":base:exception").projectDir = file("../gor/base/exception")
 project(":base:logging").projectDir = file("../gor/base/logging")
@@ -35,4 +35,4 @@ project(":util:string").projectDir = file("../gor/util/string")
 project(":util:gorutil").projectDir = file("../gor/util/gorutil")
 project(":clientbase").projectDir = file("../gor/clientbase")
 project(":external").projectDir = file("../gor/external")
-//project(":documentation").projectDir = file("../gor/documentation")
+project(":documentation").projectDir = file("../gor/documentation")
