@@ -97,7 +97,7 @@ project(':spark') {
     }
 
     def scripts = [
-            'gorpipe'   : ['className'     : 'gorsat.process.SparkPipe',
+            'gorpipe'   : ['className'     : 'org.gorpipe.spark.SparkPipe',
                            'defaultJvmOpts': ['-Djava.security.egd=file:/dev/./urandom',
                                               '-Dgor.querylimits.writequota.mb=0',
                                               '-Dgor.querylimits.timeout.seconds=0',
