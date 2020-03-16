@@ -1,5 +1,6 @@
-package org.gorpipe.spark
+package com.nextcode.spark
 
+import com.nextcode.gor.spark.{SparkGorExecutionEngine, SparkGorMonitor}
 import gorsat._
 import gorsat.process.{GorPipeFirstOrderCommands, PipeOptions}
 import org.gorpipe.base.config.ConfigManager
@@ -23,7 +24,6 @@ object SparkPipe extends GorPipeFirstOrderCommands {
 
   val brsConfig: BatchedReadSourceConfig = ConfigManager.createPrefixConfig("gor", classOf[BatchedReadSourceConfig])
   val gorConfig: GorConfig = ConfigManager.createPrefixConfig("gor", classOf[GorConfig])
-  val sparkConfig: SparkGorConfig = ConfigManager.createPrefixConfig("spark", classOf[SparkGorConfig])
 
   /**
    * Main definition accepts an argument string and ensures database sources are initialized.
@@ -53,10 +53,11 @@ object SparkPipe extends GorPipeFirstOrderCommands {
     // Initialize database connections
     DbSource.initInConsoleApp()
 
+
     var exitCode = 0
     //todo find a better way to construct
 
-    val sparkGorRedisUri = sparkConfig.sparkRedisUrl()
+    val sparkGorRedisUri = System.getProperty("gor.spark.redis.uri")
     val sparkMonitor = new SparkGorMonitor(sparkGorRedisUri,"-1")
     val executionEngine = new SparkGorExecutionEngine(commandlineOptions.query, commandlineOptions.gorRoot, commandlineOptions.cacheDir, null, sparkMonitor)
 
