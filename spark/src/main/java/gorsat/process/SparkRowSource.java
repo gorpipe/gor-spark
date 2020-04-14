@@ -22,7 +22,7 @@ import htsjdk.samtools.SamInputResource;
 import htsjdk.samtools.SamReader;
 import htsjdk.samtools.SamReaderFactory;
 import htsjdk.samtools.ValidationStringency;
-import io.projectglow.Glow;
+//import io.projectglow.Glow;
 import org.apache.parquet.schema.PrimitiveType;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -1350,8 +1350,8 @@ public class SparkRowSource extends ProcessSource {
     }
 
     @Override
-    public boolean pushdownSelect() {
-        return true;
+    public boolean pushdownSelect(String[] cols) {
+        return false;
     }
 
     @Override
@@ -1381,10 +1381,10 @@ public class SparkRowSource extends ProcessSource {
                     if(psplit[1].startsWith("'")) options.put(psplit[0],psplit[1].substring(1,psplit[1].length()-1));
                     else options.put(psplit[0],psplit[1]);
                 }
-                dataset = Glow.transform("pipe", (Dataset<org.apache.spark.sql.Row>) dataset, options);
+                //dataset = Glow.transform("pipe", (Dataset<org.apache.spark.sql.Row>) dataset, options);
             } else if(gor.startsWith("split_multiallelics")) {
                 Map<String, String> options = new HashMap<>();
-                dataset = Glow.transform("split_multiallelics", (Dataset<org.apache.spark.sql.Row>) dataset, options);
+                //dataset = Glow.transform("split_multiallelics", (Dataset<org.apache.spark.sql.Row>) dataset, options);
             } else pushdownGorPipe = gor;
         } else {
             pushdownGorPipe += "|" + gor;

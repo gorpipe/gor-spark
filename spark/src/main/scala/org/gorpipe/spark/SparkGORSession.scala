@@ -132,7 +132,7 @@ class SparkGORSession(requestId: String) extends GorSession(requestId) with Auto
 
   def fingerprint(cmdName: String): String = {
     val cmd = createMap.get(cmdName)
-    val scriptExecutionEngine = ScriptEngineFactory.create(this.getGorContext, scriptAnalyser = false, doHeader = false)
+    val scriptExecutionEngine = ScriptEngineFactory.create(this.getGorContext)
     val signature = scriptExecutionEngine.getFileSignatureAndUpdateSignatureMap(cmd, scriptExecutionEngine.getUsedFiles(cmd))
     StringUtilities.createMD5(cmd+signature)
   }

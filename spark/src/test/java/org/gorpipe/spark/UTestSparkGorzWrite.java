@@ -40,6 +40,7 @@ public class UTestSparkGorzWrite {
     }
 
     @Test
+    @Ignore("Need base64 gorz file")
     public void testSparkGorzWrite() {
         Dataset<Row> ds = sparkSession.read().format("gorsat.spark.GorDataSource").load("../tests/data/gor/genes.gorz").limit(4);
         Dataset<String> dss = ds.map((MapFunction<Row, String>) Object::toString,Encoders.STRING()).map((MapFunction<String,String>)l -> l.substring(1,l.length()-1).replace(',','\t'), Encoders.STRING());

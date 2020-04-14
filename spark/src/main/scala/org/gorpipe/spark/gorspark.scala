@@ -284,7 +284,7 @@ class GorRDD[T:ClassTag](prev:RDD[T],gorcmd:String,header:String,gor:Boolean) ex
     val args = Array(gorcmd,"-stdin")
     val pipeOptions = new PipeOptions
     pipeOptions.parseOptions(args)
-    pi.subProcessArguments(pipeOptions.query, pipeOptions.fileSignature, pipeOptions.virtualFile, pipeOptions.scriptAnalyzer, pipeOptions.stdIn, newheader)
+    pi.init(pipeOptions.query, pipeOptions.stdIn, newheader)
 
     val bpsia = new BatchedPipeStepIteratorAdaptor(rs, pi.thePipeStep, newheader, GorPipe.brsConfig)
     new Iterator[org.gorpipe.model.genome.files.gor.Row] {

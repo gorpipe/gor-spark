@@ -60,7 +60,7 @@ public class GorSpark implements MapPartitionsFunction<Row, Row> {
         }
 
         PipeInstance pi = new PipeInstance(gps.getGorContext());
-        pi.subProcessArguments(pipeOptions.query(), pipeOptions.fileSignature(), pipeOptions.virtualFile(), pipeOptions.scriptAnalyzer(), pipeOptions.stdIn(), header/*, pipeOptions.jobId(), pipeOptions.schema()*/);
+        pi.init(pipeOptions.query(), pipeOptions.stdIn(), header/*, pipeOptions.jobId(), pipeOptions.schema()*/);
         return pi;
     }
 

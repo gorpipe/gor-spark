@@ -1,6 +1,6 @@
 package org.gorpipe.spark;
 
-import io.projectglow.GlowBase;
+//import io.projectglow.GlowBase;
 import org.apache.spark.SparkConf;
 import org.apache.spark.ml.linalg.DenseMatrix;
 import org.apache.spark.ml.linalg.SQLDataTypes;
@@ -164,8 +164,8 @@ public class SparkGorUtilities {
                 } catch(Exception e) {
                     e.printStackTrace();
                 } finally {
-                    GlowBase gb = new GlowBase();
-                    gb.register(spark);
+                    //GlowBase gb = new GlowBase();
+                    //gb.register(spark);
                 }
             }
         }

@@ -11,17 +11,11 @@ project(':spark') {
     sourceSets.main.java.srcDirs = []
 
     dependencies {
-        /*implementation 'org.gorpipe.gor:gor-base-config:2.3'
-        implementation 'org.gorpipe.gor:gor-base-logging:2.3'
-        implementation 'org.gorpipe.gor:gor-base-exception:2.3'
-        implementation 'org.gorpipe.gor:gor-model:2.3'
-        implementation 'org.gorpipe.gor:gor-gortools:2.3'*/
-
-        implementation project(':base:config')
-        implementation project(':base:logging')
-        implementation project(':base:exception')
-        implementation project(':model')
-        implementation project(':gortools')
+        compile("${gorArtifactGroupId}:gor-base-config:${gorVersion}")
+        compile("${gorArtifactGroupId}:gor-base-logging:${gorVersion}")
+        compile("${gorArtifactGroupId}:gor-base-exception:${gorVersion}")
+        compile("${gorArtifactGroupId}:gor-model:${gorVersion}")
+        compile("${gorArtifactGroupId}:gor-gortools:${gorVersion}")
 
         implementation 'org.apache.spark:spark-core_2.12:3.0.0-preview2'
         implementation 'org.apache.spark:spark-sql_2.12:3.0.0-preview2'
@@ -51,7 +45,7 @@ project(':spark') {
         compile group: 'javax.jms', name: 'javax.jms-api', version: '2.0.1'
 
         //implementation 'io.projectglow:glow_2.12:0.3.0'
-        implementation 'io.projectglow:glow:3.2.1'
+        //implementation 'io.projectglow:glow:3.2.1'
         //implementation files('../hail/hail/build/libs/hail-all-spark.jar')
         //implementation files('../../glow/core/target/scala-2.12/glow_2.12-0.3.1-SNAPSHOT.jar')
         compile group: 'com.typesafe.scala-logging', name: 'scala-logging_2.12', version: '3.9.2'
@@ -77,7 +71,7 @@ project(':spark') {
 
         compile group: 'io.fabric8', name: 'kubernetes-client', version: '4.7.1'
 
-        //testImplementation project(':gortools')
+        testCompile("${gorArtifactGroupId}:gor-base-test:${gorVersion}")
     }
 
     jar {

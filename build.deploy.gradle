@@ -57,11 +57,14 @@ configure(allLeafProjects()){
     publishing {
         repositories {
             maven {
-                name = "GitHubPackages"
-                url = uri("https://maven.pkg.github.com/sigmarkarl/sparkgor")
-                credentials {
-                    username = "sigmarkarl"//project.findProperty("gpr.user") ?: System.getenv("USERNAME")
-                    password = System.getenv("GITHUB_TOKEN")
+                name = "gitlab-gor-spark-maven"
+                url = uri("https://gitlab.com/api/v4/projects/17267784/packages/maven")
+                credentials(HttpHeaderCredentials) {
+                    name = project.findProperty('gitlab_token') ? "Private-Token" : "Job-Token"
+                    value = project.findProperty('gitlab_token') ?: System.getenv("CI_JOB_TOKEN")
+                }
+                authentication {
+                    header(HttpHeaderAuthentication)
                 }
             }
         }

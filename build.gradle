@@ -48,7 +48,7 @@ buildscript {
     }
 }
 
-version = new File("${rootDir}/version").text.trim()
+version = new File("${rootDir}/VERSION").text.trim()
 
 apply from: "${rootDir}/gradle/util.gradle"
 
@@ -77,6 +77,11 @@ configure(allLeafProjects()) {
     licenseMain.onlyIf { rootProject.file('LICENSE ').exists() }
     licenseTest.onlyIf { rootProject.file('LICENSE ').exists() }
 
+    ext {
+        gorArtifactGroupId = 'com.wuxinextcode.gor'
+        gorVersion = new File("${rootDir}/GOR_VERSION").text.trim()
+    }
+
     dependencyLocking {
         lockAllConfigurations()
     }
@@ -90,22 +95,25 @@ configure(allLeafProjects()) {
         mavenLocal()
         jcenter()
         mavenCentral()
-        /*maven {
-            name = "gor"
-            url = uri("https://maven.pkg.github.com/sigmarkarl/gor")
-            credentials {
-                username = "sigmarkarl" //project.findProperty("gpr.user") ?: System.getenv("USERNAME")
-                password = System.getenv("MAVEN_TOKEN")
-            }
-        }*/
         maven {
+            name "gitlab-gor-maven"
+            url uri("https://gitlab.com/api/v4/projects/17033400/packages/maven")
+            credentials(HttpHeaderCredentials) {
+                name = project.findProperty('gitlab_token') ? "Private-Token" : "Job-Token"
+                value = project.findProperty('gitlab_token') ?: System.getenv("CI_JOB_TOKEN")
+            }
+            authentication {
+                header(HttpHeaderAuthentication)
+            }
+        }
+        /*maven {
             name = "glow"
             url = uri("https://maven.pkg.github.com/sigmarkarl/glow")
             credentials {
                 username = project.findProperty('github_user') ?: System.getenv("GITHUB_USER")
                 password = project.findProperty('github_token') ?: System.getenv("GITHUB_TOKEN")
             }
-        }
+        }*/
     }
 
     jar {
