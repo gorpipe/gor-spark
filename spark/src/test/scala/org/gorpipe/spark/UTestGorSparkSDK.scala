@@ -9,7 +9,7 @@ import org.gorpipe.model.genome.files.gor.Row
 import org.junit.{After, Assert, Before, Test}
 
 class UTestGorSparkSDK {
-    var sparkGorSession : SparkGORSession = _
+    var sparkGorSession : GorSparkSession = _
     var genesPath : String = _
 
     @Before
