@@ -1,13 +1,4 @@
-rootProject.name = 'sparkgor'
+rootProject.name = 'gor-spark'
 rootProject.buildFileName = "build.gradle"
 
 include 'spark'
-
-include 'util:net:http'
-include 'util:collection'
-include 'util:string'
-include 'util:gorutil'
-include 'clientbase'
-include 'external'
-
-include 'documentation'

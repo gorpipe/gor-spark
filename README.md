@@ -1,4 +1,4 @@
-# sparkgor
+# gor-spark
 Spark enabled GOR
 
 GOR scalable through the Spark engine (https://spark.apache.org)
@@ -28,7 +28,7 @@ sbt package
 
 ## Build SparkGOR
 ```bash
-cd sparkgor
+cd gor-spark
 ./gradlew clean installDist
 ```
 
