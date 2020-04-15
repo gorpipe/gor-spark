@@ -9,7 +9,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.stream.Collectors;
 
-import org.gorpipe.spark.SparkGORSession;
+import org.gorpipe.spark.GorSparkSession;
 import gorsat.BatchedReadSource;
 import gorsat.process.GorPipe;
 import gorsat.process.PipeInstance;
@@ -132,7 +132,7 @@ public class GorReaderFactory implements PartitionReaderFactory {
                         }
                     };
                     SparkSessionFactory sessionFactory = new SparkSessionFactory(null, Paths.get(".").toAbsolutePath().normalize().toString(), "result_cache", sparkGorMonitor);
-                    SparkGORSession gorPipeSession = (SparkGORSession) sessionFactory.create();
+                    GorSparkSession gorPipeSession = (GorSparkSession) sessionFactory.create();
                     PipeInstance pi = new PipeInstance(gorPipeSession.getGorContext());
 
                     boolean useNative = useCpp != null && useCpp.equalsIgnoreCase("true");
@@ -150,8 +150,8 @@ public class GorReaderFactory implements PartitionReaderFactory {
                         epathstr = p.path;
                     }
                     String spath = useNative ? "cgor #(S:-p chr:pos) "+p.path+"}" : epathstr;
-                    String s = p.filterColumn != null && p.filterColumn.length() > 0 ? " "+p.filterColumn : " ";
-                    String path = seek + (p.filterFile == null ? p.filter == null ? spath : s + "-f " + p.filter + " " + spath : s + "-ff " + p.filterFile + " " + spath);
+                    String s = p.filterColumn != null && p.filterColumn.length() > 0 ? "-s "+p.filterColumn + " " : "";
+                    String path = seek + (p.filterFile == null ? p.filter == null ? s + spath : s + "-f " + p.filter + " " + spath : s + "-ff " + p.filterFile + " " + spath);
                     String[] args = {path};
                     PipeOptions options = new PipeOptions();
                     options.parseOptions(args);

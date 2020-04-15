@@ -281,10 +281,7 @@ class GorRDD[T:ClassTag](prev:RDD[T],gorcmd:String,header:String,gor:Boolean) ex
     val gsf = if (Files.exists(gp)) new GenericSessionFactory(gp.toString, "result_cache") else new GenericSessionFactory
     val gps = gsf.create
     val pi = new PipeInstance(gps.getGorContext)
-    val args = Array(gorcmd,"-stdin")
-    val pipeOptions = new PipeOptions
-    pipeOptions.parseOptions(args)
-    pi.init(pipeOptions.query, pipeOptions.stdIn, newheader)
+    pi.init(gorcmd, true, newheader)
 
     val bpsia = new BatchedPipeStepIteratorAdaptor(rs, pi.thePipeStep, newheader, GorPipe.brsConfig)
     new Iterator[org.gorpipe.model.genome.files.gor.Row] {
@@ -554,19 +551,19 @@ object SparkGOR {
     new GorSpark(null, false, null, q, null)
   }
 
-  def createSession(sparkSession: SparkSession, root: String, cache: String, operator: Int): SparkGORSession = {
+  def createSession(sparkSession: SparkSession, root: String, cache: String, operator: Int): GorSparkSession = {
     val standalone = System.getProperty("sm.standalone")
     if( standalone == null || standalone.length == 0) System.setProperty("sm.standalone",root)
     val sessionFactory = new SparkSessionFactory(sparkSession, root, cache, null)
-    val sparkGorSession = sessionFactory.create().asInstanceOf[SparkGORSession]
+    val sparkGorSession = sessionFactory.create().asInstanceOf[GorSparkSession]
     sparkGorSession
   }
 
-  def createSession(sparkSession: SparkSession): SparkGORSession = {
+  def createSession(sparkSession: SparkSession): GorSparkSession = {
     createSession(sparkSession,"/gorproject", "result_cache", 0)
   }
 
-  def createSession(sparkSession: SparkSession, operator: Int): SparkGORSession = {
+  def createSession(sparkSession: SparkSession, operator: Int): GorSparkSession = {
     createSession(sparkSession, "/gorproject", "result_cache", operator)
   }
 }

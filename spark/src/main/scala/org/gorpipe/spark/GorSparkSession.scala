@@ -13,7 +13,7 @@ import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{Dataset, Encoder, Row, SparkSession}
 import org.gorpipe.gor.GorSession
 
-class SparkGORSession(requestId: String) extends GorSession(requestId) with AutoCloseable {
+class GorSparkSession(requestId: String) extends GorSession(requestId) with AutoCloseable {
   var sparkSession: SparkSession = _
   val createMap = new java.util.HashMap[String,String]
   val datasetMap = new ConcurrentHashMap[String, RowDataType]
@@ -25,7 +25,7 @@ class SparkGORSession(requestId: String) extends GorSession(requestId) with Auto
   }
 
   def getSparkSession: SparkSession = {
-    if(sparkSession == null) sparkSession = SparkGorUtilities.getSparkSession(null,null)
+    if(sparkSession == null) sparkSession = GorSparkUtilities.getSparkSession(null,null)
     sparkSession
   }
 

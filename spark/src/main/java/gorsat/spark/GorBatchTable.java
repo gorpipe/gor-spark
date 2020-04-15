@@ -57,11 +57,12 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
         inferSchema();
     }
 
-    public GorBatchTable(String path, String filter, String filterFile, String splitFile, String seek, StructType schema, String redisUri, String jobId, String cacheFile, String useCpp) {
+    public GorBatchTable(String path, String filter, String filterFile, String filterColumn, String splitFile, String seek, StructType schema, String redisUri, String jobId, String cacheFile, String useCpp) {
         this.path = path;
         this.inputfilter = filter;
         this.schema = schema;
         this.filterFile = filterFile;
+        this.filterColumn = filterColumn;
         this.splitFile = splitFile;
         this.redisUri = redisUri;
         this.jobId = jobId;

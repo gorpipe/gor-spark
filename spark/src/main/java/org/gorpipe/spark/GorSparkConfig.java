@@ -3,7 +3,7 @@ package org.gorpipe.spark;
 import org.aeonbits.owner.Config;
 import org.gorpipe.base.config.annotations.Documentation;
 
-public interface SparkGorConfig extends Config {
+public interface GorSparkConfig extends Config {
 
     String SPARK_MASTER = "GOR_SPARK_MASTER";
     @Documentation("")
@@ -45,7 +45,7 @@ public interface SparkGorConfig extends Config {
     String SPARK_EXECUTOR_MEM= "gor.spark.executor.memory";
     @Documentation("")
     @Key(SPARK_EXECUTOR_MEM)
-    @DefaultValue("8000000000")
+    @DefaultValue("8g")
     String sparkExecutorMemory();
 
     String SPARK_EXECUTOR_CORES = "gor.spark.executor.cores";

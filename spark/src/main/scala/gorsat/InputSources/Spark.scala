@@ -3,7 +3,7 @@ package gorsat.InputSources
 import java.io.File
 import java.nio.file.{Files, Paths}
 
-import org.gorpipe.spark.SparkGORSession
+import org.gorpipe.spark.GorSparkSession
 import gorsat.Commands.CommandParseUtilities._
 import gorsat.Commands.{CommandArguments, GenomicRange, InputSourceInfo, InputSourceParsingResult}
 import gorsat.process.{GorJavaUtilities, SparkRowSource}
@@ -50,7 +50,7 @@ object Spark {
     val native = hasOption(args, "-c")
 
     val myCommand = GorJavaUtilities.seekReplacement(command, range.chromosome, range.start, range.stop)
-    val inputSource = new SparkRowSource(myCommand, null, null, isNorContext, gpSession.asInstanceOf[SparkGORSession], filter, filterFile, filterColumn, splitFile, range.chromosome, range.start, range.stop, usegorpipe, jobId, native)
+    val inputSource = new SparkRowSource(myCommand, null, null, isNorContext, gpSession.asInstanceOf[GorSparkSession], filter, filterFile, filterColumn, splitFile, range.chromosome, range.start, range.stop, usegorpipe, jobId, native)
     InputSourceParsingResult(inputSource, inputSource.getHeader, isNorContext)
   }
 

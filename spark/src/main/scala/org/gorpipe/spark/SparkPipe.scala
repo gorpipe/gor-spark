@@ -23,7 +23,7 @@ object SparkPipe extends GorPipeFirstOrderCommands {
 
   val brsConfig: BatchedReadSourceConfig = ConfigManager.createPrefixConfig("gor", classOf[BatchedReadSourceConfig])
   val gorConfig: GorConfig = ConfigManager.createPrefixConfig("gor", classOf[GorConfig])
-  val sparkConfig: SparkGorConfig = ConfigManager.createPrefixConfig("spark", classOf[SparkGorConfig])
+  val sparkConfig: GorSparkConfig = ConfigManager.createPrefixConfig("spark", classOf[GorSparkConfig])
 
   /**
    * Main definition accepts an argument string and ensures database sources are initialized.

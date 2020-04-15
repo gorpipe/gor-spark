@@ -43,11 +43,6 @@ public class GorSpark implements MapPartitionsFunction<Row, Row> {
     }
 
     public PipeInstance query() {
-        String[] args = {gorcmd,"-stdin"};
-        PipeOptions pipeOptions = new PipeOptions();
-        pipeOptions.parseOptions(args);
-
-        pipeOptions.gorRoot_$eq(gorroot);
         Path projectPath = Paths.get(gorroot);
 
         GenericSessionFactory gsf = Files.exists(projectPath) ? new GenericSessionFactory(gorroot, "result_cache") : new GenericSessionFactory();
@@ -60,7 +55,7 @@ public class GorSpark implements MapPartitionsFunction<Row, Row> {
         }
 
         PipeInstance pi = new PipeInstance(gps.getGorContext());
-        pi.init(pipeOptions.query(), pipeOptions.stdIn(), header/*, pipeOptions.jobId(), pipeOptions.schema()*/);
+        pi.init(gorcmd, true, header);
         return pi;
     }
 

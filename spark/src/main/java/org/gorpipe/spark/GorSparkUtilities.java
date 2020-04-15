@@ -17,14 +17,14 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
-public class SparkGorUtilities {
-    private static final Logger log = LoggerFactory.getLogger(SparkGorUtilities.class);
+public class GorSparkUtilities {
+    private static final Logger log = LoggerFactory.getLogger(GorSparkUtilities.class);
     private static SparkSession spark;
 
-    private SparkGorUtilities() {}
+    private GorSparkUtilities() {}
 
     public static SparkSession getSparkSession(String gorroot, String hostMount) {
-        SparkGorConfig config = ConfigManager.createPrefixConfig("spark", SparkGorConfig.class);
+        GorSparkConfig config = ConfigManager.createPrefixConfig("spark", GorSparkConfig.class);
         if( spark == null ) {
             if( !SparkSession.getDefaultSession().isEmpty() ) {
                 log.debug("SparkSession from default");
@@ -204,7 +204,7 @@ public class SparkGorUtilities {
         return spark;
     }
 
-    private static void activateEventLogIfSet(SparkGorConfig sparkGorConfig, SparkConf sparkConf) {
+    private static void activateEventLogIfSet(GorSparkConfig sparkGorConfig, SparkConf sparkConf) {
         if(!sparkGorConfig.eventLogDir().isEmpty()){
             String pathname = sparkGorConfig.eventLogDir();
             File eventFolder = new File(pathname);

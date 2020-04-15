@@ -24,7 +24,7 @@ public class SparkSessionFactory extends GorSessionFactory {
     private GorMonitor sparkGorMonitor;
 
     public SparkSessionFactory(String root, String cacheDir, SparkGorMonitor sparkMonitor) {
-       this(SparkGorUtilities.getSparkSession(root,""), root, cacheDir, sparkMonitor);
+       this(GorSparkUtilities.getSparkSession(root,""), root, cacheDir, sparkMonitor);
     }
 
     public SparkSessionFactory(SparkSession sparkSession, String root, String cacheDir, GorMonitor sparkMonitor) {
@@ -37,7 +37,7 @@ public class SparkSessionFactory extends GorSessionFactory {
     @Override
     public GorSession create() {
         String requestId = UUID.randomUUID().toString();
-        SparkGORSession session = new SparkGORSession(requestId);
+        GorSparkSession session = new GorSparkSession(requestId);
         session.setSparkSession(sparkSession);
         String sparkRedisUri = null;
         if(sparkGorMonitor instanceof SparkGorMonitor) {

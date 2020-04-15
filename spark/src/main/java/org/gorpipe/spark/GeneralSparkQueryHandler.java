@@ -14,7 +14,7 @@ import java.util.concurrent.Executors;
 import java.util.stream.IntStream;
 
 import org.gorpipe.spark.GorQueryRDD;
-import org.gorpipe.spark.SparkGORSession;
+import org.gorpipe.spark.GorSparkSession;
 import gorsat.Commands.CommandParseUtilities;
 import gorsat.process.PipeInstance;
 import gorsat.process.PipeOptions;
@@ -26,7 +26,7 @@ import org.gorpipe.spark.platform.*;
 import redis.clients.jedis.JedisPool;
 
 public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
-    SparkGORSession gpSession;
+    GorSparkSession gpSession;
 
     GorClusterBase cluster;
     boolean force = false;
@@ -36,7 +36,7 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
     String sparkRedisUri;
     private JedisPool jedisPool;
 
-    public GeneralSparkQueryHandler(SparkGORSession gorPipeSession, String sparkRedisUri) {
+    public GeneralSparkQueryHandler(GorSparkSession gorPipeSession, String sparkRedisUri) {
         this.sparkRedisUri = sparkRedisUri;
         if (gorPipeSession != null) init(gorPipeSession);
     }
@@ -45,7 +45,7 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
         this.cluster = cluster;
     }
 
-    public void init(SparkGORSession gorPipeSession) {
+    public void init(GorSparkSession gorPipeSession) {
         this.gpSession = gorPipeSession;
         this.requestID = gorPipeSession.getRequestId();
 
@@ -58,7 +58,7 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
         }
     }
 
-    public static String[] executeSparkBatch(SparkGORSession session, String projectDir, String cacheDir, String[] fingerprints, String[] commandsToExecute, String[] jobIds, String[] cacheFiles) {
+    public static String[] executeSparkBatch(GorSparkSession session, String projectDir, String cacheDir, String[] fingerprints, String[] commandsToExecute, String[] jobIds, String[] cacheFiles) {
         SparkSession sparkSession = session.getSparkSession();
         String redisUri = session.getRedisUri();
 
