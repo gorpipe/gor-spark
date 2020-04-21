@@ -66,7 +66,7 @@ public interface GorSparkConfig extends Config {
     @DefaultValue("client")
     String sparkDeployMode();
 
-    String SPARK_KUBERNETESE_NAMESPACE = "gor.spark.kubernetes.namespace";
+    String SPARK_KUBERNETESE_NAMESPACE = "GOR_SPARK_KUBERNETES_NAMESPACE";
     @Documentation("")
     @Key(SPARK_KUBERNETESE_NAMESPACE)
     @DefaultValue("spark")
@@ -82,5 +82,39 @@ public interface GorSparkConfig extends Config {
         //@DefaultValue("host.docker.internal:6379/8")
     String sparkRedisUrl();
 
-    //spark.kubernetes.driver.pod.name = "sfs-gor-server-legacy"
+    String SPARK_INITIAL_EXECUTORS = "GOR_SPARK_INITIAL_EXECUTORS";
+    @Documentation("")
+    @Key(SPARK_INITIAL_EXECUTORS)
+    @DefaultValue("0")
+    String getSparkInitialExecutors();
+
+    String SPARK_MIN_EXECUTORS = "GOR_SPARK_MIN_EXECUTORS";
+    @Documentation("")
+    @Key(SPARK_MIN_EXECUTORS)
+    @DefaultValue("0")
+    String getSparkMinExecutors();
+
+    String SPARK_MAX_EXECUTORS = "GOR_SPARK_MAX_EXECUTORS";
+    @Documentation("")
+    @Key(SPARK_MAX_EXECUTORS)
+    @DefaultValue("100")
+    String getSparkMaxExecutors();
+
+    String SPARK_EXECUTOR_TIMEOUT = "GOR_SPARK_EXECUTOR_TIMEOUT";
+    @Documentation("")
+    @Key(SPARK_EXECUTOR_TIMEOUT)
+    @DefaultValue("240s")
+    String getSparkExecutorTimeout();
+
+    String SPARK_PERSISTENT_VOLUME_CLAIM = "GOR_SPARK_KUBERNETES_PERSISTENT_VOLUME_CLAIM";
+    @Documentation("")
+    @Key(SPARK_PERSISTENT_VOLUME_CLAIM)
+    @DefaultValue("pvc-gor-nfs")
+    String getSparkPersistentVolumeClaim();
+
+    String SPARK_MOUNT_PATH = "GOR_SPARK_KUBERNETES_MOUNT_PATH";
+    @Documentation("")
+    @Key(SPARK_MOUNT_PATH)
+    @DefaultValue("/mnt/csa")
+    String getSparkMountPath();
 }

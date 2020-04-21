@@ -67,10 +67,10 @@ public class GorSparkUtilities {
                         .config("spark.dynamicAllocation.enabled","true")
                         //.config("spark.shuffle.service.enabled","true")
                         .config("spark.dynamicAllocation.shuffleTracking.enabled","true")
-                        .config("spark.dynamicAllocation.minExecutors","0")
-                        .config("spark.dynamicAllocation.maxExecutors","100")
-                        .config("spark.dynamicAllocation.initialExecutors","0")
-                        .config("spark.dynamicAllocation.executorIdleTimeout","240s");
+                        .config("spark.dynamicAllocation.minExecutors",config.getSparkMinExecutors())
+                        .config("spark.dynamicAllocation.maxExecutors",config.getSparkMaxExecutors())
+                        .config("spark.dynamicAllocation.initialExecutors",config.getSparkInitialExecutors())
+                        .config("spark.dynamicAllocation.executorIdleTimeout",config.getSparkExecutorTimeout());
 
                 if(master.startsWith("k8s://")) {
                     hostMount = "/gorproject";
@@ -91,19 +91,12 @@ public class GorSparkUtilities {
                         .config("spark.kubernetes.driver.volumes.hostPath.userhome.mount.readOnly", "false")
                         .config("spark.kubernetes.driver.volumes.hostPath.userhome.options.path", gorroot);*/
 
-                        .config("spark.kubernetes.executor.volumes.persistentVolumeClaim.gorproject.options.claimName", "pvc-sparkgorproject-nfs")
-                        .config("spark.kubernetes.executor.volumes.persistentVolumeClaim.gorproject.mount.path", "/gorproject")
-                        .config("spark.kubernetes.executor.volumes.persistentVolumeClaim.mntcsa.options.claimName", "pvc-sparkgor-nfs")
-                        .config("spark.kubernetes.executor.volumes.persistentVolumeClaim.mntcsa.mount.path", "/mnt/csa")
+                        .config("spark.kubernetes.executor.volumes.persistentVolumeClaim.mntcsa.options.claimName", config.getSparkPersistentVolumeClaim())
+                        .config("spark.kubernetes.executor.volumes.persistentVolumeClaim.mntcsa.mount.path", config.getSparkMountPath())
 
                         .config("spark.kubernetes.container.image.pullSecrets", "dockerhub-nextcode-download-credentials")
                         .config("spark.kubernetes.container.image.pullPolicy", "Always")
-                        .config("spark.kubernetes.authenticate.driver.serviceAccountName", "spark-autoscaler")
-
-                        .config("spark.kubernetes.driver.volumes.persistentVolumeClaim.gorproject.options.claimName", "pvc-sparkgorproject-nfs")
-                        .config("spark.kubernetes.driver.volumes.persistentVolumeClaim.gorproject.mount.path", "/gorproject")
-                        .config("spark.kubernetes.driver.volumes.persistentVolumeClaim.mntcsa.options.claimName", "pvc-sparkgor-nfs")
-                        .config("spark.kubernetes.driver.volumes.persistentVolumeClaim.mntcsa.mount.path", "/mnt/csa");
+                        .config("spark.kubernetes.authenticate.driver.serviceAccountName", "spark-autoscaler");
 
                     /*if( gorroot != null ) {
                         if(hostMount==null || hostMount.length()==0) hostMount = "/gorproject";
