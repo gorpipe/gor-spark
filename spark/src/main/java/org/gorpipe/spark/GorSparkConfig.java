@@ -69,7 +69,7 @@ public interface GorSparkConfig extends Config {
     String SPARK_KUBERNETESE_NAMESPACE = "gor.spark.kubernetes.namespace";
     @Documentation("")
     @Key(SPARK_KUBERNETESE_NAMESPACE)
-    @DefaultValue("spark")
+    @DefaultValue("gorkube")
     String getSparkKuberneteseNamespace();
 
     String SPARK_REDIS_URL = "gor.spark.redis.url";

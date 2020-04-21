@@ -11,11 +11,17 @@ project(':spark') {
     sourceSets.main.java.srcDirs = []
 
     dependencies {
-        compile("${gorArtifactGroupId}:gor-base-config:${gorVersion}")
+        implementation project(':base:config')
+        implementation project(':base:logging')
+        implementation project(':base:exception')
+        implementation project(':model')
+        implementation project(':gortools')
+
+        /*compile("${gorArtifactGroupId}:gor-base-config:${gorVersion}")
         compile("${gorArtifactGroupId}:gor-base-logging:${gorVersion}")
         compile("${gorArtifactGroupId}:gor-base-exception:${gorVersion}")
         compile("${gorArtifactGroupId}:gor-model:${gorVersion}")
-        compile("${gorArtifactGroupId}:gor-gortools:${gorVersion}")
+        compile("${gorArtifactGroupId}:gor-gortools:${gorVersion}")*/
 
         implementation ('org.apache.spark:spark-core_2.12:3.0.0-preview2') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'

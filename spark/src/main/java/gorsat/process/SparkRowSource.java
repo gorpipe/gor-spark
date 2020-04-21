@@ -90,6 +90,9 @@ public class SparkRowSource extends ProcessSource {
 
     String jobId = "-1";
 
+    Integer bucks;
+    String parts;
+
     public static class GorDataType {
         public Map<Integer, DataType> dataTypeMap;
         public boolean withStart;
@@ -786,9 +789,12 @@ public class SparkRowSource extends ProcessSource {
         return nor;
     }
 
-    public SparkRowSource(String sql, String parquet, String type, boolean nor, GorSparkSession gpSession, final String filter, final String filterFile, final String filterColumn, final String splitFile, final String chr, final int pos, final int end, boolean usestreaming, String jobId, boolean useCpp) throws IOException, DataFormatException {
+    public SparkRowSource(String sql, String parquet, String type, boolean nor, GorSparkSession gpSession, final String filter, final String filterFile, final String filterColumn, final String splitFile, final String chr, final int pos, final int end, boolean usestreaming, String jobId, boolean useCpp, String parts, int bucks) throws IOException, DataFormatException {
         init();
         this.jobId = jobId;
+
+        this.bucks = bucks != -1 ? bucks : null;
+        this.parts = parts;
 
         this.gorSparkSession = gpSession;
         this.nor = nor;
@@ -1152,7 +1158,15 @@ public class SparkRowSource extends ProcessSource {
                 }
                 if (!Files.exists(pPath)) {
                     Arrays.stream(dataset.columns()).filter(c -> c.contains("(")).forEach(c -> dataset = dataset.withColumnRenamed(c, c.replace('(', '_').replace(')', '_')));
-                    dataset.write().format("parquet").mode(SaveMode.Overwrite).save(pPath.toAbsolutePath().normalize().toString());
+                    DataFrameWriter dfw = dataset.write();
+                    if(parts != null) {
+                        if(bucks != null) {
+                            dfw = dfw.bucketBy(bucks, parts);
+                        } else {
+                            dfw = dfw.partitionBy(parts.split(","));
+                        }
+                    }
+                    dfw.format("parquet").mode(SaveMode.Overwrite).save(pPath.toAbsolutePath().normalize().toString());
                 }
                 return false;
             } else {
