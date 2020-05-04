@@ -94,12 +94,6 @@ public class GorSparkUtilities {
                         .config("spark.kubernetes.executor.volumes.persistentVolumeClaim.mntcsa.options.claimName", config.getSparkPersistentVolumeClaim())
                         .config("spark.kubernetes.executor.volumes.persistentVolumeClaim.mntcsa.mount.path", config.getSparkMountPath())
 
-                            .config("spark.kubernetes.driver.volumes.persistentVolumeClaim.gorproject.options.claimName", "pvc-gor-nfs")
-                            .config("spark.kubernetes.driver.volumes.persistentVolumeClaim.gorproject.mount.subPath", "env/dev/orgs/internal_org/projects/ukbb_hg38")
-                            .config("spark.kubernetes.driver.volumes.persistentVolumeClaim.gorproject.mount.path", "/gorproject")
-                            .config("spark.kubernetes.driver.volumes.persistentVolumeClaim.mntcsa.options.claimName", "pvc-gor-nfs")
-                            .config("spark.kubernetes.driver.volumes.persistentVolumeClaim.mntcsa.mount.path", "/mnt/csa")
-
                         .config("spark.kubernetes.container.image.pullSecrets", "dockerhub-nextcode-download-credentials")
                         .config("spark.kubernetes.container.image.pullPolicy", "Always")
                         .config("spark.kubernetes.authenticate.driver.serviceAccountName", "spark-autoscaler");
