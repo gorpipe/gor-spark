@@ -90,6 +90,9 @@ public class SparkRowSource extends ProcessSource {
 
     String jobId = "-1";
 
+    Integer buckets;
+    String parts;
+
     public static class GorDataType {
         public Map<Integer, DataType> dataTypeMap;
         public boolean withStart;
@@ -402,34 +405,38 @@ public class SparkRowSource extends ProcessSource {
         return new StructType(fields);
     }
 
+    public static String translatePath(String fn, Path fileroot, String standalone) {
+        String fileName;
+        if (fn.contains("://")) {
+            fileName = fn;
+        } else {
+            Path filePath;
+            if (standalone != null && standalone.length() > 0) {
+                int k = standalone.indexOf(' ');
+                if (k == -1) k = standalone.length();
+                filePath = Paths.get(standalone.substring(0, k)).resolve(fn);
+            } else {
+                filePath = Paths.get(fn);
+                if(!filePath.isAbsolute() && !Files.exists(filePath)) {
+                    filePath = fileroot.resolve(filePath).normalize().toAbsolutePath();
+                }
+            }
+            fileName = filePath.toString();
+        }
+        return fileName;
+    }
+
     public static Dataset<? extends org.apache.spark.sql.Row> registerFile(String[] fns, String name, GorSparkSession GorSparkSession, String standalone, Path fileroot, boolean usestreaming, String filter, String filterFile, String filterColumn, String splitFile, final boolean nor, final String chr, final int pos, final int end, final String jobid, String cacheFile, boolean cpp) throws IOException, DataFormatException {
         String fn = fns[0];
-        boolean nestedQuery = fn.startsWith("<(") && !fn.startsWith("<(spark");
-        String fileName;
+        boolean nestedQuery = fn.startsWith("<(");
         Path filePath = null;
-        if (nestedQuery) {
-            fileName = fn.substring(2, fn.length() - 1);
+        String fileName;
+        if(nestedQuery) {
+            fileName = fn.substring(2, fn.length()-1);
         } else {
-            if (fn.contains("://")) {
-                filePath = Paths.get(fn);
-                fileName = fn;
-            } else if(!fn.startsWith("<(")) {
-                if (standalone != null && standalone.length() > 0) {
-                    int k = standalone.indexOf(' ');
-                    if (k == -1) k = standalone.length();
-                    filePath = Paths.get(standalone.substring(0, k)).resolve(fn);
-                } else {
-                    filePath = Paths.get(fn);
-                    if(!filePath.isAbsolute() && !Files.exists(filePath)) {
-                        filePath = fileroot.resolve(filePath).normalize().toAbsolutePath();
-                    }
-                }
-                fileName = filePath.toString();
-            } else {
-                fileName = fn.substring(2, fn.length() - 1);
-            }
+            fileName = translatePath(fn, fileroot, standalone);
+            filePath = Paths.get(fileName);
         }
-
         String tempViewName = generateTempViewName(fileName, usestreaming, filter, chr, pos, end);
 
         Map<Integer, DataType> dataTypeMap;
@@ -448,6 +455,7 @@ public class SparkRowSource extends ProcessSource {
             });
             if (name != null) gor.createOrReplaceTempView(name);
         } else {
+            nestedQuery &= !fn.startsWith("<(spark");
             if (nestedQuery) {
                 boolean hasFilter = filter != null && filter.length() > 0;
                 String gorcmd = fileName;
@@ -786,9 +794,12 @@ public class SparkRowSource extends ProcessSource {
         return nor;
     }
 
-    public SparkRowSource(String sql, String parquet, String type, boolean nor, GorSparkSession gpSession, final String filter, final String filterFile, final String filterColumn, final String splitFile, final String chr, final int pos, final int end, boolean usestreaming, String jobId, boolean useCpp) throws IOException, DataFormatException {
+    public SparkRowSource(String sql, String parquet, String type, boolean nor, GorSparkSession gpSession, final String filter, final String filterFile, final String filterColumn, final String splitFile, final String chr, final int pos, final int end, boolean usestreaming, String jobId, boolean useCpp, String parts, int buckets) throws IOException, DataFormatException {
         init();
         this.jobId = jobId;
+
+        this.buckets = buckets != -1 ? buckets : null;
+        this.parts = parts;
 
         this.gorSparkSession = gpSession;
         this.nor = nor;
@@ -827,18 +838,13 @@ public class SparkRowSource extends ProcessSource {
             gorfunc = p -> {
                 if (gorpred.test(p)) {
                     boolean nestedQuery = p.startsWith("<(");
-                    String pp;
-                    if (nestedQuery) {
-                        pp = p.substring(2, p.length() - 1);
+                    String fileName;
+                    if(nestedQuery) {
+                        fileName = p.substring(2,p.length()-1);
                     } else {
-                        if (p.contains("://")) {
-                            pp = p;
-                        } else {
-                            Path filePath = standalone != null && standalone.length() > 0 ? Paths.get(standalone).resolve(p) : Paths.get(p);
-                            pp = filePath.toString();
-                        }
+                        fileName = translatePath(p, fileroot, standalone);
                     }
-                    return generateTempViewName(pp, usestreaming, filter, chr, pos, end);
+                    return generateTempViewName(fileName, usestreaming, filter, chr, pos, end);
                 }
                 return p;
             };
@@ -1152,7 +1158,15 @@ public class SparkRowSource extends ProcessSource {
                 }
                 if (!Files.exists(pPath)) {
                     Arrays.stream(dataset.columns()).filter(c -> c.contains("(")).forEach(c -> dataset = dataset.withColumnRenamed(c, c.replace('(', '_').replace(')', '_')));
-                    dataset.write().format("parquet").mode(SaveMode.Overwrite).save(pPath.toAbsolutePath().normalize().toString());
+                    DataFrameWriter dfw = dataset.write();
+                    if(parts != null) {
+                        if(buckets != null) {
+                            dfw = dfw.bucketBy(buckets, parts);
+                        } else {
+                            dfw = dfw.partitionBy(parts.split(","));
+                        }
+                    }
+                    dfw.format("parquet").mode(SaveMode.Overwrite).save(pPath.toAbsolutePath().normalize().toString());
                 }
                 return false;
             } else {

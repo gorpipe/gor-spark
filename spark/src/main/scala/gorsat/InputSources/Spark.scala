@@ -47,14 +47,16 @@ object Spark {
     val filterFile = stringValueOfOptionWithDefault(args, "-ff", null)
     val filterColumn = stringValueOfOptionWithDefault(args, "-s", null)
     val splitFile = stringValueOfOptionWithDefault(args, "-split", null)
+    val buckets = intValueOfOptionWithDefault(args, "-buck", -1)
+    val parts = stringValueOfOptionWithDefault(args, "-part", null)
     val native = hasOption(args, "-c")
 
     val myCommand = GorJavaUtilities.seekReplacement(command, range.chromosome, range.start, range.stop)
-    val inputSource = new SparkRowSource(myCommand, null, null, isNorContext, gpSession.asInstanceOf[GorSparkSession], filter, filterFile, filterColumn, splitFile, range.chromosome, range.start, range.stop, usegorpipe, jobId, native)
+    val inputSource = new SparkRowSource(myCommand, null, null, isNorContext, gpSession.asInstanceOf[GorSparkSession], filter, filterFile, filterColumn, splitFile, range.chromosome, range.start, range.stop, usegorpipe, jobId, native, parts, buckets)
     InputSourceParsingResult(inputSource, inputSource.getHeader, isNorContext)
   }
 
-  class Spark() extends InputSourceInfo("SPARK", CommandArguments("-n -c", "-p -s -g -f -j -ff -split", 1, -1, ignoreIllegalArguments = true)) {
+  class Spark() extends InputSourceInfo("SPARK", CommandArguments("-n -c", "-p -s -g -f -j -ff -split -buck -part", 1, -1, ignoreIllegalArguments = true)) {
 
     override def processArguments(context: GorContext, argString: String, iargs: Array[String],
                                   args: Array[String]): InputSourceParsingResult = {
