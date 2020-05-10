@@ -73,9 +73,6 @@ public class GorSparkUtilities {
                         .config("spark.dynamicAllocation.executorIdleTimeout",config.getSparkExecutorTimeout());
 
                 if(master.startsWith("k8s://")) {
-                    hostMount = "/gorproject";
-                    gorroot = "/gorproject";
-
                     ssb = ssb
                         .config("spark.kubernetes.container.image","nextcode/spark:3.0.0-preview2")
                         .config("spark.kubernetes.executor.container.image","nextcode/spark:3.0.0-preview2")
@@ -97,27 +94,6 @@ public class GorSparkUtilities {
                         .config("spark.kubernetes.container.image.pullSecrets", "dockerhub-nextcode-download-credentials")
                         .config("spark.kubernetes.container.image.pullPolicy", "Always")
                         .config("spark.kubernetes.authenticate.driver.serviceAccountName", "spark-autoscaler");
-
-                    /*if( gorroot != null ) {
-                        if(hostMount==null || hostMount.length()==0) hostMount = "/gorproject";
-                        ssb = ssb
-                            .config("spark.kubernetes.executor.volumes.hostPath.userhome.mount.path", hostMount)
-                            .config("spark.kubernetes.executor.volumes.hostPath.userhome.mount.readOnly", "false")
-                            .config("spark.kubernetes.executor.volumes.hostPath.userhome.options.path", gorroot)
-                            .config("spark.kubernetes.driver.volumes.hostPath.userhome.mount.path", hostMount)
-                            .config("spark.kubernetes.driver.volumes.hostPath.userhome.mount.readOnly", "false")
-                            .config("spark.kubernetes.driver.volumes.hostPath.userhome.options.path", gorroot);
-
-                        ssb = ssb.config("spark.kubernetes.driver.volumes.persistentVolumeClaim.gorproject.options.claimName", "pvc-sparkgorproject-nfs")
-                            .config("spark.kubernetes.driver.volumes.persistentVolumeClaim.gorproject.mount.path", "/gorproject")
-                            .config("spark.kubernetes.driver.volumes.persistentVolumeClaim.mntcsa.options.claimName", "pvc-sparkgor-nfs")
-                            .config("spark.kubernetes.driver.volumes.persistentVolumeClaim.mntcsa.mount.path", "/mnt/csa");
-
-                        ssb = ssb.config("spark.kubernetes.executor.volumes.persistentVolumeClaim.gorproject.options.claimName", "pvc-sparkgorproject-nfs")
-                            .config("spark.kubernetes.executor.volumes.persistentVolumeClaim.gorproject.mount.path", "/gorproject")
-                            .config("spark.kubernetes.executor.volumes.persistentVolumeClaim.mntcsa.options.claimName", "pvc-sparkgor-nfs")
-                            .config("spark.kubernetes.executor.volumes.persistentVolumeClaim.mntcsa.mount.path", "/mnt/csa");
-                    }*/
                 } else if(master.startsWith("local")) {
                     ssb = ssb.config("spark.driver.bindAddress", "127.0.0.1");
                 }
