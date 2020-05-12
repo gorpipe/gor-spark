@@ -64,7 +64,7 @@ configure(allLeafProjects()){
                     password = project.findProperty('github_token') ?: System.getenv("GITHUB_TOKEN")
                 }
             }
-            maven {
+            /*maven {
                 name = "gitlab-gor-spark-maven"
                 url = uri("https://gitlab.com/api/v4/projects/17267784/packages/maven")
                 credentials(HttpHeaderCredentials) {
@@ -74,7 +74,7 @@ configure(allLeafProjects()){
                 authentication {
                     header(HttpHeaderAuthentication)
                 }
-            }
+            }*/
         }
         publications {
             mavenJavaLibModule(MavenPublication) {
