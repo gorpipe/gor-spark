@@ -17,9 +17,12 @@ jobs:
       run: chmod +x gradlew
     - name: Build with Gradle
       env:
-        GITHUB_USER: sigmarkarl
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: ./gradlew installDist
+    - name: Publish package
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: ./gradlew publish
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1

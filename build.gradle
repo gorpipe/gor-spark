@@ -97,9 +97,9 @@ configure(allLeafProjects()) {
         mavenCentral()
         maven {
             name = "gor"
-            url = uri("https://maven.pkg.github.com/gorpipe/gor")
+            url = uri("https://maven.pkg.github.com/sigmarkarl/gor")
             credentials {
-                username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_USER")
+                username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR")
                 password = project.findProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN")
             }
         }
