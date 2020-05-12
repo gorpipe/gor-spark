@@ -26,35 +26,43 @@ project(':spark') {
         implementation ('org.apache.spark:spark-core_2.12:3.0.0-preview2') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
+            exclude group: 'com.fasterxml.jackson.module', module: 'jackson-module-scala'
         }
         implementation ('org.apache.spark:spark-sql_2.12:3.0.0-preview2') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
+            exclude group: 'com.fasterxml.jackson.module', module: 'jackson-module-scala'
         }
         implementation ('org.apache.spark:spark-mllib_2.12:3.0.0-preview2') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
+            exclude group: 'com.fasterxml.jackson.module', module: 'jackson-module-scala'
         }
         implementation ('org.apache.spark:spark-tags_2.12:3.0.0-preview2') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
+            exclude group: 'com.fasterxml.jackson.module', module: 'jackson-module-scala'
         }
         implementation ('org.apache.spark:spark-kubernetes_2.12:3.0.0-preview2') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
+            exclude group: 'com.fasterxml.jackson.module', module: 'jackson-module-scala'
             exclude group: 'org.apache.spark', module: 'spark-tags_2.12'
         }
         implementation ('org.apache.spark:spark-catalyst_2.12:3.0.0-preview2') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
+            exclude group: 'com.fasterxml.jackson.module', module: 'jackson-module-scala'
         }
         implementation ('org.apache.spark:spark-repl_2.12:3.0.0-preview2') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
+            exclude group: 'com.fasterxml.jackson.module', module: 'jackson-module-scala'
         }
 
-        compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.10.3'
-        compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.10.3'
+        compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.10.4'
+        compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.10.4'
+        compile group: 'com.fasterxml.jackson.module', name: 'jackson-module-scala_2.12', version: '2.10.4'
 
         /*compile('org.broadinstitute:gatk:4.1.4.1') {
             exclude group: 'com.esotericsoftware'
@@ -64,12 +72,12 @@ project(':spark') {
         }
         compile group: 'org.broadinstitute', name: 'gatk-native-bindings', version: '1.0.0'*/
 
-        /*compile group: 'org.apache.logging.log4j', name: 'log4j', version: '2.13.0', ext: 'pom'
+        compile group: 'org.apache.logging.log4j', name: 'log4j', version: '2.13.0', ext: 'pom'
         compile group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.13.0', ext: 'pom'
         compile group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.13.0', ext: 'pom'
         compile group: 'org.apache.logging.log4j', name: 'log4j-jcl', version: '2.13.0', ext: 'pom'
         compile group: 'org.apache.logging.log4j', name: 'log4j-slf4j-impl', version: '2.13.0'
-        compile group: 'org.apache.logging.log4j', name: 'log4j-1.2-api', version: '2.13.0'*/
+        compile group: 'org.apache.logging.log4j', name: 'log4j-1.2-api', version: '2.13.0'
 
         //compile group: 'javax.jms', name: 'javax.jms-api', version: '2.0.1'
 
@@ -96,8 +104,8 @@ project(':spark') {
 
         compile "org.json4s:json4s-core_2.12:3.6.7"
         compile "org.json4s:json4s-ast_2.12:3.6.7"
-        compile "org.json4s:json4s-jackson_2.12:3.6.7"
-        compile "org.apache.commons:commons-lang3:3.9"*/
+        compile "org.json4s:json4s-jackson_2.12:3.6.7"*/
+        compile "org.apache.commons:commons-lang3:3.10"
 
         implementation("redis.clients:jedis:3.1.+")
 

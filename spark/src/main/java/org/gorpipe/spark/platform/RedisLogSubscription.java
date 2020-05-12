@@ -70,7 +70,8 @@ public class RedisLogSubscription extends JedisPubSub implements GorLogSubscript
                 try (Jedis j = cluster.pool().getResource()) {
                     j.subscribe(RedisLogSubscription.this, channels);
                 } catch (JedisConnectionException jde) {
-                    throw new GorSystemException("Unable to get a connection to redis at " + cluster.getConfig().getURI(), jde);
+                    // as redis is only for the progress bar in spark environment, ignore errors and allow job to finish
+                    // throw new GorSystemException("Unable to get a connection to redis at " + cluster.getConfig().getURI(), jde);
                 } finally {
                     cluster.logInfo("Ending log subscription on channels " + Arrays.toString(channels), null);
                     unsubscriptionThread.interrupt();

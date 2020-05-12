@@ -11,11 +11,11 @@ public interface GorSparkConfig extends Config {
     //@DefaultValue("k8s://https://6A0DA5D06C34D9215711B1276624FFD9.gr7.us-east-1.eks.amazonaws.com")
     //@DefaultValue("k8s://https://127.0.0.1:6443")
     //@DefaultValue("spark://nc-mbp-0116.local:7077")
-    //@DefaultValue("local[*]")
+    @DefaultValue("local[*]")
     //@DefaultValue("k8s://https://192.168.64.3:8443")
     //@DefaultValue("k8s://https://127.0.0.1:6443")
     //@DefaultValue("k8s://https://6A0DA5D06C34D9215711B1276624FFD9.gr7.us-east-1.eks.amazonaws.com")
-    @DefaultValue("k8s://https://kubernetes.default.svc")
+    //@DefaultValue("k8s://https://kubernetes.default.svc")
     String sparkMaster();
 
     String SPARK_JARS = "gor.spark.jars";
@@ -75,9 +75,9 @@ public interface GorSparkConfig extends Config {
     String SPARK_REDIS_URL = "gor.spark.redis.url";
     @Documentation("The fully qualified redis url to the redis that is servicing spark jobs")
     @Key(SPARK_REDIS_URL)
-    //@DefaultValue("")
-        //@DefaultValue("localhost:6379/8")
-    @DefaultValue("plat-redis.gorkube:6379/8")
+    @DefaultValue("")
+    //@DefaultValue("localhost:6379/8")
+    //@DefaultValue("plat-redis.gorkube:6379/8")
         //@DefaultValue("docker.for.mac.localhost:6379/8")
         //@DefaultValue("host.docker.internal:6379/8")
     String sparkRedisUrl();
