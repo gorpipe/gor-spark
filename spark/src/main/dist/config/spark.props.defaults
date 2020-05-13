@@ -1,0 +1,4 @@
+# Spark Gor defaults property file.
+
+gor.spark.redis.url
+GOR_SPARK_MASTER    local[*]
