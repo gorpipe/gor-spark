@@ -147,12 +147,13 @@ publish:
   script: ./gradlew publish -x test -x slowTest -x integrationTest
 
 
-gor-services:
-  extends: .on-releasable-branch-only
-  stage: trigger-cross-projects
-  trigger:
-    project:  wuxi-nextcode/wxnc-gor/gor-services
-    branch:   develop
+# TODO:  The trigger starts the gor-services with wrong variables.  Needs some tuning.
+#gor-services:
+#  extends: .on-releasable-branch-only
+#  stage: trigger-cross-projects
+#  trigger:
+#    project:  wuxi-nextcode/wxnc-gor/gor-services
+#    branch:   develop
 
 
 include:
