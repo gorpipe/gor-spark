@@ -7,7 +7,9 @@ import org.apache.spark.ml.linalg.SQLDataTypes;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.api.java.UDF1;
 import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructType;
 import org.gorpipe.base.config.ConfigManager;
+import org.gorpipe.model.genome.files.gor.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,6 +18,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class GorSparkUtilities {
     private static final Logger log = LoggerFactory.getLogger(GorSparkUtilities.class);
@@ -185,5 +189,9 @@ public class GorSparkUtilities {
             sparkConf.set("spark.eventLog.enabled", "true");
             sparkConf.set("spark.eventLog.dir",eventFolder.getAbsolutePath());
         }
+    }
+
+    public static List<org.apache.spark.sql.Row> stream2SparkRowList(Stream<Row> str, StructType schema) {
+        return str.map(p -> new SparkGorRow(p, schema)).collect(Collectors.toList());
     }
 }

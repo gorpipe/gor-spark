@@ -10,6 +10,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import java.util.zip.DataFormatException;
+import java.util.zip.GZIPInputStream;
 
 import org.gorpipe.gor.ProjectContext;
 import org.gorpipe.spark.*;
@@ -125,6 +126,10 @@ public class SparkRowSource extends ProcessSource {
             is = Files.newInputStream(filePath);
         }
 
+        String fileLow = filePath.getFileName().toString().toLowerCase();
+        boolean isCompressed = fileLow.endsWith(".gz") || fileLow.endsWith(".bgz");
+        if(isCompressed) is = new GZIPInputStream(is);
+
         Stream<String> linestream = Stream.empty();
         boolean withStart = false;
         String[] headerArray = {};
@@ -182,9 +187,10 @@ public class SparkRowSource extends ProcessSource {
                 if (isUrl) {
                     SourceReference sr = new SourceReference(fileName);
                     is = ((StreamSource) GorDriverFactory.fromConfig().getDataSource(sr)).open();
+                    if(isCompressed) is = new GZIPInputStream(is);
                     linestream = new BufferedReader(new InputStreamReader(is)).lines().skip(1);
                 } else if (Files.exists(filePath)) {
-                    linestream = Files.newBufferedReader(filePath).lines().skip(1);
+                    linestream = isCompressed ? new BufferedReader(new InputStreamReader(new GZIPInputStream(Files.newInputStream(filePath)))).lines().skip(1) : Files.newBufferedReader(filePath).lines().skip(1);
                 }
             }
         }
@@ -593,6 +599,7 @@ public class SparkRowSource extends ProcessSource {
                     dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
                 } else {
                     boolean isGorz = fileName.toLowerCase().endsWith(".gorz");
+                    boolean isGorgz = fileName.toLowerCase().endsWith(".gor.gz") || fileName.toLowerCase().endsWith(".gor.bgz");
                     GorDataType gorDataType = inferDataTypes(filePath, fileName, isGorz, nor);
                     String[] headerArray = gorDataType.header;
                     dataTypeMap = gorDataType.dataTypeMap;
@@ -636,6 +643,14 @@ public class SparkRowSource extends ProcessSource {
                                 if (filterFile != null) dfr = dfr.option("ff", filterFile);
                                 if (splitFile != null) dfr = dfr.option("split", splitFile);
                                 if (filterColumn != null) dfr = dfr.option("s", filterColumn);
+                                if (chr != null) {
+                                    String seek = chr;
+                                    if (pos > 0 || end != -1) {
+                                        seek += ":" + pos;
+                                        if (end != -1) seek += "-" + end;
+                                    }
+                                    dfr = dfr.option("p", seek);
+                                }
                                 gor = dfr.schema(schema).load(dictFile.toAbsolutePath().normalize().toString());
                                 isGorz = false;
                             } else {
@@ -654,7 +669,7 @@ public class SparkRowSource extends ProcessSource {
                                 gor = gor.selectExpr("*", "get_pn(input_file_name()) as PN");
                             }
                         } else {
-                            if (gorDataType.base128) {
+                            if (isGorgz || gorDataType.base128) {
                                 DataFrameReader dfr = GorSparkSession.getSparkSession().read().format(gordatasourceClassname).schema(schema);
                                 if (GorSparkSession.getRedisUri() != null && GorSparkSession.getRedisUri().length() > 0) {
                                     dfr = dfr.option("redis", GorSparkSession.getRedisUri()).option("jobid", jobid).option("cachefile", cacheFile).option("native", Boolean.toString(cpp));
@@ -689,7 +704,7 @@ public class SparkRowSource extends ProcessSource {
                         }
                     }
 
-                    if (!gorDataType.base128) {
+                    if (!isGorgz && !gorDataType.base128) {
                         if (isGorz) {
                             if (chr != null) {
                                 if (gorDataType.withStart && end != -1) {
@@ -834,7 +849,7 @@ public class SparkRowSource extends ProcessSource {
                     return Arrays.stream(cmdspl).map(inner).map(gorfunc).map(parqfunc).collect(Collectors.joining(" ", "(", ")"));
                 } else return p;
             };
-            gorpred = p -> p.toLowerCase().endsWith(".tsv") || p.toLowerCase().endsWith(".gor") || p.toLowerCase().endsWith(".gorz") || p.toLowerCase().endsWith(".gord") || p.toLowerCase().endsWith(".txt") || p.toLowerCase().endsWith(".vcf") || p.toLowerCase().endsWith(".bgen") || p.startsWith("<(");
+            gorpred = p -> p.toLowerCase().endsWith(".tsv") || p.toLowerCase().endsWith(".gor") || p.toLowerCase().endsWith(".gorz") || p.toLowerCase().endsWith(".gor.gz") || p.toLowerCase().endsWith(".gord") || p.toLowerCase().endsWith(".txt") || p.toLowerCase().endsWith(".vcf") || p.toLowerCase().endsWith(".bgen") || p.startsWith("<(");
             gorfunc = p -> {
                 if (gorpred.test(p)) {
                     boolean nestedQuery = p.startsWith("<(");

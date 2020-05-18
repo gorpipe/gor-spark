@@ -86,7 +86,7 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
     schema
   }
 
-  def spark(qry: String, sc: StructType = null): Dataset[org.gorpipe.model.genome.files.gor.Row] = {
+  def spark(qry: String, sc: StructType = null): Dataset[_ <: Row] = {
     val pi = new PipeInstance(this.getGorContext)
 
     val creates = GorJavaUtilities.createMapString(createMap)
@@ -99,30 +99,33 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
     pi.theInputSource match {
       case source: SparkRowSource =>
         val ds = source.getDataset
-        if( source.isNor ) {
+        ds
+        /*if( source.isNor ) {
           ds.map(r => new SparkRow(r).asInstanceOf[org.gorpipe.model.genome.files.gor.Row])(ds.encoder.asInstanceOf[Encoder[org.gorpipe.model.genome.files.gor.Row]])
         } else {
           ds.map(r => new GorSparkRow(r).asInstanceOf[org.gorpipe.model.genome.files.gor.Row])(ds.encoder.asInstanceOf[Encoder[org.gorpipe.model.genome.files.gor.Row]])
-        }
+        }*/
       case _ =>
         val isNor = qry.toLowerCase().startsWith("nor")
         val schema = if(sc == null) infer(pi.theIterator.asInstanceOf[BatchedPipeStepIteratorAdaptor], pi.combinedHeader, isNor, parallel = false) else sc
 
         pi.subProcessArguments(options)
         val bpia = pi.theIterator.asInstanceOf[BatchedPipeStepIteratorAdaptor]
-        var gors : java.util.stream.Stream[org.gorpipe.model.genome.files.gor.Row] = null
+        var gors : java.util.stream.Stream[org.gorpipe.model.genome.files.gor.Row] = bpia.getStream
         try {
-          gors = bpia.getStream()
-          if (isNor) {
+          /*if (isNor) {
+            gors = bpia.getStream()
             gors = gors.map(r => {
               val cs = r.otherCols()
               val sa = splitArray(cs)
               new RowBase("chrN", 0, cs, sa, null)
             })
-          }
+          } else {
 
-          val list: java.util.List[org.gorpipe.model.genome.files.gor.Row] = GorJavaUtilities.stream2RowList(gors/*.peek(r => r.setSchema(schema))*/)
-          val ds = sparkSession.createDataset(list)(SparkGOR.gorrowEncoder)
+          }*/
+
+          val list: java.util.List[Row] = GorSparkUtilities.stream2SparkRowList(gors, schema/*.peek(r => r.setSchema(schema))*/)
+          val ds = sparkSession.createDataset(list)(RowEncoder.apply(schema))
           ds
         } finally {
           if( gors != null ) gors.close()
