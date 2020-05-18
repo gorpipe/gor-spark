@@ -23,7 +23,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ./gradlew assemble
-          mv spark/build/distributions/gor-scripts-0.2.5.zip gor-scripts.zip
+          mv spark/build/distributions/gor-scripts-*.zip gor-scripts.zip
       - name: Publish package
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
