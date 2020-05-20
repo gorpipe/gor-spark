@@ -3,6 +3,7 @@ package gorsat.spark;
 import org.apache.spark.sql.connector.read.InputPartition;
 
 class GorRangeInputPartition implements InputPartition {
+    String query;
     String path;
     String filterFile;
     String filter;
@@ -11,6 +12,10 @@ class GorRangeInputPartition implements InputPartition {
     int start;
     int end;
     String tag;
+
+    GorRangeInputPartition(String query) {
+        this.query = query;
+    }
 
     GorRangeInputPartition(String path, String filter, String filterFile, String filterColumn, String chr, int start, int end, String tag) {
         this.path = path;

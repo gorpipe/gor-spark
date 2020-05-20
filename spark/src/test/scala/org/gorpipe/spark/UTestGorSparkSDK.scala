@@ -4,6 +4,7 @@ import java.nio.file.Paths
 import java.util.stream.Collectors
 
 import org.apache.spark.api.java.function.{FilterFunction, MapFunction}
+import org.apache.spark.sql
 import org.apache.spark.sql.{Dataset, Encoders, SparkSession}
 import org.gorpipe.model.genome.files.gor.Row
 import org.junit.{After, Assert, Before, Test}

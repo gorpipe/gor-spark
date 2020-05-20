@@ -20,7 +20,7 @@ public class GorDataSource implements FileDataSourceV2, RelationProvider, Schema
     @Override
     public Table getTable(CaseInsensitiveStringMap options) {
         try {
-            return new GorBatchTable(options.get("path"), options.get("f"), options.get("ff"), options.get("s"), options.get("split"), options.get("p"), options.get("redis"), options.get("jobid"), options.get("cachefile"), options.get("native")) {
+            return new GorBatchTable(options.get("query"), options.get("path"), options.get("f"), options.get("ff"), options.get("s"), options.get("split"), options.get("p"), options.get("redis"), options.get("jobid"), options.get("cachefile"), options.get("native")) {
 
             };
         } catch (IOException | DataFormatException e) {
@@ -31,7 +31,7 @@ public class GorDataSource implements FileDataSourceV2, RelationProvider, Schema
 
     @Override
     public Table getTable(CaseInsensitiveStringMap options, StructType schema) {
-        return new GorBatchTable(options.get("path"), options.get("f"), options.get("ff"), options.get("s"), options.get("split"), options.get("p"), schema, options.get("redis"), options.get("jobid"), options.get("cachefile"), options.get("native")) {
+        return new GorBatchTable(options.get("query"), options.get("path"), options.get("f"), options.get("ff"), options.get("s"), options.get("split"), options.get("p"), schema, options.get("redis"), options.get("jobid"), options.get("cachefile"), options.get("native")) {
 
         };
     }

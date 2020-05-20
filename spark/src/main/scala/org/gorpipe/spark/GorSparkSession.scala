@@ -100,6 +100,7 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
       case source: SparkRowSource =>
         val ds = source.getDataset
         ds
+       //.asInstanceOf[Dataset[org.gorpipe.model.genome.files.gor.Row]]
         /*if( source.isNor ) {
           ds.map(r => new SparkRow(r).asInstanceOf[org.gorpipe.model.genome.files.gor.Row])(ds.encoder.asInstanceOf[Encoder[org.gorpipe.model.genome.files.gor.Row]])
         } else {
@@ -127,6 +128,7 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
           val list: java.util.List[Row] = GorSparkUtilities.stream2SparkRowList(gors, schema/*.peek(r => r.setSchema(schema))*/)
           val ds = sparkSession.createDataset(list)(RowEncoder.apply(schema))
           ds
+            //.asInstanceOf[Dataset[org.gorpipe.model.genome.files.gor.Row]]
         } finally {
           if( gors != null ) gors.close()
         }

@@ -1,5 +1,6 @@
 package org.gorpipe.spark;
 
+import gorsat.QueryHandlers.GeneralQueryHandler;
 import gorsat.process.FreemarkerReportBuilder;
 import gorsat.process.GenericRunnerFactory;
 import gorsat.process.SessionBasedQueryEvaluator;
@@ -8,6 +9,7 @@ import org.gorpipe.gor.*;
 import org.gorpipe.gor.clients.LocalFileCacheClient;
 import org.gorpipe.model.genome.files.gor.DriverBackedFileReader;
 import org.gorpipe.model.genome.files.gor.GorMonitor;
+import org.gorpipe.model.genome.files.gor.GorParallelQueryHandler;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -22,6 +24,7 @@ public class SparkSessionFactory extends GorSessionFactory {
     private String cacheDir;
     private SparkSession sparkSession;
     private GorMonitor sparkGorMonitor;
+    private GorParallelQueryHandler queryHandler;
 
     public SparkSessionFactory(String root, String cacheDir, SparkGorMonitor sparkMonitor) {
        this(GorSparkUtilities.getSparkSession(root,""), root, cacheDir, sparkMonitor);
@@ -32,6 +35,11 @@ public class SparkSessionFactory extends GorSessionFactory {
         this.cacheDir = cacheDir;
         this.sparkSession = sparkSession;
         this.sparkGorMonitor = sparkMonitor;
+    }
+
+    public SparkSessionFactory(SparkSession sparkSession, String root, String cacheDir, GorMonitor sparkMonitor, GorParallelQueryHandler queryHandler) {
+        this(sparkSession, root, cacheDir, sparkMonitor);
+        this.queryHandler = queryHandler;
     }
 
     @Override
@@ -47,7 +55,7 @@ public class SparkSessionFactory extends GorSessionFactory {
 
         Path cachePath = Paths.get(cacheDir);
 
-        GeneralSparkQueryHandler sparkQueryHandler = new GeneralSparkQueryHandler(null, sparkRedisUri);
+        GorParallelQueryHandler sparkQueryHandler = queryHandler != null ? queryHandler : new GeneralSparkQueryHandler(null, sparkRedisUri);
         ProjectContext.Builder projectContextBuilder = new ProjectContext.Builder();
         projectContextBuilder
             .setRoot(root)
@@ -70,7 +78,7 @@ public class SparkSessionFactory extends GorSessionFactory {
         session.init(projectContextBuilder.build(),
                 systemContextBuilder.build(),
                 cache);
-        sparkQueryHandler.init(session);
+        if(sparkQueryHandler instanceof GeneralSparkQueryHandler) ((GeneralSparkQueryHandler)sparkQueryHandler).init(session);
 
         //session.redisUri_$eq(redisUri);
 
