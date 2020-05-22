@@ -37,7 +37,7 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
     redisUri
   }
 
-  def where(w: String, schema: StructType): GorSparkRowFilterFunction[org.gorpipe.model.genome.files.gor.Row] = {
+  def where(w: String, schema: StructType): GorSparkRowFilterFunction[_ >: org.gorpipe.model.genome.files.gor.Row] = {
     new GorSparkRowFilterFunction[org.gorpipe.model.genome.files.gor.Row](w, schema)
   }
 
