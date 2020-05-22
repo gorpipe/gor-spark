@@ -97,7 +97,7 @@ class GorDatasetFunctions[T:ClassTag](ds:Dataset[T])(implicit tag: ClassTag[T]) 
       val mu = ds.asInstanceOf[Dataset[Row]].map(row => new GorSparkRow(row).asInstanceOf[org.gorpipe.model.genome.files.gor.Row])(SparkGOR.gorrowEncoder)
 
       val row = mu.mapPartitions(gsm, SparkGOR.gorrowEncoder).limit(100).reduce(gr)
-      val schema = SparkRowSource.schemaFromRow(gs.query().combinedHeader.split("\t"), row)
+      val schema = SparkRowSource.schemaFromRow(gs.query().getHeader().split("\t"), row)
       val encoder = RowEncoder.apply(schema)
       gs.setSchema(schema)
       mu.mapPartitions(gs, encoder.asInstanceOf[Encoder[org.gorpipe.model.genome.files.gor.Row]])
@@ -447,7 +447,7 @@ class PgorRDD[T:ClassTag](@transient private val sparkSession: SparkSession,gorc
     val args = Array[String](newgorcmd)
     val pi = new PipeInstance(null)
     pi.processArguments(args, executeNor = false)
-    val it = pi.theIterator
+    val it = pi.getIterator
     new Iterator[org.gorpipe.model.genome.files.gor.Row]() {
       override def hasNext: Boolean = {
         val ret = it.hasNext

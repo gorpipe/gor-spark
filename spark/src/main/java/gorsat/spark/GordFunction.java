@@ -48,7 +48,7 @@ public class GordFunction implements Function1<PartitionedFile, Iterator<Interna
         pi.subProcessArguments(options);
 
         BatchedReadSourceConfig brsConfig = GorPipe.brsConfig();
-        BatchedPipeStepIteratorAdaptor batchedPipeStepIteratorAdaptor = new BatchedPipeStepIteratorAdaptor(pi.theIterator(), pi.thePipeStep(), true, header, brsConfig);
+        BatchedPipeStepIteratorAdaptor batchedPipeStepIteratorAdaptor = new BatchedPipeStepIteratorAdaptor(pi.getIterator(), pi.thePipeStep(), true, header, brsConfig);
         Stream<InternalRow> ir = StreamSupport.stream(batchedPipeStepIteratorAdaptor,false).map(r -> encoder.toRow(r));
 
         return JavaConverters.asScalaIterator(ir.iterator());
