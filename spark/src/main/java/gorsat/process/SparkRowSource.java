@@ -422,15 +422,17 @@ public class SparkRowSource extends ProcessSource {
         if (fn.contains("://")) {
             fileName = fn;
         } else {
-            Path filePath;
-            if (standalone != null && standalone.length() > 0) {
-                int k = standalone.indexOf(' ');
-                if (k == -1) k = standalone.length();
-                filePath = Paths.get(standalone.substring(0, k)).resolve(fn);
-            } else {
-                filePath = Paths.get(fn);
-                if(!filePath.isAbsolute() && !Files.exists(filePath)) {
-                    filePath = fileroot.resolve(filePath).normalize().toAbsolutePath();
+            Path filePath = Paths.get(fn);
+            if(!filePath.isAbsolute()) {
+                if (standalone != null && standalone.length() > 0) {
+                    int k = standalone.indexOf(' ');
+                    if (k == -1) k = standalone.length();
+                    filePath = Paths.get(standalone.substring(0, k)).resolve(fn);
+                } else {
+                    filePath = Paths.get(fn);
+                    if (!filePath.isAbsolute() && !Files.exists(filePath)) {
+                        filePath = fileroot.resolve(filePath).normalize().toAbsolutePath();
+                    }
                 }
             }
             fileName = filePath.toString();
@@ -891,8 +893,8 @@ public class SparkRowSource extends ProcessSource {
             gorfileflat = p -> p.startsWith("(") ? Arrays.stream(CommandParseUtilities.quoteCurlyBracketsSafeSplit(p.substring(1, p.length() - 1), ' ')).flatMap(gorfileflat).filter(gorpred) : Stream.of(p);
             parqfunc = p -> {
                 if (p.toLowerCase().endsWith(".parquet") && !p.toLowerCase().startsWith("parquet.")) {
-                    Path path = Paths.get(p);
-                    return "parquet.`" + (!path.isAbsolute() && standalone != null ? Paths.get(standalone).resolve(path).toString() : p) + "`";
+                    String fileName = translatePath(p, fileroot, standalone);
+                    return "parquet.`" + fileName + "`";
                 } else return p;
             };
 
