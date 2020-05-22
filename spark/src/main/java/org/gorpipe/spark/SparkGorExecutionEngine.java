@@ -12,6 +12,7 @@ import gorsat.process.PipeInstance;
 import org.gorpipe.gor.GorRunner;
 import org.gorpipe.gor.GorSession;
 import org.gorpipe.model.genome.files.binsearch.GorIndexType;
+import org.gorpipe.model.genome.files.gor.GorMonitor;
 import org.gorpipe.model.gor.iterators.RowSource;
 import scala.Option;
 
@@ -22,9 +23,9 @@ public class SparkGorExecutionEngine extends GorExecutionEngine {
     private String projectDirectory;
     private String cacheDirectory;
     private String outfile;
-    private SparkGorMonitor sparkMonitor;
+    private GorMonitor sparkMonitor;
 
-    public SparkGorExecutionEngine(String query, String projectDirectory, String cacheDirectory, String outfile, SparkGorMonitor sparkMonitor) {
+    public SparkGorExecutionEngine(String query, String projectDirectory, String cacheDirectory, String outfile, GorMonitor sparkMonitor) {
         this.query = query;
         this.projectDirectory = projectDirectory;
         this.cacheDirectory = cacheDirectory;

@@ -2,7 +2,6 @@ package org.gorpipe.spark.platform;
 
 import gorsat.Commands.CommandParseUtilities;
 import org.apache.commons.io.FilenameUtils;
-import org.gorpipe.util.string.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,7 +77,7 @@ public class GorQuery {
     }
 
     public void setQuerySource(String requestID) {
-        parms.put(QUERY_SOURCE_FIELD, StringUtil.blankNull(requestID));
+        parms.put(QUERY_SOURCE_FIELD, blankNull(requestID));
     }
 
     public String getRequestId() {
@@ -87,15 +86,15 @@ public class GorQuery {
     }
 
     public void setRequestId(String requestID) {
-        parms.put(REQUEST_ID_FIELD, StringUtil.blankNull(requestID));
+        parms.put(REQUEST_ID_FIELD, blankNull(requestID));
     }
 
     public void setPartition(String partition) {
-        parms.put("partition", StringUtil.blankNull(partition));
+        parms.put("partition", blankNull(partition));
     }
 
     public String getPartition() {
-        return StringUtil.blankNull(parms.get("partition"));
+        return blankNull(parms.get("partition"));
     }
 
     public String getOutfile() {
@@ -167,9 +166,16 @@ public class GorQuery {
         parms.put("extension", ext);
     }
 
+    public static String blankNull(String s) {
+        if (s != null && s.trim().isEmpty()) {
+            return null;
+        }
+        return s;
+    }
+
     public String getExtension() {
         // 1. Use explicit extension if specified
-        String ext = StringUtil.blankNull(parms.get("extension"));
+        String ext = blankNull(parms.get("extension"));
         if (ext != null) return ext;
 
         // 2. Use output file extension if specified
@@ -185,7 +191,7 @@ public class GorQuery {
     }
 
     public void setFingerprint(String fingerprint) {
-        parms.put("fingerprint", StringUtil.blankNull(fingerprint));
+        parms.put("fingerprint", blankNull(fingerprint));
     }
 
     public String getLockName() {
@@ -205,7 +211,7 @@ public class GorQuery {
     }
 
     public void setProject(String projectName) {
-        parms.put("projectname", StringUtil.blankNull(projectName));
+        parms.put("projectname", blankNull(projectName));
     }
 
     public boolean useCache() {
@@ -374,6 +380,32 @@ public class GorQuery {
     }
 
     /**
+     * @param s
+     * @return returns true if the String is an int number.
+     */
+    public static boolean isStringInt(String s) {
+        try {
+            Integer.parseInt(s);
+            return true;
+        } catch (NumberFormatException ex) {
+            return false;
+        }
+    }
+
+    /**
+     * @param s
+     * @return returns true if the String is a long number.
+     */
+    public static boolean isStringLong(String s) {
+        try {
+            Long.parseLong(s);
+            return true;
+        } catch (NumberFormatException ex) {
+            return false;
+        }
+    }
+
+    /**
      * Get the number of Columns the query returned
      *
      * @return
@@ -383,27 +415,27 @@ public class GorQuery {
     }
 
     public boolean hasColumnCount() {
-        return StringUtil.isStringInt(parms.get(QUERY_COLUMN_COUNT));
+        return isStringInt(parms.get(QUERY_COLUMN_COUNT));
     }
 
     public boolean hasLineCount() {
-        return StringUtil.isStringLong(parms.get(QUERY_LINE_COUNT));
+        return isStringLong(parms.get(QUERY_LINE_COUNT));
     }
 
     public boolean hasByteCount() {
-        return StringUtil.isStringLong(parms.get(QUERY_BYTE_COUNT));
+        return isStringLong(parms.get(QUERY_BYTE_COUNT));
     }
 
     public boolean hasExecutionEndTime() {
-        return StringUtil.isStringLong(parms.get(QUERY_EXECUTION_END));
+        return isStringLong(parms.get(QUERY_EXECUTION_END));
     }
 
     public boolean hasExecutionStartTime() {
-        return StringUtil.isStringLong(parms.get(QUERY_EXECUTION_START));
+        return isStringLong(parms.get(QUERY_EXECUTION_START));
     }
 
     public boolean hasResultCacheExpirationMs() {
-        return StringUtil.isStringLong(parms.get(QUERY_RESULT_CACHE_EXPIRATION_MS));
+        return isStringLong(parms.get(QUERY_RESULT_CACHE_EXPIRATION_MS));
     }
 
 

@@ -15,6 +15,7 @@ import redis.clients.jedis.exceptions.JedisConnectionException;
 
 public class SparkGorMonitor extends GorMonitor implements Serializable {
     private static final Logger log = LoggerFactory.getLogger(SparkGorMonitor.class);
+    public static GorMonitor localProgressMonitor;
 
     private JedisPool jedisPool;
     private String uri;
