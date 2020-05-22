@@ -49,14 +49,15 @@ object Spark {
     val splitFile = stringValueOfOptionWithDefault(args, "-split", null)
     val buckets = intValueOfOptionWithDefault(args, "-buck", -1)
     val parts = stringValueOfOptionWithDefault(args, "-part", null)
+    var tag = hasOption(args, "-tag")
     val native = hasOption(args, "-c")
 
     val myCommand = GorJavaUtilities.seekReplacement(command, range.chromosome, range.start, range.stop)
-    val inputSource = new SparkRowSource(myCommand, null, null, isNorContext, gpSession.asInstanceOf[GorSparkSession], filter, filterFile, filterColumn, splitFile, range.chromosome, range.start, range.stop, usegorpipe, jobId, native, parts, buckets)
+    val inputSource = new SparkRowSource(myCommand, null, null, isNorContext, gpSession.asInstanceOf[GorSparkSession], filter, filterFile, filterColumn, splitFile, range.chromosome, range.start, range.stop, usegorpipe, jobId, native, parts, buckets, tag)
     InputSourceParsingResult(inputSource, inputSource.getHeader, isNorContext)
   }
 
-  class Spark() extends InputSourceInfo("SPARK", CommandArguments("-n -c", "-p -s -g -f -j -ff -split -buck -part", 1, -1, ignoreIllegalArguments = true)) {
+  class Spark() extends InputSourceInfo("SPARK", CommandArguments("-n -c -tag", "-p -s -g -f -j -ff -split -buck -part", 1, -1, ignoreIllegalArguments = true)) {
 
     override def processArguments(context: GorContext, argString: String, iargs: Array[String],
                                   args: Array[String]): InputSourceParsingResult = {
@@ -65,7 +66,7 @@ object Spark {
     }
   }
 
-  class GorSpark() extends InputSourceInfo("GORSPARK", CommandArguments("-c", "-p -s -g -f -j -ff -split", 1, -1, ignoreIllegalArguments = true)) {
+  class GorSpark() extends InputSourceInfo("GORSPARK", CommandArguments("-c -tag", "-p -s -g -f -j -ff -split", 1, -1, ignoreIllegalArguments = true)) {
 
     override def processArguments(context: GorContext, argString: String, iargs: Array[String],
                                   args: Array[String]): InputSourceParsingResult = {
@@ -74,7 +75,7 @@ object Spark {
     }
   }
 
-  class NorSpark() extends InputSourceInfo("NORSPARK", CommandArguments("-c", "-p -s -g -f -j -ff -split", 1, -1, ignoreIllegalArguments = true)) {
+  class NorSpark() extends InputSourceInfo("NORSPARK", CommandArguments("-c -tag", "-p -s -g -f -j -ff -split", 1, -1, ignoreIllegalArguments = true)) {
 
     override def processArguments(context: GorContext, argString: String, iargs: Array[String],
                                   args: Array[String]): InputSourceParsingResult = {

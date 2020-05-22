@@ -94,6 +94,7 @@ public class SparkRowSource extends ProcessSource {
 
     Integer buckets;
     String parts;
+    boolean tag;
 
     public static class GorDataType {
         public Map<Integer, DataType> dataTypeMap;
@@ -450,7 +451,7 @@ public class SparkRowSource extends ProcessSource {
         return gdt;
     }
 
-    public static Dataset<? extends org.apache.spark.sql.Row> registerFile(String[] fns, String name, GorSparkSession gorSparkSession, String standalone, Path fileroot, boolean usestreaming, String filter, String filterFile, String filterColumn, String splitFile, final boolean nor, final String chr, final int pos, final int end, final String jobid, String cacheFile, boolean cpp) throws IOException, DataFormatException {
+    public static Dataset<? extends org.apache.spark.sql.Row> registerFile(String[] fns, String name, GorSparkSession gorSparkSession, String standalone, Path fileroot, boolean usestreaming, String filter, String filterFile, String filterColumn, String splitFile, final boolean nor, final String chr, final int pos, final int end, final String jobid, String cacheFile, boolean cpp, boolean tag) throws IOException, DataFormatException {
         String fn = fns[0];
         boolean nestedQuery = fn.startsWith("<(");
         Path filePath = null;
@@ -597,6 +598,7 @@ public class SparkRowSource extends ProcessSource {
                 } else if (fileName.startsWith("pgor ") || fileName.startsWith("partgor ") || fileName.startsWith("parallel ")) {
                     DataFrameReader dfr = gorSparkSession.getSparkSession().read().format(gordatasourceClassname);
                     dfr.option("query",fileName);
+                    if(tag) dfr.option("tag",true);
                     gor = dfr.load();
 
                     /*String uri = gorSparkSession.getRedisUri();
@@ -836,9 +838,10 @@ public class SparkRowSource extends ProcessSource {
         return nor;
     }
 
-    public SparkRowSource(String sql, String parquet, String type, boolean nor, GorSparkSession gpSession, final String filter, final String filterFile, final String filterColumn, final String splitFile, final String chr, final int pos, final int end, boolean usestreaming, String jobId, boolean useCpp, String parts, int buckets) throws IOException, DataFormatException {
+    public SparkRowSource(String sql, String parquet, String type, boolean nor, GorSparkSession gpSession, final String filter, final String filterFile, final String filterColumn, final String splitFile, final String chr, final int pos, final int end, boolean usestreaming, String jobId, boolean useCpp, String parts, int buckets, boolean tag) throws IOException, DataFormatException {
         init();
         this.jobId = jobId;
+        this.tag = tag;
 
         this.buckets = buckets != -1 ? buckets : null;
         this.parts = parts;
@@ -906,12 +909,12 @@ public class SparkRowSource extends ProcessSource {
                 fileNames = Arrays.stream(cmdsplit).flatMap(gorfileflat).filter(gorpred).toArray(String[]::new);
                 for (String fn : fileNames) {
                     if(gorSparkSession.getSystemContext().getServer()) ProjectContext.validateServerFileName(fn, true);
-                    registerFile(new String[]{fn}, null, gpSession, standalone, fileroot, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp);
+                    registerFile(new String[]{fn}, null, gpSession, standalone, fileroot, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp, tag);
                 }
                 dataset = gpSession.getSparkSession().sql(sql);
             } else {
                 fileNames = headercommands.toArray(new String[0]);
-                dataset = registerFile(fileNames, null, gpSession, standalone, fileroot, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp);
+                dataset = registerFile(fileNames, null, gpSession, standalone, fileroot, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp, tag);
             }
 
             if (chr != null) {

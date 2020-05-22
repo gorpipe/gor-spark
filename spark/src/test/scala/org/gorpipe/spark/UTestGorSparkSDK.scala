@@ -36,17 +36,17 @@ class UTestGorSparkSDK {
 
     @Test
     def testGorzSparkSDKSparkFilter() {
-        val ds : Dataset[Row] = sparkGorSession.spark("spark "+genesPath+" | top 5")
-        val gorfilter : FilterFunction[Row] = sparkGorSession.where("gene_start = 11868", ds.schema)
-        val res = ds.filter(gorfilter).map(r => r.toString)(Encoders.STRING).collect().mkString("\n")
+        val ds = sparkGorSession.spark("spark "+genesPath+" | top 5")
+        val gorfilter : GorSparkRowFilterFunction[_ >: Row] = sparkGorSession.where("gene_start = 11868", ds.schema)
+        val res = ds.map(r => new GorSparkRow(r).asInstanceOf[Row])(SparkGOR.gorrowEncoder).filter(gorfilter).map(r => r.toString)(Encoders.STRING).collect().mkString("\n")
         Assert.assertEquals("Wring result from session query", "chr1\t11868\t14412\tDDX11L1", res)
     }
 
     @Test
     def testGorzSparkSDKSparkCalc() {
-        val ds : Dataset[Row] = sparkGorSession.spark("spark "+genesPath+" | top 3")
-        val gorcalc : MapFunction[Row,Row] = sparkGorSession.calc("gene_length","gene_end-gene_start", ds.schema)
-        val res = ds.map(gorcalc,SparkGOR.gorrowEncoder).map(r => r.toString)(Encoders.STRING).collect().mkString("\n")
+        val ds = sparkGorSession.spark("spark "+genesPath+" | top 3")
+        val gorcalc : GorSparkRowMapFunction = sparkGorSession.calc("gene_length","gene_end-gene_start", ds.schema)
+        val res = ds.map(r => new GorSparkRow(r).asInstanceOf[Row])(SparkGOR.gorrowEncoder).map(gorcalc,SparkGOR.gorrowEncoder).map(r => r.toString)(Encoders.STRING).collect().mkString("\n")
         Assert.assertEquals("Wring result from session query", "chr1\t11868\t14412\tDDX11L1\t2544\nchr1\t14362\t29806\tWASH7P\t15444\nchr1\t34553\t36081\tFAM138A\t1528", res)
     }
 

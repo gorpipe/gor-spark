@@ -1,16 +1,12 @@
 package gorsat.spark;
 
-import gorsat.Script.ExecutionBatch;
-import gorsat.Script.ExecutionBlock;
 import gorsat.Script.ScriptEngineFactory;
 import gorsat.Script.ScriptExecutionEngine;
-import gorsat.process.PipeInstance;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.StructField;
 import org.gorpipe.spark.GorSparkSession;
-import org.gorpipe.spark.SparkGOR;
 import gorsat.process.SparkRowSource;
 import org.apache.spark.sql.connector.catalog.SupportsRead;
 import org.apache.spark.sql.connector.catalog.SupportsWrite;
@@ -26,10 +22,7 @@ import org.apache.spark.sql.connector.write.WriteBuilder;
 import org.apache.spark.sql.sources.*;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.util.CaseInsensitiveStringMap;
-import org.gorpipe.spark.SparkGorMonitor;
 import org.gorpipe.spark.SparkSessionFactory;
-import org.gorpipe.spark.platform.JobField;
-import scala.collection.JavaConverters;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -38,9 +31,9 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import java.util.zip.DataFormatException;
 
-import static org.apache.spark.sql.types.DataTypes.IntegerType;
 import static org.apache.spark.sql.types.DataTypes.StringType;
 
 public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrite, SupportsPushDownFilters {
@@ -58,9 +51,11 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
     String cacheFile;
     String useCpp;
     StructType schema = Encoders.STRING().schema();//SparkGOR.gorrowEncoder().schema();
+    boolean tag;
 
-    public GorBatchTable(String query, String path, String filter, String filterFile, String filterColumn, String splitFile, String seek, String redisUri, String jobId, String cacheFile, String useCpp) throws IOException, DataFormatException {
+    public GorBatchTable(String query, boolean tag, String path, String filter, String filterFile, String filterColumn, String splitFile, String seek, String redisUri, String jobId, String cacheFile, String useCpp) throws IOException, DataFormatException {
         initCommands(query);
+        this.tag = tag;
         this.path = path;
         this.inputfilter = filter;
         this.filterFile = filterFile;
@@ -74,8 +69,9 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
         inferSchema();
     }
 
-    public GorBatchTable(String query, String path, String filter, String filterFile, String filterColumn, String splitFile, String seek, StructType schema, String redisUri, String jobId, String cacheFile, String useCpp) {
+    public GorBatchTable(String query, boolean tag, String path, String filter, String filterFile, String filterColumn, String splitFile, String seek, StructType schema, String redisUri, String jobId, String cacheFile, String useCpp) {
         initCommands(query);
+        this.tag = tag;
         this.path = path;
         this.inputfilter = filter;
         this.schema = schema;
@@ -152,7 +148,8 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
                 dataTypes[i] = gdt.dataTypeMap.getOrDefault(i, StringType);
             }
 
-            StructField[] fields = IntStream.range(0, headerArray.length).mapToObj(i -> new StructField(headerArray[i], dataTypes[i], true, Metadata.empty())).toArray(StructField[]::new);
+            Stream<StructField> fieldStream = IntStream.range(0, headerArray.length).mapToObj(i -> new StructField(headerArray[i], dataTypes[i], true, Metadata.empty()));
+            StructField[] fields = (tag ? Stream.concat(fieldStream,Stream.of(new StructField("Tag", StringType, true, Metadata.empty()))) : fieldStream).toArray(StructField[]::new);
             schema = new StructType(fields);
         }
     }
@@ -286,7 +283,19 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
             public InputPartition[] planInputPartitions() {
                 InputPartition[] partitions = null;
                 if( commands != null ) {
-                    partitions = Arrays.stream(commands).map(GorRangeInputPartition::new).toArray(GorRangeInputPartition[]::new);
+                    partitions = Arrays.stream(commands).map(cmd -> {
+                        String tagstr = null;
+                        if(tag) {
+                            int i = cmd.indexOf("-p ") + 3;
+                            if (i != -1) {
+                                while (i < cmd.length() && cmd.charAt(i) == ' ') i++;
+                                int k = i + 1;
+                                while (k < cmd.length() && cmd.charAt(k) != ' ') k++;
+                                tagstr = cmd.substring(i, k);
+                            }
+                        }
+                        return new GorRangeInputPartition(cmd, tagstr);
+                    }).toArray(GorRangeInputPartition[]::new);
                 } else if( filterChrom != null ) {
                     partitions = new InputPartition[1];
                     partitions[0] = new GorRangeInputPartition(path, filter, filterFile, filterColumn, filterChrom, start, stop, filterChrom);

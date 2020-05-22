@@ -45,7 +45,7 @@ public class SparkTest {
         GorSparkSession gorSparkSession = SparkGOR.createSession(spark);
         JavaSparkContext javaSparkContext = JavaSparkContext.fromSparkContext(spark.sparkContext());
 
-        Dataset<Row> ds = (Dataset<Row>)gorSparkSession.spark("spark <(pgor -split <(gor /gorproject/brca.gor) /gorproject/plink_wes/metadata/AF.gorz | group chrom -count)",null);
+        Dataset<Row> ds = (Dataset<Row>)gorSparkSession.spark("spark -tag <(pgor -split <(gor /gorproject/brca.gor) /gorproject/plink_wes/metadata/AF.gorz | group chrom -count)",null);
         ds.collectAsList().forEach(System.err::println);
 
         //Dataset<? extends Row> ds = gorSparkSession.spark("spark <(pgor ref/genes.gorz | group chrom -count)",null);

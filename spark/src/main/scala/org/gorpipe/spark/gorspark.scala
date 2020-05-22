@@ -527,6 +527,7 @@ object SparkGOR {
   val rowbaseEncoder: Encoder[RowBase] = Encoders.javaSerialization(classOf[org.gorpipe.model.genome.files.gor.RowBase])
   val gorsparkrowbaseEncoder: Encoder[GorSparkRowBase] = Encoders.javaSerialization(classOf[GorSparkRowBase])
   val sparkrowEncoder: Encoder[SparkRow] = Encoders.javaSerialization(classOf[SparkRow])
+  val gorSparkrowEncoder: Encoder[GorSparkRow] = Encoders.javaSerialization(classOf[GorSparkRow])
   val gorzIterator = new GorzIterator()
 
   case class Variants(chrom:String,pos:Int,ref:String,alt:String,cc:Int,cr:Double,depth:Int,gl:Int,filter:String,fs:Double,formatZip:String,pn:String)
