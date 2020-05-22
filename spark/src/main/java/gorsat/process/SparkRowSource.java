@@ -937,7 +937,7 @@ public class SparkRowSource extends ProcessSource {
         GorSparkRowInferFunction gi = new GorSparkRowInferFunction();
         Row row = ((Dataset<Row>) dr).mapPartitions(gs, SparkGOR.gorrowEncoder()).limit(100).reduce(gi);
         if (row.chr != null) row = gi.infer(row, row);
-        StructType schema = schemaFromRow(gs.query().combinedHeader().split("\t"), row);
+        StructType schema = schemaFromRow(gs.query().getHeader().split("\t"), row);
 
         this.setHeader(correctHeader(schema.fieldNames()));
         ExpressionEncoder encoder = RowEncoder.apply(schema);

@@ -93,7 +93,7 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
             pi.subProcessArguments(options);
             pi.theInputSource().pushdownWrite(cacheFile);
             GorRunner runner = session.getSystemContext().getRunnerFactory().create();
-            runner.run(pi.theIterator(), pi.getPipeStep());
+            runner.run(pi.getIterator(), pi.getPipeStep());
             return cacheFile;
         }).toArray(String[]::new);
 
