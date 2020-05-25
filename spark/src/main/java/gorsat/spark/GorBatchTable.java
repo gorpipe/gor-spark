@@ -50,7 +50,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
     String jobId;
     String cacheFile;
     String useCpp;
-    StructType schema = Encoders.STRING().schema();//SparkGOR.gorrowEncoder().schema();
+    StructType schema = Encoders.STRING().schema();
     boolean tag;
 
     public GorBatchTable(String query, boolean tag, String path, String filter, String filterFile, String filterColumn, String splitFile, String seek, String redisUri, String jobId, String cacheFile, String useCpp) throws IOException, DataFormatException {
@@ -123,27 +123,8 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
             SparkRowSource.GorDataType gdt = SparkRowSource.gorCmdSchema(query,gorPipeSession, false);
 
             String[] headerArray = gdt.header;
-            /*boolean isGord = false;
-            List<String> usedFiles = gdt.usedFiles;
-            if (usedFiles.size() > 0) {
-                fileName = usedFiles.get(0);
-                if (!fileName.contains("://")) {
-                    filePath = standalone != null && standalone.length() > 0 ? Paths.get(standalone).resolve(fileName) : Paths.get(fileName);
-                }
-                isGord = fileName.toLowerCase().endsWith(".gord");
-                if (isGord && !hasFilter) {
-                    headerArray = Arrays.copyOf(gdt.header,gdt.header.length+1);
-                    headerArray[headerArray.length-1] = "PN";
-                } else headerArray = gdt.header;
-            } else headerArray = gdt.header;*/
-
             DataType[] dataTypes = new DataType[headerArray.length];
             int start = 0;
-            /*if (!nor) {
-                dataTypes[0] = StringType;
-                dataTypes[1] = IntegerType;
-                start = 2;
-            }*/
             for (int i = start; i < dataTypes.length; i++) {
                 dataTypes[i] = gdt.dataTypeMap.getOrDefault(i, StringType);
             }
@@ -156,7 +137,6 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
 
     private static final Set<TableCapability> CAPABILITIES = new HashSet<>(Arrays.asList(
             TableCapability.BATCH_READ,
-            //TableCap
             TableCapability.BATCH_WRITE,
             TableCapability.TRUNCATE));
 

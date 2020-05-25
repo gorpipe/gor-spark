@@ -100,12 +100,6 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
       case source: SparkRowSource =>
         val ds = source.getDataset
         ds
-       //.asInstanceOf[Dataset[org.gorpipe.model.genome.files.gor.Row]]
-        /*if( source.isNor ) {
-          ds.map(r => new SparkRow(r).asInstanceOf[org.gorpipe.model.genome.files.gor.Row])(ds.encoder.asInstanceOf[Encoder[org.gorpipe.model.genome.files.gor.Row]])
-        } else {
-          ds.map(r => new GorSparkRow(r).asInstanceOf[org.gorpipe.model.genome.files.gor.Row])(ds.encoder.asInstanceOf[Encoder[org.gorpipe.model.genome.files.gor.Row]])
-        }*/
       case _ =>
         val isNor = qry.toLowerCase().startsWith("nor")
         val schema = if(sc == null) infer(pi.getIterator.asInstanceOf[BatchedPipeStepIteratorAdaptor], pi.getHeader(), isNor, parallel = false) else sc
@@ -125,10 +119,9 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
 
           }*/
 
-          val list: java.util.List[Row] = GorSparkUtilities.stream2SparkRowList(gors, schema/*.peek(r => r.setSchema(schema))*/)
+          val list: java.util.List[Row] = GorSparkUtilities.stream2SparkRowList(gors, schema)
           val ds = sparkSession.createDataset(list)(RowEncoder.apply(schema))
           ds
-            //.asInstanceOf[Dataset[org.gorpipe.model.genome.files.gor.Row]]
         } finally {
           if( gors != null ) gors.close()
         }
