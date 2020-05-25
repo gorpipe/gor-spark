@@ -251,19 +251,19 @@ public class SparkRowSource extends ProcessSource {
         if (dummyColumns) strstr = strstr.map(a -> Arrays.copyOfRange(a, 2, a.length));
         int[] listLen = {-1};
         strstr.allMatch(line -> {
-            dataTypeMap.forEach((key, colType) -> {
-                int idx = key;
+            dataTypeMap.forEach((idx, colType) -> {
+                String value = line[idx];
                 if (colType == IntegerType) {
                     try {
-                        Integer.parseInt(line[idx]);
+                        Integer.parseInt(value);
                     } catch (Exception e1) {
                         colType = DoubleType;
                     }
                 }
                 if (colType == DoubleType) {
                     try {
-                        if (line[idx].length() <= 16) {
-                            Double.parseDouble(line[idx]);
+                        if (value.length() <= 16) {
+                            Double.parseDouble(value);
                             dSet.add(idx);
                         } else {
                             remSet.add(idx);

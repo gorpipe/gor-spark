@@ -11,9 +11,7 @@ project(':spark') {
     sourceSets.main.java.srcDirs = []
 
     dependencies {
-        implementation project(':base:config')
-        implementation project(':base:logging')
-        implementation project(':base:exception')
+        implementation project(':base')
         implementation project(':model')
         implementation project(':gortools')
 
