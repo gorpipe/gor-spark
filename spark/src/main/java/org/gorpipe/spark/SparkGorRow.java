@@ -162,7 +162,11 @@ public class SparkGorRow extends GorSparkRowBase implements Serializable {
     public Object get(int i) {
         DataType dt = schema.fields()[i].dataType();
         if(dt == DataTypes.IntegerType) {
-            return row.intValue(i);
+            try {
+                return row.intValue(i);
+            } catch(Exception e) {
+                return -1;
+            }
         } else if(dt == DataTypes.FloatType) {
             try {
                 return (float) row.doubleValue(i);

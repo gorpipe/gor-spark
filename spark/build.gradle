@@ -11,9 +11,7 @@ project(':spark') {
     sourceSets.main.java.srcDirs = []
 
     dependencies {
-        compile("${gorArtifactGroupId}:gor-base-config:${gorVersion}")
-        compile("${gorArtifactGroupId}:gor-base-logging:${gorVersion}")
-        compile("${gorArtifactGroupId}:gor-base-exception:${gorVersion}")
+        compile("${gorArtifactGroupId}:gor-base:${gorVersion}")
         compile("${gorArtifactGroupId}:gor-model:${gorVersion}")
         compile("${gorArtifactGroupId}:gor-gortools:${gorVersion}")
 
