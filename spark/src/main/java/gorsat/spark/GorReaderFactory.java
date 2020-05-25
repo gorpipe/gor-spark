@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.stream.Collectors;
 
+import gorsat.BatchedPipeStepIteratorAdaptor;
 import org.apache.spark.sql.Encoder;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.RowFactory;
@@ -145,6 +146,10 @@ public class GorReaderFactory implements PartitionReaderFactory {
                         if(p.query!=null) {
                             try {
                                 pi.init(p.query, false, null);
+
+                                RowSource rowSource = pi.theInputSource();
+                                if(p.chr!=null&&p.chr.length()>0) rowSource.setPosition(p.chr, p.start);
+                                iterator = new BatchedPipeStepIteratorAdaptor(rowSource, pi.getPipeStep(), rowSource.getHeader(), GorPipe.brsConfig());
                             } catch(Exception e) {
                                 e.printStackTrace();
                             }
@@ -170,15 +175,15 @@ public class GorReaderFactory implements PartitionReaderFactory {
                             PipeOptions options = new PipeOptions();
                             options.parseOptions(args);
                             pi.subProcessArguments(options);
-                        }
 
-                        RowSource rowSource = pi.theInputSource();
-                        if(p.chr!=null&&p.chr.length()>0) rowSource.setPosition(p.chr, p.start);
+                            RowSource rowSource = pi.theInputSource();
+                            if(p.chr!=null&&p.chr.length()>0) rowSource.setPosition(p.chr, p.start);
 
-                        if (redisUri != null && redisUri.length() > 0) {
-                            iterator = new BatchedReadSource(rowSource, GorPipe.brsConfig(), rowSource.getHeader(), sparkGorMonitor);
-                        } else {
-                            iterator = rowSource;
+                            if (redisUri != null && redisUri.length() > 0) {
+                                iterator = new BatchedReadSource(rowSource, GorPipe.brsConfig(), rowSource.getHeader(), sparkGorMonitor);
+                            } else {
+                                iterator = rowSource;
+                            }
                         }
                     }
                     boolean hasNext = iterator.hasNext();

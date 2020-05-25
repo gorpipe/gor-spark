@@ -30,58 +30,42 @@ import java.util.*;
 import java.util.function.DoubleFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-public class SparkTest {
-    public static SparkSession spark;
+public class SparkPCA {
+    String[] testargs = {"--projectroot","/gorproject/plink_wes","--maxconsequence","'frameshift_variant','splice_acceptor_variant','splice_donor_variant','start_lost','stop_gained','stop_lost','incomplete_terminal_codon_variant','inframe_deletion','inframe_insertion','missense_variant','protein_altering_variant','splice_region_variant'"};
 
-    public static void main(String[] args) throws IOException {
-        //SparkPipe.main(args);
-
-        SparkConf sparkConf = new SparkConf();
-        //sparkConf.set("spark.submit.deployMode","client");
-        //sparkConf.set("spark.home","/Users/sigmar/spark");
-        //spark = SparkGorUtilities.getSparkSession("/gorproject","");
-        spark = SparkSession.builder().master("local[*]").config(sparkConf).getOrCreate();
-        //System.err.println(spark.conf().getAll());
-
-        //test1(args);
-        test3(args);
+    public static void main(String[] args) {
+        List<String> argList = Arrays.asList(args);
+        int i = argList.indexOf("--afthreshold");
+        double afThreshold = i != -1 ? Double.parseDouble(argList.get(i+1)) : 0.0;
+        i = argList.indexOf("--projectroot");
+        String projectRoot = i != -1 ? argList.get(i+1) : null;
+        i = argList.indexOf("--maxconsequence");
+        String maxcon = i != -1 ? argList.get(i+1) : null;
+        try(SparkSession spark = SparkSession.builder().appName(args[0]).getOrCreate()) {
+            pca(spark, projectRoot, afThreshold, maxcon);
+        }
     }
 
-    /*public static class SizeLookup implements UDF1<String,Integer> {
-        private final Broadcast< Map<String,Integer> > sizes;
-
-        public SizeLookup(Broadcast<Map<String,Integer>> sizes ){
-            this.sizes = sizes;
-        }
-
-        @Override
-        public Integer call( String key ) {
-            return sizes.value( ).get(key);
-        }
-    }*/
-
-    public static void test3(String[] args) {
+    private static void pca(SparkSession spark, String projectRoot, double afThreshold, String maxcon) {
         GorSparkSession gorSparkSession = SparkGOR.createSession(spark);
-        /*Dataset<Row> dscount = (Dataset<Row>)gorSparkSession.spark("spark /gorproject/plink_wes/metadata/AF.gorz" +
-                "| varjoin -r -l -e '?' /gorproject/plink_wes/vep_single.gorz" +
-                "| where max_consequence in ('frameshift_variant','splice_acceptor_variant','splice_donor_variant','start_lost','stop_gained','stop_lost','incomplete_terminal_codon_variant','inframe_deletion','inframe_insertion','missense_variant','protein_altering_variant','splice_region_variant')"
-                ,null);*/
-        int count = 2;//(int)dscount.count();
+        Path root = Paths.get(projectRoot);
+        String filter = (afThreshold > 0 ? "| where isfloat(AF) and float(AF) <= " + afThreshold : "") + (maxcon != null ? "| varjoin -r -l -e '?' "+root.resolve("vep_single.gorz").toString()+" | where in ("+maxcon+")" : "");
+        Dataset<? extends Row> dscount = gorSparkSession.spark("spark " + root.resolve("metadata/AF.gorz").toString() + filter,null);
+        int count = (int)dscount.count();
 
-        Dataset<? extends Row> ds = gorSparkSession.spark("spark -tag <(partgor -ff <(nor -h /gorproject/plink_wes/buckets.tsv | select 1 | top 20) -partsize 4 -dict /gorproject/plink_wes/variants.gord <(gor /gorproject/plink_wes/variants.gord -nf -f #{tags} " +
-                        "| varjoin -r -l -e '?' /gorproject/plink_wes/vep_single.gorz" +
-                        "| where max_consequence in ('frameshift_variant','splice_acceptor_variant','splice_donor_variant','start_lost','stop_gained','stop_lost','incomplete_terminal_codon_variant','inframe_deletion','inframe_insertion','missense_variant','protein_altering_variant','splice_region_variant')" +
+        String variants = root.resolve("variants.gord").toString();
+        Dataset<Row> ds = (Dataset<Row>)gorSparkSession.spark("spark -tag <(partgor -ff <(nor -h "+root.resolve("buckets.tsv").toString()+" | select 1 | top 20) -partsize 4 -dict "+variants+" <(gor "+variants+" -nf -f #{tags}" +
+                        filter +
                         "| rename Chrom CHROM | rename ref REF | rename alt ALT " +
                         //"| varjoin -r -l -e '?' /gorproject/plink_wes/vep_single.gorz " +
                         //"| where max_consequence in ('frameshift_variant','splice_acceptor_variant','splice_donor_variant','start_lost','stop_gained','stop_lost','incomplete_terminal_codon_variant','inframe_deletion','inframe_insertion','missense_variant','protein_altering_variant','splice_region_variant') "
                         //"| varjoin -r -l -e 0.0 <(gor /gorproject/plink_wes/metadata/AF.gorz) " +
                         //"| where isfloat(AF) and float(AF) <= 0.05 " +
                         "| calc ID chrom+'_'+pos+'_'+ref+'_'+alt " +
-                        "| csvsel /gorproject/plink_wes/buckets.tsv <(nor <(gorrow 1,1 | calc pn '#{tags}' | split pn) | select pn) -s ',' -u 3 -gc id,ref,alt))"
+                        "| csvsel /gorproject/plink_wes/buckets.tsv <(nor <(gorrow 1,1 | calc pn '#{tags}' | split pn) | select pn) -u 3 -gc id,ref,alt -vs 1 | replace values 'u'+values))"
                 , null);
 
         //System.err.println(count + " " + ds.);
@@ -92,16 +76,16 @@ public class SparkTest {
             int start = 0;
             while(input.hasNext()) {
                 Row row = input.next();
-                String strvec = row.getString(0);
-                int len = strvec.length()/2+1;
+                String strvec = row.getString(0).substring(1);
+                int len = strvec.length();
                 if(mat==null) {
-                    mat = new double[count*strvec.length()];
+                    mat = new double[count*len];
                 }
                 for(int i = 0; i < len; i++) {
-                    mat[start+i] = strvec.charAt(i*2)-'0';
+                    mat[start+i] = strvec.charAt(i)-'0';
                 }
                 //double[] vec = strvec.chars().asDoubleStream().forEach(d -> mat[i++]);
-                start += strvec.length();
+                start += len;
             }
             if(mat!=null) {
                 Matrix matrix = Matrices.dense(mat.length/count,count,mat);
@@ -111,8 +95,6 @@ public class SparkTest {
             }
             return it;
         },true);
-
-        System.err.println("heyho "+dbm.count());
 
         BlockMatrix mat = new BlockMatrix(dbm.rdd(),count,10);
         RowMatrix rowMatrix = mat.transpose().toIndexedRowMatrix().toRowMatrix();
@@ -125,7 +107,7 @@ public class SparkTest {
         System.err.println(dm.toString());
     }
 
-    public static void test2(String[] args) throws IOException {
+    private static void coordpca(String[] args, SparkSession spark) {
         GorSparkSession gorSparkSession = SparkGOR.createSession(spark);
         JavaSparkContext javaSparkContext = JavaSparkContext.fromSparkContext(spark.sparkContext());
 
@@ -278,7 +260,7 @@ public class SparkTest {
                 //.collectAsList().forEach(System.err::println);*/
     }
 
-    public static void test1(String[] args) {
+    private static void test1(String[] args, SparkSession spark) {
         Dataset<Row> ds = spark.read().format("csv").option("header","true").option("delimiter","\t").option("inferSchema","true").load("/gorproject/ref/dbsnp/dbsnp.gor");
         ds.createOrReplaceTempView("dbsnp");
         Dataset<Row> sqlds = spark.sql("select * from dbsnp where rsids = 'rs22'");
