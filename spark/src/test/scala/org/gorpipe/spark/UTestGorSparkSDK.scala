@@ -31,7 +31,7 @@ class UTestGorSparkSDK {
     @Test
     def testGorzSparkSDKSpark() {
         val res = sparkGorSession.spark("spark "+genesPath+" | top 5").map(r => r.toString)(Encoders.STRING).collect().mkString("\n")
-        Assert.assertEquals("Wring result from session query", "chr1\t11868\t14412\tDDX11L1\nchr1\t14362\t29806\tWASH7P\nchr1\t34553\t36081\tFAM138A\nchr1\t53048\t54936\tAL627309.1\nchr1\t62947\t63887\tOR4G11P", res)
+        Assert.assertEquals("Wring result from session query", "[chr1,11868,14412,DDX11L1]\n[chr1,14362,29806,WASH7P]\n[chr1,34553,36081,FAM138A]\n[chr1,53048,54936,AL627309.1]\n[chr1,62947,63887,OR4G11P]", res)
     }
 
     @Test
