@@ -264,7 +264,6 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
                 Set<Filter> fset = new HashSet<>(Arrays.asList(ret));
                 pushedFilters = Arrays.stream(filters).filter(f -> !fset.contains(f)).toArray(Filter[]::new);
                 return ret;
-                //return filters;
             }
 
             @Override
