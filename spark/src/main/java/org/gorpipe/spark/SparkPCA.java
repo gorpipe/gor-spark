@@ -22,7 +22,7 @@ public class SparkPCA {
     static String[] testargs = {"--projectroot","/gorproject","--freeze","plink_wes","--variants","/gorproject/testvars2.gor","--pnlist","/gorproject/testpns.txt","--partsize","4","--pcacomponents","3","--outfile","/gorproject/out.txt"};
 
     public static void main(String[] args) throws IOException {
-        args = testargs;
+        //args = testargs;
         List<String> argList = Arrays.asList(args);
         int i = argList.indexOf("--appname");
         String appName = i != -1 ? argList.get(i+1) : "pca";
