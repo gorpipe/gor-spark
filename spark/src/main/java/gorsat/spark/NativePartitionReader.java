@@ -45,27 +45,7 @@ public class NativePartitionReader implements PartitionReader<InternalRow> {
         return currentLine != null;
     }
 
-    @Override
-    public InternalRow get() {
-        int start = 0;
-        int i = 0;
-        for(; i < fields.length-1; i++) {
-            int last = currentLine.indexOf('\t', start+1);
-            String str = currentLine.substring(start, last);
-            StructField sf = fields[i];
-            if(sf.dataType() == StringType) {
-                gir.update(i, UTF8String.fromString(str));
-            } else if(sf.dataType() == IntegerType) {
-                gir.update(i, Integer.parseInt(str));
-            } else if(sf.dataType() == DoubleType) {
-                gir.update(i, Double.parseDouble(str));
-            } else if(sf.dataType() == LongType) {
-                gir.update(i, Long.parseLong(str));
-            }
-            start = last+1;
-        }
-
-        int last = currentLine.length();
+    public void updateRow(int start, int last, int i) {
         String str = currentLine.substring(start, last);
         StructField sf = fields[i];
         if(sf.dataType() == StringType) {
@@ -77,6 +57,20 @@ public class NativePartitionReader implements PartitionReader<InternalRow> {
         } else if(sf.dataType() == LongType) {
             gir.update(i, Long.parseLong(str));
         }
+    }
+
+    @Override
+    public InternalRow get() {
+        int start = 0;
+        int i = 0;
+        for(; i < fields.length-1; i++) {
+            int last = currentLine.indexOf('\t', start+1);
+            updateRow(start,last,i);
+            start = last+1;
+        }
+
+        int last = currentLine.length();
+        updateRow(start, last, i);
 
         return gir;
     }

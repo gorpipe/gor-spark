@@ -43,6 +43,48 @@ public class GorPartitionReader implements PartitionReader<InternalRow> {
         this.useCpp = useCpp;
     }
 
+    private String parseMultiplePaths(Path epath) {
+        String epathstr = p.path;
+        if (Files.isDirectory(epath)) {
+            try {
+                epathstr = Files.walk(epath).skip(1).map(Path::toString).filter(p -> p.endsWith(".gorz")).collect(Collectors.joining(" "));
+            } catch (IOException e) {}
+        }
+        return epathstr;
+    }
+
+    private RowSource iteratorFromFile(PipeInstance pi) {
+        boolean useNative = useCpp != null && useCpp.equalsIgnoreCase("true");
+        String seek = useNative ? "cmd " : "gor ";
+
+        Path epath = Paths.get(p.path);
+        String epathstr = parseMultiplePaths(epath);
+        String spath = useNative ? "cgor #(S:-p chr:pos) " + p.path + "}" : epathstr;
+        String s = p.filterColumn != null && p.filterColumn.length() > 0 ? "-s " + p.filterColumn + " " : "";
+        String path = seek + (p.filterFile == null ? p.filter == null ? s + spath : s + "-f " + p.filter + " " + spath : s + "-ff " + p.filterFile + " " + spath);
+        String[] args = {path};
+        PipeOptions options = new PipeOptions();
+        options.parseOptions(args);
+        pi.subProcessArguments(options);
+
+        RowSource rowSource = pi.theInputSource();
+        if(p.chr!=null&&p.chr.length()>0) rowSource.setPosition(p.chr, p.start);
+
+        if (redisUri != null && redisUri.length() > 0) {
+            return new BatchedReadSource(rowSource, GorPipe.brsConfig(), rowSource.getHeader(), sparkGorMonitor);
+        } else {
+            return rowSource;
+        }
+    }
+
+    private RowSource iteratorWithPipeSteps(PipeInstance pi) {
+        pi.init(p.query, false, null);
+
+        RowSource rowSource = pi.theInputSource();
+        if(p.chr!=null&&p.chr.length()>0) rowSource.setPosition(p.chr, p.start);
+        return new BatchedPipeStepIteratorAdaptor(rowSource, pi.getPipeStep(), rowSource.getHeader(), GorPipe.brsConfig());
+    }
+
     void initIterator() {
         sparkGorMonitor = new SparkGorMonitor(redisUri,jobId) {
             @Override
@@ -55,46 +97,9 @@ public class GorPartitionReader implements PartitionReader<InternalRow> {
         PipeInstance pi = new PipeInstance(gorPipeSession.getGorContext());
 
         if(p.query!=null) {
-            try {
-                pi.init(p.query, false, null);
-
-                RowSource rowSource = pi.theInputSource();
-                if(p.chr!=null&&p.chr.length()>0) rowSource.setPosition(p.chr, p.start);
-                iterator = new BatchedPipeStepIteratorAdaptor(rowSource, pi.getPipeStep(), rowSource.getHeader(), GorPipe.brsConfig());
-            } catch(Exception e) {
-                e.printStackTrace();
-            }
+            iterator = iteratorWithPipeSteps(pi);
         } else {
-            boolean useNative = useCpp != null && useCpp.equalsIgnoreCase("true");
-            String seek = useNative ? "cmd " : "gor ";
-
-            Path epath = Paths.get(p.path);
-            String epathstr;
-            if (Files.isDirectory(epath)) {
-                try {
-                    epathstr = Files.walk(epath).skip(1).map(Path::toString).filter(p -> p.endsWith(".gorz")).collect(Collectors.joining(" "));
-                } catch (IOException e) {
-                    epathstr = p.path;
-                }
-            } else {
-                epathstr = p.path;
-            }
-            String spath = useNative ? "cgor #(S:-p chr:pos) " + p.path + "}" : epathstr;
-            String s = p.filterColumn != null && p.filterColumn.length() > 0 ? "-s " + p.filterColumn + " " : "";
-            String path = seek + (p.filterFile == null ? p.filter == null ? s + spath : s + "-f " + p.filter + " " + spath : s + "-ff " + p.filterFile + " " + spath);
-            String[] args = {path};
-            PipeOptions options = new PipeOptions();
-            options.parseOptions(args);
-            pi.subProcessArguments(options);
-
-            RowSource rowSource = pi.theInputSource();
-            if(p.chr!=null&&p.chr.length()>0) rowSource.setPosition(p.chr, p.start);
-
-            if (redisUri != null && redisUri.length() > 0) {
-                iterator = new BatchedReadSource(rowSource, GorPipe.brsConfig(), rowSource.getHeader(), sparkGorMonitor);
-            } else {
-                iterator = rowSource;
-            }
+            iterator = iteratorFromFile(pi);
         }
     }
 
