@@ -599,6 +599,7 @@ public class SparkRowSource extends ProcessSource {
                     DataFrameReader dfr = gorSparkSession.getSparkSession().read().format(gordatasourceClassname);
                     dfr.option("query",fileName);
                     if(tag) dfr.option("tag",true);
+                    dfr.option("projectroot",fileroot.toString());
                     gor = dfr.load();
 
                     /*String uri = gorSparkSession.getRedisUri();
@@ -668,6 +669,7 @@ public class SparkRowSource extends ProcessSource {
                             // hey SparkGorUtilities.getSparkSession(GorSparkSession).udf().register("get_pn", (UDF1<String, String>) uNames::get, DataTypes.StringType);
                             if (dictFile != null) {
                                 DataFrameReader dfr = gorSparkSession.getSparkSession().read().format(gordatasourceClassname);
+                                dfr.option("projectroot",fileroot.toString());
                                 if (filter != null) dfr = dfr.option("f", filter);
                                 if (filterFile != null) dfr = dfr.option("ff", filterFile);
                                 if (splitFile != null) dfr = dfr.option("split", splitFile);

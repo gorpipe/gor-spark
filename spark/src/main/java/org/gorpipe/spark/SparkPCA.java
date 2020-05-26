@@ -2,24 +2,15 @@ package org.gorpipe.spark;
 
 import breeze.linalg.DenseMatrix;
 import com.google.common.collect.Iterators;
-import gorsat.process.GorPipe;
-import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.api.java.function.Function2;
-import org.apache.spark.api.java.function.MapFunction;
 import org.apache.spark.api.java.function.MapPartitionsFunction;
 import org.apache.spark.broadcast.Broadcast;
 import org.apache.spark.mllib.linalg.Matrices;
 import org.apache.spark.mllib.linalg.Matrix;
-import org.apache.spark.mllib.linalg.Vectors;
-import org.apache.spark.mllib.linalg.Vector;
 import org.apache.spark.mllib.linalg.distributed.*;
-import org.apache.spark.rdd.RDD;
 import org.apache.spark.sql.*;
-import org.apache.spark.sql.api.java.UDF1;
-import org.apache.spark.sql.types.DataTypes;
 import scala.Tuple2;
 
 import java.io.BufferedWriter;
@@ -196,7 +187,7 @@ public class SparkPCA {
                 String tag = r.getString(1);
                 int size = bcsize.getValue().get(tag);
                 int sum = bcsum.getValue().get(tag);
-                return Stream.concat(Stream.of(r),StreamSupport.stream(Spliterators.spliterator(input, size, Spliterator.SIZED), false)).flatMap(new Function<Row, Stream<MatrixEntry>>() {
+                return Stream.concat(Stream.of(r), StreamSupport.stream(Spliterators.spliterator(input, size, Spliterator.SIZED), false)).flatMap(new Function<Row, Stream<MatrixEntry>>() {
                     int k = 0;
 
                     @Override
