@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class SparkPCA {
-    static String[] testargs = {"--projectroot","/gorproject","--freeze","plink_wes","--variants","/gorproject/testvars2.gor","--pnlist","/gorproject/testpns.txt","--partsize","4","--outfile","/gorproject/out.txt"};
+    static String[] testargs = {"--projectroot","/gorproject","--freeze","plink_wes","--variants","/gorproject/testvars2.gor","--pnlist","/gorproject/testpns.txt","--partsize","4","--pcacomponents","3","--outfile","/gorproject/out.txt"};
 
     public static void main(String[] args) throws IOException {
         args = testargs;
@@ -46,14 +46,16 @@ public class SparkPCA {
         String pnlist = i != -1 ? argList.get(i+1) : null;
         i = argList.indexOf("--partsize");
         int partsize = i != -1 ? Integer.parseInt(argList.get(i+1)) : 10;
+        i = argList.indexOf("--pcacomponents");
+        int pcacomponents = i != -1 ? Integer.parseInt(argList.get(i+1)) : 3;
         i = argList.indexOf("--outfile");
         String outfile = i != -1 ? argList.get(i+1) : null;
         try(SparkSession spark = SparkSession.builder()/*.master("local[*]")*/.appName(appName).getOrCreate()) {
-            pca(spark, projectRoot, freeze, pnlist, variants, partsize, outfile);
+            pca(spark, projectRoot, freeze, pnlist, variants, partsize, pcacomponents, outfile);
         }
     }
 
-    private static void pca(SparkSession spark, String projectRoot, String freeze, String pnlist, String variants, int partsize, String outfile) throws IOException {
+    private static void pca(SparkSession spark, String projectRoot, String freeze, String pnlist, String variants, int partsize, int pcacomponents, String outfile) throws IOException {
         GorSparkSession gorSparkSession = SparkGOR.createSession(spark, projectRoot, "result_cache", 0);
         Path root = Paths.get(projectRoot);
         Path freezepath = root.resolve(freeze);
@@ -95,7 +97,7 @@ public class SparkPCA {
 
         BlockMatrix mat = new BlockMatrix(dbm.rdd(),varcount,10);
         RowMatrix rowMatrix = mat.transpose().toIndexedRowMatrix().toRowMatrix();
-        Matrix pc = rowMatrix.computePrincipalComponents(3);
+        Matrix pc = rowMatrix.computePrincipalComponents( pcacomponents);
 
         // Project the rows to the linear space spanned by the top 4 principal components.
         RowMatrix projected = rowMatrix.multiply(pc);
@@ -110,7 +112,7 @@ public class SparkPCA {
             bw.write("#PN\tcol1\tcol2\tcol3\n");
             for (int i = 0; i < pns.size(); i++) {
                 bw.write(pns.get(i));
-                for (int k = 0; k < 3; k++) {
+                for (int k = 0; k < pcacomponents; k++) {
                     bw.write("\t" + dm.apply(i, k));
                 }
                 bw.write("\n");
