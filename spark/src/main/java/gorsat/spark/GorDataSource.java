@@ -10,6 +10,7 @@ import org.apache.spark.sql.sources.RelationProvider;
 import org.apache.spark.sql.sources.SchemaRelationProvider;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.util.CaseInsensitiveStringMap;
+import org.apache.spark.streaming.ui.BatchTableBase;
 import scala.collection.Seq;
 import scala.collection.immutable.Map;
 
@@ -20,9 +21,12 @@ public class GorDataSource implements FileDataSourceV2, RelationProvider, Schema
     @Override
     public Table getTable(CaseInsensitiveStringMap options) {
         try {
-            return new GorBatchTable(options.get("path"), options.get("f"), options.get("ff"), options.get("s"), options.get("split"), options.get("p"), options.get("redis"), options.get("jobid"), options.get("cachefile"), options.get("native")) {
-
-            };
+            GorBatchTable batchTable = new GorBatchTable(options.get("query"), options.getBoolean("tag", false), options.get("path"), options.get("f"), options.get("ff"), options.get("s"), options.get("split"), options.get("p"), options.get("redis"), options.get("jobid"), options.get("cachefile"), options.get("native")) {};
+            String projectroot = options.get("projectroot");
+            if(projectroot!=null) batchTable.setProjectRoot(projectroot);
+            String cachedir = options.get("cachedir");
+            if(cachedir!=null) batchTable.setCacheDir(cachedir);
+            return batchTable;
         } catch (IOException | DataFormatException e) {
             e.printStackTrace();
         }
@@ -31,9 +35,12 @@ public class GorDataSource implements FileDataSourceV2, RelationProvider, Schema
 
     @Override
     public Table getTable(CaseInsensitiveStringMap options, StructType schema) {
-        return new GorBatchTable(options.get("path"), options.get("f"), options.get("ff"), options.get("s"), options.get("split"), options.get("p"), schema, options.get("redis"), options.get("jobid"), options.get("cachefile"), options.get("native")) {
-
-        };
+        GorBatchTable batchTable = new GorBatchTable(options.get("query"), options.getBoolean("tag", false), options.get("path"), options.get("f"), options.get("ff"), options.get("s"), options.get("split"), options.get("p"), schema, options.get("redis"), options.get("jobid"), options.get("cachefile"), options.get("native")) {};
+        String projectroot = options.get("projectroot");
+        if(projectroot!=null) batchTable.setProjectRoot(projectroot);
+        String cachedir = options.get("cachedir");
+        if(cachedir!=null) batchTable.setCacheDir(cachedir);
+        return batchTable;
     }
 
     @Override

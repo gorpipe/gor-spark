@@ -6,6 +6,7 @@ import gorsat.AnalysisUtilities
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.{Partition, TaskContext}
+import org.gorpipe.model.genome.files.gor.GorMonitor
 
 import scala.collection.mutable.ListBuffer
 
@@ -43,7 +44,7 @@ class GorQueryRDD(sparkSession: SparkSession, commandsToExecute: Array[String], 
       if( !temp_cacheFile.isAbsolute ) temp_cacheFile = projectPath.resolve(temp_cacheFileName)
       val tempFile_absolutepath = temp_cacheFile.toAbsolutePath.normalize().toString
       try {
-        val sparkGorMonitor = new SparkGorMonitor(redisUri, jobId)
+        val sparkGorMonitor : GorMonitor = if(SparkGorMonitor.localProgressMonitor!=null) SparkGorMonitor.localProgressMonitor else new SparkGorMonitor(redisUri, jobId)
         val engine = new SparkGorExecutionEngine(commandToExecute, projectDirectory, cacheDirectory, tempFile_absolutepath, sparkGorMonitor)
         engine.execute()
         Files.move(temp_cacheFile, cacheFilePath)

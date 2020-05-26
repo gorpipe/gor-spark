@@ -1,6 +1,12 @@
 package gorsat.spark;
 
-import org.gorpipe.spark.SparkGOR;
+import gorsat.Script.ScriptEngineFactory;
+import gorsat.Script.ScriptExecutionEngine;
+import org.apache.spark.sql.Encoders;
+import org.apache.spark.sql.types.DataType;
+import org.apache.spark.sql.types.Metadata;
+import org.apache.spark.sql.types.StructField;
+import org.gorpipe.spark.GorSparkSession;
 import gorsat.process.SparkRowSource;
 import org.apache.spark.sql.connector.catalog.SupportsRead;
 import org.apache.spark.sql.connector.catalog.SupportsWrite;
@@ -16,19 +22,23 @@ import org.apache.spark.sql.connector.write.WriteBuilder;
 import org.apache.spark.sql.sources.*;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.util.CaseInsensitiveStringMap;
+import org.gorpipe.spark.SparkSessionFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import java.util.zip.DataFormatException;
 
+import static org.apache.spark.sql.types.DataTypes.StringType;
+
 public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrite, SupportsPushDownFilters {
+    String[] commands;
+    String query;
     String path;
     String inputfilter;
     String filterFile;
@@ -41,34 +51,26 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
     String jobId;
     String cacheFile;
     String useCpp;
-    StructType schema = SparkGOR.gorrowEncoder().schema();
+    StructType schema;
+    boolean tag;
+    String projectRoot;
+    String cacheDir;
 
-    public GorBatchTable(String path, String filter, String filterFile, String filterColumn, String splitFile, String seek, String redisUri, String jobId, String cacheFile, String useCpp) throws IOException, DataFormatException {
-        this.path = path;
-        this.inputfilter = filter;
-        this.filterFile = filterFile;
-        this.filterColumn = filterColumn;
-        this.splitFile = splitFile;
-        this.redisUri = redisUri;
-        this.jobId = jobId;
-        this.cacheFile = cacheFile;
-        this.useCpp = useCpp;
-        checkSeek(seek);
-        inferSchema();
+    public GorBatchTable(String query, boolean tag, String path, String filter, String filterFile, String filterColumn, String splitFile, String seek, String redisUri, String jobId, String cacheFile, String useCpp) throws IOException, DataFormatException {
+        init(query,tag,path,filter,filterFile,filterColumn,splitFile,seek,redisUri,jobId,cacheFile,useCpp);
     }
 
-    public GorBatchTable(String path, String filter, String filterFile, String filterColumn, String splitFile, String seek, StructType schema, String redisUri, String jobId, String cacheFile, String useCpp) {
-        this.path = path;
-        this.inputfilter = filter;
+    public GorBatchTable(String query, boolean tag, String path, String filter, String filterFile, String filterColumn, String splitFile, String seek, StructType schema, String redisUri, String jobId, String cacheFile, String useCpp) {
+        init(query,tag,path,filter,filterFile,filterColumn,splitFile,seek,redisUri,jobId,cacheFile,useCpp);
         this.schema = schema;
-        this.filterFile = filterFile;
-        this.filterColumn = filterColumn;
-        this.splitFile = splitFile;
-        this.redisUri = redisUri;
-        this.jobId = jobId;
-        this.cacheFile = cacheFile;
-        this.useCpp = useCpp;
-        checkSeek(seek);
+    }
+
+    public void setProjectRoot(String projectRoot) {
+        this.projectRoot = projectRoot;
+    }
+
+    public void setCacheDir(String cacheDir) {
+        this.cacheDir = cacheDir;
     }
 
     void checkSeek(String seek) {
@@ -85,14 +87,69 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
         }
     }
 
-    void inferSchema() throws IOException, DataFormatException {
-        Path ppath = Paths.get(path);
-        schema = SparkRowSource.inferSchema(ppath, ppath.getFileName().toString(), false, path.toLowerCase().endsWith(".gorz"));
+    void init(String query, boolean tag, String path, String filter, String filterFile, String filterColumn, String splitFile, String seek, String redisUri, String jobId, String cacheFile, String useCpp) {
+        this.query = query;
+        this.projectRoot = Paths.get(".").toAbsolutePath().normalize().toString();
+        this.cacheDir = "result_cache";
+        this.tag = tag;
+        this.path = path;
+        this.inputfilter = filter;
+        this.filterFile = filterFile;
+        this.filterColumn = filterColumn;
+        this.splitFile = splitFile;
+        this.redisUri = redisUri;
+        this.jobId = jobId;
+        this.cacheFile = cacheFile;
+        this.useCpp = useCpp;
+        checkSeek(seek);
+    }
+
+    private String[] initCommands(String query) {
+        String[] commands = null;
+        if(query!=null) {
+            if(query.toLowerCase().startsWith("pgor") || query.toLowerCase().startsWith("partgor") || query.toLowerCase().startsWith("parallel")) {
+                ReceiveQueryHandler receiveQueryHandler = new ReceiveQueryHandler();
+                SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectRoot, cacheDir, null, receiveQueryHandler);
+                GorSparkSession gorPipeSession = (GorSparkSession) sessionFactory.create();
+                ScriptExecutionEngine see = ScriptEngineFactory.create(gorPipeSession.getGorContext());
+                see.execute(new String[]{query}, false);
+                commands = receiveQueryHandler.getCommandsToExecute();
+            } else commands = new String[] {query};
+        }
+        return commands;
+    }
+
+    void inferSchema() {
+        commands = initCommands(query);
+        schema = Encoders.STRING().schema();
+        if(path!=null) {
+            Path ppath = Paths.get(path);
+            try {
+                schema = SparkRowSource.inferSchema(ppath, ppath.getFileName().toString(), false, path.toLowerCase().endsWith(".gorz"));
+            } catch (IOException | DataFormatException e) {
+                throw new RuntimeException("Unable to infer schema from "+ppath.toString(), e);
+            }
+        } else if(commands!=null) {
+            String query = commands[0];
+            SparkSessionFactory sessionFactory = new SparkSessionFactory(null, Paths.get(".").toAbsolutePath().normalize().toString(), "result_cache", null);
+            GorSparkSession gorPipeSession = (GorSparkSession) sessionFactory.create();
+            SparkRowSource.GorDataType gdt = SparkRowSource.gorCmdSchema(query,gorPipeSession, false);
+
+            String[] headerArray = gdt.header;
+            DataType[] dataTypes = new DataType[headerArray.length];
+            int start = 0;
+            for (int i = start; i < dataTypes.length; i++) {
+                dataTypes[i] = gdt.dataTypeMap.getOrDefault(i, StringType);
+            }
+
+            Stream<StructField> fieldStream = IntStream.range(0, headerArray.length).mapToObj(i -> new StructField(headerArray[i], dataTypes[i], true, Metadata.empty()));
+            StructField[] fields = (tag ? Stream.concat(fieldStream,Stream.of(new StructField("Tag", StringType, true, Metadata.empty()))) : fieldStream).toArray(StructField[]::new);
+            schema = new StructType(fields);
+        }
     }
 
     private static final Set<TableCapability> CAPABILITIES = new HashSet<>(Arrays.asList(
             TableCapability.BATCH_READ,
-            //TableCap
             TableCapability.BATCH_WRITE,
             TableCapability.TRUNCATE));
 
@@ -113,6 +170,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
 
     @Override
     public StructType schema() {
+        if(schema==null) inferSchema();
         return schema;
     }
 
@@ -128,13 +186,12 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
 
     @Override
     public WriteBuilder newWriteBuilder(CaseInsensitiveStringMap caseInsensitiveStringMap) {
-        return new GorWriteBuilder() {
-
-        };
+        return new GorWriteBuilder() {};
     }
 
     @Override
     public ScanBuilder newScanBuilder(CaseInsensitiveStringMap caseInsensitiveStringMap) {
+        if(schema==null) inferSchema();
         return new GorScanBuilder(schema, redisUri, jobId, cacheFile, useCpp) {
             Filter[] pushedFilters = new Filter[0];
             String filterChrom = fchrom;
@@ -207,7 +264,6 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
                 Set<Filter> fset = new HashSet<>(Arrays.asList(ret));
                 pushedFilters = Arrays.stream(filters).filter(f -> !fset.contains(f)).toArray(Filter[]::new);
                 return ret;
-                //return filters;
             }
 
             @Override
@@ -218,7 +274,21 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
             @Override
             public InputPartition[] planInputPartitions() {
                 InputPartition[] partitions = null;
-                if( filterChrom != null ) {
+                if( commands != null ) {
+                    partitions = Arrays.stream(commands).map(cmd -> {
+                        String tagstr = null;
+                        if(tag) {
+                            int i = cmd.indexOf("-p ") + 3;
+                            if (i != -1) {
+                                while (i < cmd.length() && cmd.charAt(i) == ' ') i++;
+                                int k = i + 1;
+                                while (k < cmd.length() && cmd.charAt(k) != ' ') k++;
+                                tagstr = cmd.substring(i, k);
+                            }
+                        }
+                        return new GorRangeInputPartition(cmd, tagstr);
+                    }).toArray(GorRangeInputPartition[]::new);
+                } else if( filterChrom != null ) {
                     partitions = new InputPartition[1];
                     partitions[0] = new GorRangeInputPartition(path, filter, filterFile, filterColumn, filterChrom, start, stop, filterChrom);
                 } else {

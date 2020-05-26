@@ -23,6 +23,7 @@ public final class GeneralSparkCluster extends GorClusterBase {
 
     private static final String LOG_CHANNEL = "DC:CLUSTER:LOG";
     private JedisPool jedisPool = null;
+    private boolean jedisPoolFailed = false;
     private final String redisUri;
 
     String logPrefix;
@@ -65,11 +66,11 @@ public final class GeneralSparkCluster extends GorClusterBase {
             log.info(message, ex);
         }
 
-        if (jedisPool != null) {
+        if (!jedisPoolFailed) {
             try (Jedis jedis = jedisPool.getResource()) {
                 jedis.publish(LOG_CHANNEL, message);
             } catch (JedisConnectionException jde) {
-                jedisPool = null;
+                jedisPoolFailed = true;
                 //throw getConnectionGorSystemException(jde);
             }
         }

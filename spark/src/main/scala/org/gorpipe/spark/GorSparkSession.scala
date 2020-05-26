@@ -37,7 +37,7 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
     redisUri
   }
 
-  def where(w: String, schema: StructType): GorSparkRowFilterFunction[org.gorpipe.model.genome.files.gor.Row] = {
+  def where(w: String, schema: StructType): GorSparkRowFilterFunction[_ >: org.gorpipe.model.genome.files.gor.Row] = {
     new GorSparkRowFilterFunction[org.gorpipe.model.genome.files.gor.Row](w, schema)
   }
 
@@ -100,17 +100,12 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
       case source: SparkRowSource =>
         val ds = source.getDataset
         ds
-        /*if( source.isNor ) {
-          ds.map(r => new SparkRow(r).asInstanceOf[org.gorpipe.model.genome.files.gor.Row])(ds.encoder.asInstanceOf[Encoder[org.gorpipe.model.genome.files.gor.Row]])
-        } else {
-          ds.map(r => new GorSparkRow(r).asInstanceOf[org.gorpipe.model.genome.files.gor.Row])(ds.encoder.asInstanceOf[Encoder[org.gorpipe.model.genome.files.gor.Row]])
-        }*/
       case _ =>
         val isNor = qry.toLowerCase().startsWith("nor")
-        val schema = if(sc == null) infer(pi.theIterator.asInstanceOf[BatchedPipeStepIteratorAdaptor], pi.combinedHeader, isNor, parallel = false) else sc
+        val schema = if(sc == null) infer(pi.getIterator.asInstanceOf[BatchedPipeStepIteratorAdaptor], pi.getHeader(), isNor, parallel = false) else sc
 
         pi.subProcessArguments(options)
-        val bpia = pi.theIterator.asInstanceOf[BatchedPipeStepIteratorAdaptor]
+        val bpia = pi.getIterator.asInstanceOf[BatchedPipeStepIteratorAdaptor]
         var gors : java.util.stream.Stream[org.gorpipe.model.genome.files.gor.Row] = bpia.getStream
         try {
           /*if (isNor) {
@@ -124,7 +119,7 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
 
           }*/
 
-          val list: java.util.List[Row] = GorSparkUtilities.stream2SparkRowList(gors, schema/*.peek(r => r.setSchema(schema))*/)
+          val list: java.util.List[Row] = GorSparkUtilities.stream2SparkRowList(gors, schema)
           val ds = sparkSession.createDataset(list)(RowEncoder.apply(schema))
           ds
         } finally {
@@ -179,14 +174,14 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
     pi.subProcessArguments(options)
 
     val gr = new GorSparkRowInferFunction()
-    val header = pi.combinedHeader
-    val schema = pi.theIterator match {
+    val header = pi.getHeader()
+    val schema = pi.getIterator match {
       case srs: SparkRowSource =>
         val typ = srs.getDataset.map(r => new SparkRow(r).asInstanceOf[org.gorpipe.model.genome.files.gor.Row])(SparkGOR.gorrowEncoder).limit(100).reduce(gr)
         SparkRowSource.schemaFromRow(header.split("\t"), typ)
       case _ =>
-        val bpia = pi.theIterator.asInstanceOf[BatchedPipeStepIteratorAdaptor]
-        infer(bpia, pi.combinedHeader, isNor, parallel)
+        val bpia = pi.getIterator.asInstanceOf[BatchedPipeStepIteratorAdaptor]
+        infer(bpia, pi.getHeader(), isNor, parallel)
     }
     schema
   }
@@ -218,7 +213,7 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
     options.parseOptions(args)
 
     pi.subProcessArguments(options)
-    val bpia = pi.theIterator.asInstanceOf[BatchedPipeStepIteratorAdaptor]
+    val bpia = pi.getIterator.asInstanceOf[BatchedPipeStepIteratorAdaptor]
     if (parallel) bpia.setCurrentChrom("chr1")
     var gors = bpia.getStream(parallel)
     if( isNor ) {

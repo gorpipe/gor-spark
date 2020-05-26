@@ -12,6 +12,7 @@ import gorsat.process.PipeInstance;
 import org.gorpipe.gor.GorRunner;
 import org.gorpipe.gor.GorSession;
 import org.gorpipe.model.genome.files.binsearch.GorIndexType;
+import org.gorpipe.model.genome.files.gor.GorMonitor;
 import org.gorpipe.model.gor.iterators.RowSource;
 import scala.Option;
 
@@ -22,9 +23,9 @@ public class SparkGorExecutionEngine extends GorExecutionEngine {
     private String projectDirectory;
     private String cacheDirectory;
     private String outfile;
-    private SparkGorMonitor sparkMonitor;
+    private GorMonitor sparkMonitor;
 
-    public SparkGorExecutionEngine(String query, String projectDirectory, String cacheDirectory, String outfile, SparkGorMonitor sparkMonitor) {
+    public SparkGorExecutionEngine(String query, String projectDirectory, String cacheDirectory, String outfile, GorMonitor sparkMonitor) {
         this.query = query;
         this.projectDirectory = projectDirectory;
         this.cacheDirectory = cacheDirectory;
@@ -68,12 +69,12 @@ public class SparkGorExecutionEngine extends GorExecutionEngine {
     public PipeInstance createIterator(GorSession session) {
         PipeInstance pi = new PipeInstance(session.getGorContext());
         pi.subProcessArguments(query, false, null, false, false, null);
-        String theHeader = pi.theIterator().getHeader();
+        String theHeader = pi.getIterator().getHeader();
         if(outfile != null) {
             Output ofile = OutFile.apply(outfile, theHeader, false, false, pi.isNorContext(), true, GorIndexType.NONE, Option.empty(), Deflater.BEST_SPEED);
             pi.thePipeStep_$eq(pi.thePipeStep().$bar(ofile));
         } else {
-            String header = pi.combinedHeader();
+            String header = pi.getHeader();
             if (session.getNorContext() || pi.isNorContext()) {
                 pi.thePipeStep_$eq(pi.thePipeStep().$bar(NorStdOut.apply(header)));
             } else {
