@@ -2,19 +2,10 @@ package org.gorpipe.spark;
 
 import breeze.linalg.DenseMatrix;
 import com.google.common.collect.Iterators;
-import gorsat.process.GorPipe;
-import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.api.java.function.Function2;
-import org.apache.spark.api.java.function.MapFunction;
-import org.apache.spark.api.java.function.MapPartitionsFunction;
-import org.apache.spark.broadcast.Broadcast;
 import org.apache.spark.mllib.linalg.Matrices;
 import org.apache.spark.mllib.linalg.Matrix;
-import org.apache.spark.mllib.linalg.Vectors;
-import org.apache.spark.mllib.linalg.Vector;
 import org.apache.spark.mllib.linalg.distributed.*;
 import org.apache.spark.sql.*;
 import scala.Tuple2;
@@ -26,7 +17,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 public class SparkPCA {
     static String[] testargs = {"--projectroot","/gorproject","--freeze","plink_wes","--variants","/gorproject/testvars2.gor","--pnlist","/gorproject/testpns.txt","--partsize","4","--pcacomponents","3","--outfile","/gorproject/out.txt"};
