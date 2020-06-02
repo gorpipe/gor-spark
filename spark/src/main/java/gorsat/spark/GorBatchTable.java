@@ -115,6 +115,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
                 see.execute(new String[]{query}, false);
                 commands = receiveQueryHandler.getCommandsToExecute();
             } else commands = new String[] {query};
+            Arrays.stream(commands).forEach(System.err::println);
         }
         return commands;
     }

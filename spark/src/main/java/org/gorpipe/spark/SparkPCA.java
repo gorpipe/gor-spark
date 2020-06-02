@@ -2,13 +2,17 @@ package org.gorpipe.spark;
 
 import breeze.linalg.DenseMatrix;
 import com.google.common.collect.Iterators;
+import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.api.java.function.Function2;
-import org.apache.spark.api.java.function.MapPartitionsFunction;
+import org.apache.spark.api.java.function.*;
 import org.apache.spark.broadcast.Broadcast;
+import org.apache.spark.mllib.linalg.Vectors;
+import org.apache.spark.mllib.feature.PCA;
+import org.apache.spark.mllib.feature.PCAModel;
 import org.apache.spark.mllib.linalg.Matrices;
 import org.apache.spark.mllib.linalg.Matrix;
+import org.apache.spark.mllib.linalg.Vector;
 import org.apache.spark.mllib.linalg.distributed.*;
 import org.apache.spark.sql.*;
 import scala.Tuple2;
@@ -22,19 +26,21 @@ import java.util.*;
 import java.util.function.DoubleFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 public class SparkPCA {
-    static String[] testargs = {"--projectroot","/gorproject","--freeze","plink_wes","--variants","/gorproject/testvars2.gor","--pnlist","/gorproject/testpns.txt","--partsize","4","--pcacomponents","3","--outfile","/gorproject/out.txt"};
+    static String[] testargs = {"--projectroot","/gorproject","--freeze","plink_wes","--variants","testvars2.gor","--pnlist","testpns.txt","--partsize","10","--pcacomponents","3","--outfile","out.txt"};//,"--sparse"};
 
     public static void main(String[] args) throws IOException {
-        //args = testargs;
+        args = testargs;
         List<String> argList = Arrays.asList(args);
         int i = argList.indexOf("--appname");
         String appName = i != -1 ? argList.get(i+1) : "pca";
         i = argList.indexOf("--freeze");
         String freeze = i != -1 ? argList.get(i+1) : null;
+        if(freeze!=null&&freeze.startsWith("'")) freeze = freeze.substring(1,freeze.length()-1);
         i = argList.indexOf("--projectroot");
         String projectRoot = i != -1 ? argList.get(i+1) : null;
         i = argList.indexOf("--variants");
@@ -47,66 +53,127 @@ public class SparkPCA {
         int pcacomponents = i != -1 ? Integer.parseInt(argList.get(i+1)) : 3;
         i = argList.indexOf("--outfile");
         String outfile = i != -1 ? argList.get(i+1) : null;
-        try(SparkSession spark = SparkSession.builder()/*.master("local[*]")*/.appName(appName).getOrCreate()) {
-            pca(spark, projectRoot, freeze, pnlist, variants, partsize, pcacomponents, outfile);
+        boolean sparse = argList.indexOf("--sparse") != -1;
+        try(SparkSession spark = SparkSession.builder().master("local[*]").appName(appName).getOrCreate()) {
+            pca(spark, projectRoot, freeze, pnlist, variants, partsize, pcacomponents, outfile, sparse);
         }
     }
 
-    private static void pca(SparkSession spark, String projectRoot, String freeze, String pnlist, String variants, int partsize, int pcacomponents, String outfile) throws IOException {
-        GorSparkSession gorSparkSession = SparkGOR.createSession(spark, projectRoot, "result_cache", 0);
-        Path root = Paths.get(projectRoot);
-        Path freezepath = root.resolve(freeze);
-        Dataset<? extends Row> dscount = gorSparkSession.spark("spark " + variants,null);
-        int varcount = (int)dscount.count();
-
-        String freezevariants = freezepath.resolve("variants.gord").toString();
-        Dataset<Row> ds = (Dataset<Row>)gorSparkSession.spark("spark <(partgor -ff "+pnlist+" -partsize "+partsize+" -dict "+freezevariants+" <(gor "+variants +
-                        "| varjoin -r -l -e '?' <(gor "+freezevariants+" -nf -f #{tags})" +
-                        "| rename Chrom CHROM | rename ref REF | rename alt ALT " +
-                        "| calc ID chrom+'_'+pos+'_'+ref+'_'+alt " +
-                        "| csvsel "+freezepath.resolve("buckets.tsv").toString()+" <(nor <(gorrow 1,1 | calc pn '#{tags}' | split pn) | select pn) -u 3 -gc id,ref,alt -vs 1 | replace values 'u'+values))"
-                , null);
-
-        JavaRDD<Tuple2<Tuple2<Object,Object>,Matrix>> dbm = ds.select("values").javaRDD().mapPartitionsWithIndex((Function2<Integer, Iterator<Row>, Iterator<Tuple2<Tuple2<Object, Object>, Matrix>>>) (pi, input) -> {
+    private static RowMatrix blockMatrixToRowMatrix(Dataset<Row> ds, int varcount, int partsize) {
+        JavaRDD<Tuple2<Tuple2<Object,Object>,Matrix>> dbm = ds.select("chrom","pos","values").javaRDD().mapPartitionsWithIndex((Function2<Integer, Iterator<Row>, Iterator<Tuple2<Tuple2<Object, Object>, Matrix>>>) (pi, input) -> {
             double[] mat = null;
             Iterator<Tuple2<Tuple2<Object,Object>,Matrix>> it = Collections.emptyIterator();
             int start = 0;
             while(input.hasNext()) {
                 Row row = input.next();
-                String strvec = row.getString(0).substring(1);
+                //System.err.println(row.toString());
+                String strvec = row.getString(2).substring(1);
                 int len = strvec.length();
                 if(mat==null) {
                     mat = new double[varcount*len];
                 }
+                if(start*len > mat.length) throw new RuntimeException("len " + len + " " + mat.length + "  " + varcount);
                 for(int i = 0; i < len; i++) {
-                    mat[start+i] = strvec.charAt(i)-'0';
+                    mat[start+varcount*i] = strvec.charAt(i)-'0';
                 }
-                start += len;
+                start++;
             }
             if(mat!=null) {
                 Matrix matrix = Matrices.dense(mat.length/varcount,varcount,mat);
-                Tuple2<Object,Object> index = new Tuple2<>(0,10*pi);
+                Tuple2<Object,Object> index = new Tuple2<>(pi,0);
                 Tuple2<Tuple2<Object,Object>,Matrix> tupmat = new Tuple2<>(index,matrix);
                 return Iterators.singletonIterator(tupmat);
             }
             return it;
         },true);
 
-        BlockMatrix mat = new BlockMatrix(dbm.rdd(),varcount,10);
-        RowMatrix rowMatrix = mat.transpose().toIndexedRowMatrix().toRowMatrix();
+        BlockMatrix mat = new BlockMatrix(dbm.rdd(),partsize,varcount);
+        IndexedRowMatrix irm = mat.toIndexedRowMatrix();
+
+        DenseMatrix<Object> dmb = irm.toBreeze();
+        System.err.println( dmb );
+
+        return irm.toRowMatrix();
+    }
+
+    private static RowMatrix coordMatrixToRowMatrix(Dataset<Row> ds, int varcount, int samplecount, int partsize) {
+        JavaRDD<MatrixEntry> dbm = ds.select("chrom","pos","values").javaRDD().zipWithIndex().flatMap((FlatMapFunction<Tuple2<Row, Long>,MatrixEntry>) (tup) -> {
+            Row row = tup._1;
+            long idx = tup._2;
+            long pi = idx/varcount;
+            long ip = idx%varcount;
+
+            //System.err.println(row);
+            String strvec = row.getString(2).substring(1);
+            int len = strvec.length();
+            return IntStream.range(0,len).filter(i -> strvec.charAt(i)!='0').mapToObj(i -> {
+                //System.err.println(pi*partsize+i + "  " + ip + "  " + (strvec.charAt(i)-'0'));
+                return new MatrixEntry(pi*partsize+i, ip,strvec.charAt(i)-'0');
+            }).iterator();
+        });
+
+        CoordinateMatrix mat = new CoordinateMatrix(dbm.rdd(),samplecount,varcount);
+
+        DenseMatrix<Object> dmb = mat.toBreeze();
+        System.err.println( dmb );
+
+        IndexedRowMatrix irm = mat.toIndexedRowMatrix();
+
+        DenseMatrix<Object> dmb2 = mat.toBreeze();
+        System.err.println( dmb2 );
+
+        return irm.toRowMatrix();
+    }
+
+    private static void pca(SparkSession spark, String projectRoot, String freeze, String pnlist, String variants, int partsize, int pcacomponents, String outfile, boolean sparse) throws IOException {
+        GorSparkSession gorSparkSession = SparkGOR.createSession(spark, projectRoot, "result_cache", 0);
+        Path root = Paths.get(projectRoot);
+
+        Path outpath = Paths.get(outfile);
+        if(!outpath.isAbsolute()) outpath = root.resolve(outpath);
+
+        Path freezepath = Paths.get(freeze);
+        if(!freezepath.isAbsolute()) freezepath = root.resolve(freezepath);
+
+        Path pnpath = Paths.get(pnlist);
+        if(!pnpath.isAbsolute()) pnpath = root.resolve(pnpath);
+
+        Path varpath = Paths.get(variants);
+        if(!varpath.isAbsolute()) varpath = root.resolve(varpath);
+
+        Dataset<? extends Row> dscount = gorSparkSession.spark("spark <(gor " + varpath.toString()+")",null);
+        int varcount = (int)dscount.count();
+
+        List<String> pns = Files.lines(pnpath).dropWhile(l -> l.startsWith("#")).collect(Collectors.toList());
+        int samplecount = pns.size();
+
+        System.err.println("parameters: " + projectRoot + " " + freeze + " " + pnlist + " " + variants + " " + partsize + " " + pcacomponents + " " + outfile);
+        System.err.println("varcount: " + varcount);
+
+        String freezevariants = freezepath.resolve("variants.gord").toString();
+
+        Dataset<Row> pnidx = (Dataset<Row>)gorSparkSession.spark("spark <(partgor -ff "+pnpath.toString()+" -partsize "+partsize+" -dict "+freezevariants+" <(gorrow 1,1 | calc pn '#{tags}' | split pn))",null);
+        Dataset<Row> ds = (Dataset<Row>)gorSparkSession.spark("spark -tag <(partgor -ff "+pnpath.toString()+" -partsize "+partsize+" -dict "+freezevariants+" <(gor "+varpath.toString() +
+                        "| varjoin -r -l -e '?' <(gor "+freezevariants+" -nf -f #{tags})" +
+                        "| rename Chrom CHROM | rename ref REF | rename alt ALT " +
+                        "| calc ID chrom+'_'+pos+'_'+ref+'_'+alt " +
+                        "| csvsel "+freezepath.resolve("buckets.tsv").toString()+" <(nor <(gorrow 1,1 | calc pn '#{tags}' | split pn) | select pn) -u 3 -gc id,ref,alt -vs 1 | replace values 'u'+values))"
+                , null);
+
+        labelPoint(spark, ds, pnidx, varcount, pcacomponents, outpath);
+
+        /*RowMatrix rowMatrix = sparse ? coordMatrixToRowMatrix(ds, varcount, samplecount, partsize) : blockMatrixToRowMatrix(ds, varcount, partsize);
+        DenseMatrix dm = rowMatrix.toBreeze();
+        System.err.println("dm\n " + dm.toString());
+
         Matrix pc = rowMatrix.computePrincipalComponents( pcacomponents);
 
         // Project the rows to the linear space spanned by the top 4 principal components.
         RowMatrix projected = rowMatrix.multiply(pc);
+        //System.err.println("dim: "+dm.cols() + "x" + dm.rows());
 
-        DenseMatrix dm = projected.toBreeze();
-
-        Path pnpath = Paths.get(pnlist);
-        List<String> pns = Files.lines(pnpath).skip(1).collect(Collectors.toList());
-
-        Path outpath = Paths.get(outfile);
         try (BufferedWriter bw = Files.newBufferedWriter(outpath)) {
-            bw.write("#PN\tcol1\tcol2\tcol3\n");
+            bw.write("#PN\t"+ IntStream.rangeClosed(1,pcacomponents).mapToObj(i -> "col"+i).collect(Collectors.joining("\t"))+"\n");
             for (int i = 0; i < pns.size(); i++) {
                 bw.write(pns.get(i));
                 for (int k = 0; k < pcacomponents; k++) {
@@ -114,7 +181,73 @@ public class SparkPCA {
                 }
                 bw.write("\n");
             }
+        }*/
+    }
+    
+    private static void labelPoint(SparkSession spark, Dataset<Row> ds, Dataset<Row> pnidx, int varcount, int pcacomponents, Path outpath) throws IOException {
+        Dataset<Vector> dv = ds.select("values").mapPartitions((MapPartitionsFunction<Row, Vector>) ir -> {
+            double[][] mat = null;
+            Iterator<Vector> it = Collections.emptyIterator();
+            int start = 0;
+            while(ir.hasNext()) {
+                Row row = ir.next();
+                String strvec = row.getString(0).substring(1);
+                int len = strvec.length();
+                if(mat==null) {
+                    mat = new double[len][];
+                    for(int i = 0; i < len; i++) {
+                        mat[i] = new double[varcount];
+                    }
+                }
+                //if(start*len > mat.length) throw new RuntimeException("len " + len + " " + mat.length + "  " + varcount);
+                for(int i = 0; i < len; i++) {
+                    mat[i][start] = strvec.charAt(i)-'0';
+                }
+                start++;
+            }
+            if(mat!=null) {
+                List<Vector> lv = new ArrayList<>(mat.length);
+                for(int i = 0; i < mat.length; i++) {
+                    lv.add(Vectors.dense(mat[i]));
+                }
+                return lv.stream().iterator();
+            }
+            return it;
+        }, Encoders.kryo(Vector.class));
+
+        //Map<Long,String> idx2Pn = pnidx.select("pn").map((MapFunction<Row,String>) r -> r.get(0).toString(),Encoders.STRING()).javaRDD().zipWithIndex().map(Tuple2::swap).mapToPair((PairFunction<Tuple2<Long, String>, Long, String>) longStringTuple2 -> longStringTuple2).collectAsMap();
+        //spark.sparkContext().broadcast(idx2Pn, Encoders.bean(Map));
+
+        Map<Long,String> jprs = pnidx.select("pn").map((MapFunction<Row,String>) r -> r.get(0).toString(),Encoders.STRING()).javaRDD().zipWithIndex().mapToPair(Tuple2::swap).collectAsMap();
+        JavaPairRDD<Long,Vector> jprv = dv.javaRDD().zipWithIndex().mapToPair((PairFunction<Tuple2<Vector, Long>, Long, Vector>) Tuple2::swap);
+
+        /*JavaPairRDD<Long,Tuple2<Vector,String>> prdd = jprv.join(jprs);
+        //prdd.mapValues(f -> new LabeledPoint());
+
+        prdd.collect().forEach(System.err::println);*/
+
+        PCA pca = new PCA(pcacomponents);
+        PCAModel pcamodel = pca.fit(jprv.values());
+
+        JavaSparkContext javaSparkContext = JavaSparkContext.fromSparkContext(spark.sparkContext());
+        Broadcast<Map<Long,String>> bc = javaSparkContext.broadcast(jprs);
+        JavaPairRDD<String,Vector> projected = jprv.mapToPair(p -> new Tuple2<>(bc.getValue().get(p._1), pcamodel.transform(p._2)));
+        Map<String,Vector> result = projected.collectAsMap();
+
+        try (BufferedWriter bw = Files.newBufferedWriter(outpath)) {
+            for(String pn : result.keySet()) {
+                bw.write(pn);
+                Vector pcacomp = result.get(pn);
+                for(int i = 0; i < pcacomp.size(); i++) {
+                    bw.write('\t');
+                    bw.write(Double.toString(pcacomp.apply(i)));
+                }
+                bw.write('\n');
+            }
         }
+
+        /*DenseMatrix<Object> dmb = rowMatrix.toBreeze();
+        System.err.println( dmb );*/
     }
 
     private static void coordpca(String[] args, SparkSession spark) {
@@ -266,7 +399,7 @@ public class SparkPCA {
         RowMatrix projected = rowMatrix.multiply(pc);
 
         DenseMatrix dm = projected.toBreeze();
-        System.err.println(dm.toString());
+        System.err.println(dm.toString(20,20));
                 //.collectAsList().forEach(System.err::println);*/
     }
 

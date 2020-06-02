@@ -480,7 +480,7 @@ public class SparkRowSource extends ProcessSource {
             });
             if (name != null) gor.createOrReplaceTempView(name);
         } else {
-            nestedQuery &= !fn.startsWith("<(spark") && !fn.startsWith("<(pgor ") && !fn.startsWith("<(partgor ") && !fn.startsWith("<(parallel ");
+            nestedQuery = false; //!fn.startsWith("<(spark") && !fn.startsWith("<(pgor ") && !fn.startsWith("<(partgor ") && !fn.startsWith("<(parallel ") || !fn.startsWith("<(gor ");
             if (nestedQuery) {
                 boolean hasFilter = filter != null && filter.length() > 0;
                 String gorcmd = fileName;
@@ -595,7 +595,7 @@ public class SparkRowSource extends ProcessSource {
                     gor = sparkRowSource.getDataset();
                     dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
                     //gor = registerFile();
-                } else if (fileName.startsWith("pgor ") || fileName.startsWith("partgor ") || fileName.startsWith("parallel ")) {
+                } else if (fileName.startsWith("pgor ") || fileName.startsWith("partgor ") || fileName.startsWith("parallel ") || fileName.startsWith("gor ") || fileName.startsWith("nor ")) {
                     DataFrameReader dfr = gorSparkSession.getSparkSession().read().format(gordatasourceClassname);
                     dfr.option("query",fileName);
                     if(tag) dfr.option("tag",true);
