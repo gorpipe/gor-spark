@@ -10,7 +10,7 @@ include 'gordrivers'
 include 'base'
 include 'test'
 
-include 'util'
+include 'gorutil'
 include 'clientbase'
 include 'external'
 
@@ -21,7 +21,7 @@ project(":model").projectDir = file("../gor/model")
 project(":gordrivers").projectDir = file("../gor/gordrivers")
 project(":base").projectDir = file("../gor/base")
 project(":test").projectDir = file("../gor/test")
-project(":util").projectDir = file("../gor/util")
+project(":gorutil").projectDir = file("../gor/util")
 project(":clientbase").projectDir = file("../gor/clientbase")
 project(":external").projectDir = file("../gor/external")
 project(":documentation").projectDir = file("../gor/documentation")

@@ -601,18 +601,6 @@ public class SparkRowSource extends ProcessSource {
                     if(tag) dfr.option("tag",true);
                     dfr.option("projectroot",fileroot.toString());
                     gor = dfr.load();
-
-                    /*String uri = gorSparkSession.getRedisUri();
-                    GorSpark gs = new GorSparkMaterialize("", nor, SparkGOR.sparkrowEncoder().schema(), null, gorSparkSession.getProjectContext().getRoot(), uri, -1, 100);
-                    GorSparkRowInferFunction gi = new GorSparkRowInferFunction();
-                    Row row = gor.limit(100).reduce(gi);
-                    if (row.chr != null) row = gi.infer(row, row);
-                    StructType schema = schemaFromRow(gs.query().combinedHeader().split("\t"), row);
-
-                    dfr = gorSparkSession.getSparkSession().read().format(gordatasourceClassname);
-                    dfr.schema(schema).option("query",fileName);
-                    gor = dfr.load();*/
-
                     dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
                 } else if (fileName.toLowerCase().endsWith(".parquet")) {
                     gor = gorSparkSession.getSparkSession().read().format("org.apache.spark.sql.execution.datasources.v2.parquet.ParquetDataSourceV2").load(fileName);
@@ -1377,7 +1365,9 @@ public class SparkRowSource extends ProcessSource {
         if(pushdownGorPipe!=null) pushdownGor("where "+gorwhere);
         else {
             StructType st = dataset.schema();
-            String[] headersplit = Arrays.stream(st.fields()).map(StructField::name).toArray(String[]::new);
+            StructField[] fields = st.fields();
+            nor = nor | checkNor(fields);
+            String[] headersplit = Arrays.stream(fields).map(StructField::name).toArray(String[]::new);
             String[] ctypes = Arrays.stream(st.fields()).map(f -> dmap.get(f.dataType())).toArray(String[]::new);
             dataset = dataset.filter((FilterFunction) (nor ? new NorFilterFunction(gorwhere, headersplit, ctypes) : new GorFilterFunction(gorwhere, headersplit, ctypes)));
         }
@@ -1389,7 +1379,9 @@ public class SparkRowSource extends ProcessSource {
         if(pushdownGorPipe!=null) pushdownGor("calc " + colName + " " + formula);
         else {
             StructType st = dataset.schema();
-            String[] headersplit = Arrays.stream(st.fields()).map(StructField::name).toArray(String[]::new);
+            StructField[] st_fields = st.fields();
+            nor = nor | checkNor(st_fields);
+            String[] headersplit = Arrays.stream(st_fields).map(StructField::name).toArray(String[]::new);
             String[] ctypes = Arrays.stream(st.fields()).map(f -> dmap.get(f.dataType())).toArray(String[]::new);
             DataType[] dataTypes = Arrays.stream(st.fields()).map(StructField::dataType).toArray(DataType[]::new);
             FilterParams fp = new FilterParams(formula, headersplit, ctypes);

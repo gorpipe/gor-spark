@@ -2,6 +2,8 @@ package org.gorpipe.spark;
 
 import breeze.linalg.DenseMatrix;
 import com.google.common.collect.Iterators;
+import gorsat.process.GenericSessionFactory;
+import gorsat.process.PipeInstance;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -15,6 +17,8 @@ import org.apache.spark.mllib.linalg.Matrix;
 import org.apache.spark.mllib.linalg.Vector;
 import org.apache.spark.mllib.linalg.distributed.*;
 import org.apache.spark.sql.*;
+import org.gorpipe.gor.GorContext;
+import org.gorpipe.gor.GorSession;
 import scala.Tuple2;
 
 import java.io.BufferedWriter;
@@ -31,10 +35,10 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 public class SparkPCA {
-    static String[] testargs = {"--projectroot","/gorproject","--freeze","plink_wes","--variants","testvars2.gor","--pnlist","testpns.txt","--partsize","10","--pcacomponents","3","--outfile","out.txt"};//,"--sparse"};
+    static String[] testargs = {"--projectroot","/gorproject","--freeze","plink_wes","--variants","testvars2.gorz","--pnlist","testpns.txt","--partsize","10","--pcacomponents","3","--outfile","out.txt"};//,"--sparse"};
 
     public static void main(String[] args) throws IOException {
-        args = testargs;
+        //args = testargs;
         List<String> argList = Arrays.asList(args);
         int i = argList.indexOf("--appname");
         String appName = i != -1 ? argList.get(i+1) : "pca";
@@ -42,11 +46,11 @@ public class SparkPCA {
         String freeze = i != -1 ? argList.get(i+1) : null;
         if(freeze!=null&&freeze.startsWith("'")) freeze = freeze.substring(1,freeze.length()-1);
         i = argList.indexOf("--projectroot");
-        String projectRoot = i != -1 ? argList.get(i+1) : null;
+        String projectRoot = argList.get(i+1);
         i = argList.indexOf("--variants");
-        String variants = i != -1 ? argList.get(i+1) : null;
+        String variants = argList.get(i+1);
         i = argList.indexOf("--pnlist");
-        String pnlist = i != -1 ? argList.get(i+1) : null;
+        String pnlist = argList.get(i+1);
         i = argList.indexOf("--partsize");
         int partsize = i != -1 ? Integer.parseInt(argList.get(i+1)) : 10;
         i = argList.indexOf("--pcacomponents");
@@ -54,8 +58,105 @@ public class SparkPCA {
         i = argList.indexOf("--outfile");
         String outfile = i != -1 ? argList.get(i+1) : null;
         boolean sparse = argList.indexOf("--sparse") != -1;
-        try(SparkSession spark = SparkSession.builder().master("local[*]").appName(appName).getOrCreate()) {
-            pca(spark, projectRoot, freeze, pnlist, variants, partsize, pcacomponents, outfile, sparse);
+
+        i = argList.indexOf("--instances");
+        int instances = i != -1 ? Integer.parseInt(argList.get(i+1)) : -1;
+        i = argList.indexOf("--cores");
+        int cores = i != -1 ? Integer.parseInt(argList.get(i+1)) : -1;
+        i = argList.indexOf("--memory");
+        String memory = i != -1 ? argList.get(i+1) : "";
+
+        Path root = Paths.get(projectRoot);
+
+        Path outpath = Paths.get(outfile);
+        if(!outpath.isAbsolute()) outpath = root.resolve(outpath);
+
+        Path freezepath = Paths.get(freeze);
+        if(!freezepath.isAbsolute()) freezepath = root.resolve(freezepath);
+
+        Path pnpath = Paths.get(pnlist);
+        if(!pnpath.isAbsolute()) pnpath = root.resolve(pnpath);
+
+        Path varpath = Paths.get(variants);
+        if(!varpath.isAbsolute()) varpath = root.resolve(varpath);
+
+        Stream<String> str;
+        if(varpath.getFileName().toString().endsWith(".gorz")) {
+            GenericSessionFactory gsf = new GenericSessionFactory(".", "result_cache");
+            GorSession gs = gsf.create();
+            GorContext gc = gs.getGorContext();
+            PipeInstance pi = new PipeInstance(gc);
+            pi.init("gor "+varpath.toString(), false, "");
+            str = StreamSupport.stream(Spliterators.spliteratorUnknownSize(pi.theInputSource(), 0), false).map(Object::toString);
+
+            /*byte[] output = new byte[65536];
+            byte[] input = new byte[65536];
+            InputStream in = Files.newInputStream(varpath);
+            int r = in.read();
+            while(r != '\n') r = in.read();
+            r = in.read();
+            while(r != -1) {
+                while(r != '\t') r = in.read();
+                r = in.read();
+                while(r != '\t') r = in.read();
+                r = in.read();
+                //r = in.read();
+                //in.read();
+                r = in.read();
+                int k = 0;
+                while(r != '\n') {
+                    input[k++] = (byte)r;
+                    r = in.read();
+                }
+                r = in.read();
+
+                Inflater ifl = new Inflater();
+                ifl.setInput(input,0,k);
+                try {
+                    ifl.inflate(output);
+                } catch (DataFormatException e) {
+                    e.printStackTrace();
+                }
+                String bb = new String(output);
+                System.err.println(bb);
+            }*/
+            /*str = str.flatMap(f -> {
+                byte[] gzip = f.getBytes(StandardCharsets.ISO_8859_1);
+                int k = 0;
+                while(gzip[k++]!='\t');
+                while(gzip[k++]!='\t');
+                Inflater ifl = new Inflater();
+                ifl.setInput(Arrays.copyOfRange(gzip,k,gzip.length));
+                try {
+                    ifl.inflate(output);
+                } catch (DataFormatException e) {
+                    e.printStackTrace();
+                }
+                String bb = new String(output);
+                String[] spl = bb.split("\t");
+                return Arrays.stream(spl);
+            });*/
+        } else {
+            str = Files.lines(varpath).skip(1);
+        }
+        long varcount = str.count();
+        long samplecount = Files.lines(pnpath).dropWhile(l -> l.startsWith("#")).count();
+
+        SparkSession.Builder ssBuilder = SparkSession.builder();
+        if(instances>=0) {
+            ssBuilder = ssBuilder.config("spark.executor.instances",instances == 0 ? samplecount / partsize + 1 : instances);
+        }
+        if(!memory.equals("-1")) {
+            ssBuilder = ssBuilder.config("spark.executor.memory",memory.equals("0") ? (varcount*partsize/1000000 + 1)+"g" : memory);
+        }
+        if(cores>0) {
+            ssBuilder = ssBuilder.config("spark.executor.cores",cores);
+        }
+
+        try(SparkSession spark = ssBuilder/*.master("local[*]")*/.appName(appName).getOrCreate()) {
+        //try(SparkSession spark = SparkSession.builder().master("local[*]").appName(appName).getOrCreate()) {
+            pca(spark, projectRoot, freeze, pnlist, variants, partsize, pcacomponents, pnpath, varpath, freezepath, (int)varcount, outpath, sparse);
+            spark.stop();
         }
     }
 
@@ -66,7 +167,6 @@ public class SparkPCA {
             int start = 0;
             while(input.hasNext()) {
                 Row row = input.next();
-                //System.err.println(row.toString());
                 String strvec = row.getString(2).substring(1);
                 int len = strvec.length();
                 if(mat==null) {
@@ -103,13 +203,9 @@ public class SparkPCA {
             long pi = idx/varcount;
             long ip = idx%varcount;
 
-            //System.err.println(row);
             String strvec = row.getString(2).substring(1);
             int len = strvec.length();
-            return IntStream.range(0,len).filter(i -> strvec.charAt(i)!='0').mapToObj(i -> {
-                //System.err.println(pi*partsize+i + "  " + ip + "  " + (strvec.charAt(i)-'0'));
-                return new MatrixEntry(pi*partsize+i, ip,strvec.charAt(i)-'0');
-            }).iterator();
+            return IntStream.range(0,len).filter(i -> strvec.charAt(i)!='0').mapToObj(i -> new MatrixEntry(pi*partsize+i, ip,strvec.charAt(i)-'0')).iterator();
         });
 
         CoordinateMatrix mat = new CoordinateMatrix(dbm.rdd(),samplecount,varcount);
@@ -125,29 +221,10 @@ public class SparkPCA {
         return irm.toRowMatrix();
     }
 
-    private static void pca(SparkSession spark, String projectRoot, String freeze, String pnlist, String variants, int partsize, int pcacomponents, String outfile, boolean sparse) throws IOException {
+    private static void pca(SparkSession spark, String projectRoot, String freeze, String pnlist, String variants, int partsize, int pcacomponents, Path pnpath, Path varpath, Path freezepath, int varcount, Path outpath, boolean sparse) throws IOException {
         GorSparkSession gorSparkSession = SparkGOR.createSession(spark, projectRoot, "result_cache", 0);
-        Path root = Paths.get(projectRoot);
 
-        Path outpath = Paths.get(outfile);
-        if(!outpath.isAbsolute()) outpath = root.resolve(outpath);
-
-        Path freezepath = Paths.get(freeze);
-        if(!freezepath.isAbsolute()) freezepath = root.resolve(freezepath);
-
-        Path pnpath = Paths.get(pnlist);
-        if(!pnpath.isAbsolute()) pnpath = root.resolve(pnpath);
-
-        Path varpath = Paths.get(variants);
-        if(!varpath.isAbsolute()) varpath = root.resolve(varpath);
-
-        Dataset<? extends Row> dscount = gorSparkSession.spark("spark <(gor " + varpath.toString()+")",null);
-        int varcount = (int)dscount.count();
-
-        List<String> pns = Files.lines(pnpath).dropWhile(l -> l.startsWith("#")).collect(Collectors.toList());
-        int samplecount = pns.size();
-
-        System.err.println("parameters: " + projectRoot + " " + freeze + " " + pnlist + " " + variants + " " + partsize + " " + pcacomponents + " " + outfile);
+        System.err.println("parameters: " + projectRoot + " " + freeze + " " + pnlist + " " + variants + " " + partsize + " " + pcacomponents + " " + outpath);
         System.err.println("varcount: " + varcount);
 
         String freezevariants = freezepath.resolve("variants.gord").toString();
@@ -218,7 +295,7 @@ public class SparkPCA {
         //Map<Long,String> idx2Pn = pnidx.select("pn").map((MapFunction<Row,String>) r -> r.get(0).toString(),Encoders.STRING()).javaRDD().zipWithIndex().map(Tuple2::swap).mapToPair((PairFunction<Tuple2<Long, String>, Long, String>) longStringTuple2 -> longStringTuple2).collectAsMap();
         //spark.sparkContext().broadcast(idx2Pn, Encoders.bean(Map));
 
-        Map<Long,String> jprs = pnidx.select("pn").map((MapFunction<Row,String>) r -> r.get(0).toString(),Encoders.STRING()).javaRDD().zipWithIndex().mapToPair(Tuple2::swap).collectAsMap();
+        JavaPairRDD<Long,String> jprs = pnidx.select("pn").map((MapFunction<Row,String>) r -> r.get(0).toString(),Encoders.STRING()).javaRDD().zipWithIndex().mapToPair(Tuple2::swap);
         JavaPairRDD<Long,Vector> jprv = dv.javaRDD().zipWithIndex().mapToPair((PairFunction<Tuple2<Vector, Long>, Long, Vector>) Tuple2::swap);
 
         /*JavaPairRDD<Long,Tuple2<Vector,String>> prdd = jprv.join(jprs);
@@ -229,9 +306,13 @@ public class SparkPCA {
         PCA pca = new PCA(pcacomponents);
         PCAModel pcamodel = pca.fit(jprv.values());
 
-        JavaSparkContext javaSparkContext = JavaSparkContext.fromSparkContext(spark.sparkContext());
-        Broadcast<Map<Long,String>> bc = javaSparkContext.broadcast(jprs);
-        JavaPairRDD<String,Vector> projected = jprv.mapToPair(p -> new Tuple2<>(bc.getValue().get(p._1), pcamodel.transform(p._2)));
+        JavaPairRDD<Long,Vector> jprr = jprv.mapToPair(f -> new Tuple2<>(f._1,pcamodel.transform(f._2)));
+
+        //jprv.map
+        JavaPairRDD<String,Vector> projected = jprs.join(jprr).mapToPair((PairFunction<Tuple2<Long,Tuple2<String, Vector>>, String, Vector>) f -> f._2);
+        //JavaSparkContext javaSparkContext = JavaSparkContext.fromSparkContext(spark.sparkContext());
+        //Broadcast<Map<Long,String>> bc = javaSparkContext.broadcast(jprs.collectAsMap());
+        //JavaPairRDD<String,Vector> projected = jprv.mapToPair(p -> new Tuple2<>(bc.getValue().get(p._1), pcamodel.transform(p._2)));
         Map<String,Vector> result = projected.collectAsMap();
 
         try (BufferedWriter bw = Files.newBufferedWriter(outpath)) {

@@ -29,7 +29,7 @@ object SparkPipe extends GorPipeFirstOrderCommands {
    * Main definition accepts an argument string and ensures database sources are initialized.
    */
   def main(args: Array[String]) {
-
+    //"spark ho.yml(name=sim,projectroot=/mnt/csa/env/dev/projects/ukbb_hg38,freeze=freeze/ukbb_500k/array_vep95p1,variants=freeze/ukbb_500k/array_vep95p1/metadata/AF.gorz,pnlist=user_data/simmi/pns4.txt,partsize=1000,pcacomponents=3,outfile=user_data/simmi/sko.nor)"
     // Display help
     if (args.length < 1 || args(0).isEmpty || args(0).toUpperCase.startsWith("HELP")) {
       helpCommand(args, new DefaultFileReader(""))

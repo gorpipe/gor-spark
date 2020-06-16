@@ -92,7 +92,7 @@ configure(allLeafProjects()) {
 
     // Common repositories, dependencies and jar.
     repositories {
-        mavenLocal()
+        //mavenLocal()
         jcenter()
         mavenCentral()
         maven {
