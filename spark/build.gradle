@@ -97,7 +97,7 @@ project(':spark') {
         implementation 'io.kubernetes:client-java:8.0.2'
         //compile group: 'io.fabric8', name: 'kubernetes-client', version: '4.7.1'
 
-        testCompile("${gorArtifactGroupId}:gor-base-test:${gorVersion}")
+        testCompile("${gorArtifactGroupId}:gor-test:${gorVersion}")
     }
 
     jar {
