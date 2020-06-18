@@ -45,8 +45,9 @@ project(':spark') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
         }
 
-        compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.10.3'
-        compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.10.3'
+        compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.11.0'
+        compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.0'
+        compile group: 'com.fasterxml.jackson.module', name: 'jackson-module-scala_2.12', version: '2.11.0'
 
         /*compile('org.broadinstitute:gatk:4.1.4.1') {
             exclude group: 'com.esotericsoftware'
@@ -56,12 +57,12 @@ project(':spark') {
         }
         compile group: 'org.broadinstitute', name: 'gatk-native-bindings', version: '1.0.0'*/
 
-        compile group: 'org.apache.logging.log4j', name: 'log4j', version: '2.13.0', ext: 'pom'
-        compile group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.13.0', ext: 'pom'
-        compile group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.13.0', ext: 'pom'
-        compile group: 'org.apache.logging.log4j', name: 'log4j-jcl', version: '2.13.0', ext: 'pom'
-        compile group: 'org.apache.logging.log4j', name: 'log4j-slf4j-impl', version: '2.13.0'
-        compile group: 'org.apache.logging.log4j', name: 'log4j-1.2-api', version: '2.13.0'
+        compile group: 'org.apache.logging.log4j', name: 'log4j', version: '2.13.3', ext: 'pom'
+        compile group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.13.3', ext: 'pom'
+        compile group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.13.3', ext: 'pom'
+        compile group: 'org.apache.logging.log4j', name: 'log4j-jcl', version: '2.13.3', ext: 'pom'
+        compile group: 'org.apache.logging.log4j', name: 'log4j-slf4j-impl', version: '2.13.3'
+        compile group: 'org.apache.logging.log4j', name: 'log4j-1.2-api', version: '2.13.3'
 
         //compile group: 'javax.jms', name: 'javax.jms-api', version: '2.0.1'
 

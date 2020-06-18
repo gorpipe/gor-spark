@@ -258,7 +258,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
                     });
                     final Optional<Filter> posLessOptFinal = posLessOpt;
 
-                    ret =  Arrays.stream(filters).filter(f -> (!chrOpt.isPresent() || !f.equals(chrOpt.get())) && (!posGreatOptFinal.isPresent() || !f.equals(posGreatOptFinal.get())) && (!posLessOptFinal.isPresent() || !f.equals(posLessOptFinal.get()))).toArray(Filter[]::new);
+                    ret =  Arrays.stream(filters).filter(f -> !chrOpt.isPresent() || (!f.equals(chrOpt.get()) && (!posGreatOptFinal.isPresent() || !f.equals(posGreatOptFinal.get())) && (!posLessOptFinal.isPresent() || !f.equals(posLessOptFinal.get())))).toArray(Filter[]::new);
                 } else ret = new Filter[0];
 
                 Set<Filter> fset = new HashSet<>(Arrays.asList(ret));
