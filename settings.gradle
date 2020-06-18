@@ -7,21 +7,19 @@ include 'querydialogs'
 include 'gortools'
 include 'model'
 include 'gordrivers'
-include 'base'
+include 'gorbase'
 include 'test'
 
 include 'gorutil'
-include 'clientbase'
 include 'external'
 
 include 'documentation'
 
 project(":gortools").projectDir = file("../gor/gortools")
 project(":model").projectDir = file("../gor/model")
-project(":gordrivers").projectDir = file("../gor/gordrivers")
-project(":base").projectDir = file("../gor/base")
+project(":gordrivers").projectDir = file("../gor/drivers")
+project(":gorbase").projectDir = file("../gor/base")
 project(":test").projectDir = file("../gor/test")
 project(":gorutil").projectDir = file("../gor/util")
-project(":clientbase").projectDir = file("../gor/clientbase")
 project(":external").projectDir = file("../gor/external")
 project(":documentation").projectDir = file("../gor/documentation")
