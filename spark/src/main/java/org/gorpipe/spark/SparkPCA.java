@@ -140,7 +140,7 @@ public class SparkPCA {
             str = Files.lines(varpath).skip(1);
         }
         long varcount = str.count();
-        long samplecount = Files.lines(pnpath).dropWhile(l -> l.startsWith("#")).count();
+        long samplecount = Files.lines(pnpath).filter(l -> !l.startsWith("#")).count();//.dropWhile(l -> l.startsWith("#")).count();
 
         SparkSession.Builder ssBuilder = SparkSession.builder();
         if(instances>=0) {
