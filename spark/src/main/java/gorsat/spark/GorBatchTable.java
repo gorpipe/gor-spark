@@ -131,9 +131,10 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
             }
         } else if(commands!=null) {
             String query = commands[0];
-            SparkSessionFactory sessionFactory = new SparkSessionFactory(null, Paths.get(".").toAbsolutePath().normalize().toString(), "result_cache", null);
+            boolean nor = query.toLowerCase().startsWith("nor ");
+            SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectRoot, cacheDir, null);
             GorSparkSession gorPipeSession = (GorSparkSession) sessionFactory.create();
-            SparkRowSource.GorDataType gdt = SparkRowSource.gorCmdSchema(query,gorPipeSession, false);
+            SparkRowSource.GorDataType gdt = SparkRowSource.gorCmdSchema(query,gorPipeSession, nor);
 
             String[] headerArray = gdt.header;
             DataType[] dataTypes = new DataType[headerArray.length];
@@ -192,7 +193,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
     @Override
     public ScanBuilder newScanBuilder(CaseInsensitiveStringMap caseInsensitiveStringMap) {
         if(schema==null) inferSchema();
-        return new GorScanBuilder(schema, redisUri, jobId, cacheFile, useCpp) {
+        return new GorScanBuilder(schema, redisUri, jobId, cacheFile, projectRoot, cacheDir, useCpp) {
             Filter[] pushedFilters = new Filter[0];
             String filterChrom = fchrom;
             int start = fstart;

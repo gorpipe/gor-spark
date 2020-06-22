@@ -13,13 +13,17 @@ public class GorReaderFactory implements PartitionReaderFactory {
     String jobId;
     String cacheFile;
     String useCpp;
+    String projectRoot;
+    String cacheDir;
 
-    public GorReaderFactory(StructType schema, String redisUri, String jobId, String cacheFile, String useCpp) {
+    public GorReaderFactory(StructType schema, String redisUri, String jobId, String cacheFile, String projectRoot, String cacheDir, String useCpp) {
         this.schema = schema;
         this.redisUri = redisUri;
         this.jobId = jobId;
         this.cacheFile = cacheFile;
         this.useCpp = useCpp;
+        this.projectRoot = projectRoot;
+        this.cacheDir = cacheDir;
     }
 
     @Override
@@ -30,9 +34,9 @@ public class GorReaderFactory implements PartitionReaderFactory {
         if(useCpp != null && useCpp.equalsIgnoreCase("blue")) {
             partitionReader = new NativePartitionReader(fields,p);
         } else if(fields.length>1) {
-            partitionReader = new GorPartitionReader(schema,p,redisUri,jobId,useCpp);
+            partitionReader = new GorPartitionReader(schema,p,redisUri,jobId,projectRoot,cacheDir,useCpp);
         } else {
-            partitionReader = new GorStringPartitionReader(schema,p,redisUri,jobId,useCpp);
+            partitionReader = new GorStringPartitionReader(schema,p,redisUri,jobId,projectRoot,cacheDir,useCpp);
         }
         return partitionReader;
     }

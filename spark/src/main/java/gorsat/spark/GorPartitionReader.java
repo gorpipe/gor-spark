@@ -11,6 +11,7 @@ import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.connector.read.PartitionReader;
 import org.apache.spark.sql.types.StructType;
+import org.gorpipe.model.gor.RowObj;
 import org.gorpipe.model.gor.iterators.RowSource;
 import org.gorpipe.spark.GorSparkSession;
 import org.gorpipe.spark.SparkGorMonitor;
@@ -33,14 +34,19 @@ public class GorPartitionReader implements PartitionReader<InternalRow> {
     String redisUri;
     String jobId;
     String useCpp;
+    String projectRoot;
+    String cacheDir;
+    boolean nor = false;
 
-    public GorPartitionReader(StructType schema, GorRangeInputPartition gorRangeInputPartition, String redisUri, String jobId, String useCpp) {
+    public GorPartitionReader(StructType schema, GorRangeInputPartition gorRangeInputPartition, String redisUri, String jobId, String projectRoot, String cacheDir, String useCpp) {
         encoder = RowEncoder.apply(schema);
         sparkRow = new SparkGorRow(schema);
         p = gorRangeInputPartition;
         this.redisUri = redisUri;
         this.jobId = jobId;
         this.useCpp = useCpp;
+        this.projectRoot = projectRoot;
+        this.cacheDir = cacheDir;
     }
 
     private String parseMultiplePaths(Path epath) {
@@ -92,12 +98,14 @@ public class GorPartitionReader implements PartitionReader<InternalRow> {
                 return sparkGorMonitor.getValue(JobField.CancelFlag) != null;
             }
         };
-        SparkSessionFactory sessionFactory = new SparkSessionFactory(null, Paths.get(".").toAbsolutePath().normalize().toString(), "result_cache", sparkGorMonitor);
+
+        SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectRoot, cacheDir, sparkGorMonitor);
         GorSparkSession gorPipeSession = (GorSparkSession) sessionFactory.create();
         PipeInstance pi = new PipeInstance(gorPipeSession.getGorContext());
 
         if(p.query!=null) {
             iterator = iteratorWithPipeSteps(pi);
+            nor = p.query.toLowerCase().startsWith("nor ");
         } else {
             iterator = iteratorFromFile(pi);
         }
@@ -111,7 +119,8 @@ public class GorPartitionReader implements PartitionReader<InternalRow> {
         boolean hasNext = iterator.hasNext();
         if( hasNext ) {
             org.gorpipe.model.genome.files.gor.Row gorrow = iterator.next();
-            if( p.tag != null ) gorrow = gorrow.rowWithAddedColumn(p.tag);
+            if (nor) gorrow = RowObj.apply(gorrow.otherCols());
+            if (p.tag != null) gorrow = gorrow.rowWithAddedColumn(p.tag);
             hasNext = p.chr == null || (gorrow.chr.equals(p.chr) && (p.end == -1 || gorrow.pos <= p.end));
             sparkRow.row = gorrow;
         }
