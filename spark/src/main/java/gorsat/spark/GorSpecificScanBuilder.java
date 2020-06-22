@@ -8,8 +8,8 @@ import org.apache.spark.sql.sources.Filter;
 import org.apache.spark.sql.types.StructType;
 
 public class GorSpecificScanBuilder extends GorScanBuilder implements SupportsReportPartitioning {
-    public GorSpecificScanBuilder(StructType schema, String redisUri, String jobId, String cacheFile, String useCpp) {
-        super(schema, redisUri, jobId, cacheFile, useCpp);
+    public GorSpecificScanBuilder(StructType schema, String redisUri, String jobId, String cacheFile, String projectRoot, String cacheDir, String useCpp) {
+        super(schema, redisUri, jobId, cacheFile, projectRoot, cacheDir, useCpp);
     }
 
     @Override

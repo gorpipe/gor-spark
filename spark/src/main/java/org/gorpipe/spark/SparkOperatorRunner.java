@@ -95,6 +95,6 @@ public class SparkOperatorRunner {
     public void run(String yaml, String projectroot) throws IOException, ApiException {
         if(projectroot==null||projectroot.length()==0) projectroot = Paths.get(".").toAbsolutePath().normalize().toString();
         Map<String,Object> body = loadBody(yaml,projectroot,"", new HashMap<>());
-        apiInstance.createNamespacedCustomObject("sparkoperator.k8s.io", "v1beta2", "spark", "sparkapplications", body, "true");
+        apiInstance.createNamespacedCustomObject("sparkoperator.k8s.io", "v1beta2", "spark", "sparkapplications", body, "true", null, null);
     }
 }

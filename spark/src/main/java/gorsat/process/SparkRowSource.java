@@ -201,7 +201,7 @@ public class SparkRowSource extends ProcessSource {
                 }
             }
         }
-        return typeFromStream(linestream, withStart, headerArray, nor, false, base128);
+        return typeFromStream(linestream, withStart, headerArray, nor, base128);
     }
 
     public static GorDataType typeFromParquetLine(ParquetLine pl, boolean withStart, String[] header) {
@@ -226,12 +226,13 @@ public class SparkRowSource extends ProcessSource {
         return new GorDataType(dataTypeMap, withStart, header, gortypes);
     }
 
-    public static GorDataType typeFromStream(Stream<String> linestream, boolean withStart, String[] headerArray, final boolean nor, final boolean dummyColumns) {
-        return typeFromStream(linestream, withStart, headerArray, nor, dummyColumns, false);
+    public static GorDataType typeFromStream(Stream<String> linestream, boolean withStart, String[] headerArray, final boolean nor) {
+        return typeFromStream(linestream, withStart, headerArray, nor, false);
     }
 
-    public static GorDataType typeFromStream(Stream<String> linestream, boolean withStart, String[] headerArray, final boolean nor, final boolean dummyColumns, boolean base128) {
+    public static GorDataType typeFromStream(Stream<String> linestream, boolean withStart, String[] headerArray, final boolean nor, boolean base128) {
         Map<Integer, DataType> dataTypeMap = new HashMap<>();
+        if(nor) headerArray = Arrays.copyOfRange(headerArray,2,headerArray.length);
         String[] gortypes = new String[headerArray.length];
         int start = 0;
         /*if (!nor && gortypes.length > 0) {
@@ -243,13 +244,10 @@ public class SparkRowSource extends ProcessSource {
             gortypes[i] = "I";
         }
 
-        DataType doubleArrayType = DataTypes.createArrayType(DoubleType);
         Set<Integer> remSet = new HashSet<>();
         Set<Integer> dSet = new HashSet<>();
-        Set<Integer> aSet = new HashSet<>();
         Stream<String[]> strstr = linestream.limit(1000).map(line -> line.split("\t"));
-        if (dummyColumns) strstr = strstr.map(a -> Arrays.copyOfRange(a, 2, a.length));
-        int[] listLen = {-1};
+        if (nor) strstr = strstr.map(a -> Arrays.copyOfRange(a, 2, a.length));
         strstr.allMatch(line -> {
             dataTypeMap.forEach((idx, colType) -> {
                 String value = line[idx];
@@ -262,7 +260,8 @@ public class SparkRowSource extends ProcessSource {
                 }
                 if (colType == DoubleType) {
                     try {
-                        if (value.length() <= 16) {
+                        int di = value.indexOf('.');
+                        if (di >= 0 || value.length() <= 16) {
                             Double.parseDouble(value);
                             dSet.add(idx);
                         } else {
@@ -446,7 +445,7 @@ public class SparkRowSource extends ProcessSource {
         String header = drs.getHeader();
         String[] ha = header.split("\t");
         Stream<String> linestream = StreamSupport.stream(Spliterators.spliteratorUnknownSize(drs, Spliterator.ORDERED), false).map(Object::toString).onClose(drs::close);
-        GorDataType gdt = typeFromStream(linestream, false, ha, nor, false);
+        GorDataType gdt = typeFromStream(linestream, false, ha, nor);
         gdt.setUsedFiles(JavaConverters.seqAsJavaList(drs.usedFiles()));
         return gdt;
     }

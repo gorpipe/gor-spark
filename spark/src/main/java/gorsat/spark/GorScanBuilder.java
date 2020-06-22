@@ -9,13 +9,17 @@ public abstract class GorScanBuilder implements ScanBuilder, Scan, Batch, Suppor
     String jobId;
     String cacheFile;
     String useCpp;
+    String projectRoot;
+    String cacheDir;
 
-    public GorScanBuilder(StructType schema, String redisUri, String jobId, String cacheFile, String useCpp) {
+    public GorScanBuilder(StructType schema, String redisUri, String jobId, String cacheFile, String projectRoot, String cacheDir, String useCpp) {
         this.schema = schema;
         this.redisUri = redisUri;
         this.jobId = jobId;
         this.cacheFile = cacheFile;
         this.useCpp = useCpp;
+        this.projectRoot = projectRoot;
+        this.cacheDir = cacheDir;
     }
 
     @Override
@@ -35,6 +39,6 @@ public abstract class GorScanBuilder implements ScanBuilder, Scan, Batch, Suppor
 
     @Override
     public PartitionReaderFactory createReaderFactory() {
-        return new GorReaderFactory(schema, redisUri, jobId, cacheFile, useCpp);
+        return new GorReaderFactory(schema, redisUri, jobId, cacheFile, projectRoot, cacheDir, useCpp);
     }
 }
