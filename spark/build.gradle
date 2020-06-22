@@ -15,32 +15,32 @@ project(':spark') {
         compile("${gorArtifactGroupId}:gor-model:${gorVersion}")
         compile("${gorArtifactGroupId}:gor-gortools:${gorVersion}")
 
-        implementation ('org.apache.spark:spark-core_2.12:3.0.0-preview2') {
+        implementation ('org.apache.spark:spark-core_2.12:3.0.0') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
         }
-        implementation ('org.apache.spark:spark-sql_2.12:3.0.0-preview2') {
+        implementation ('org.apache.spark:spark-sql_2.12:3.0.0') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
         }
-        implementation ('org.apache.spark:spark-mllib_2.12:3.0.0-preview2') {
+        implementation ('org.apache.spark:spark-mllib_2.12:3.0.0') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
         }
-        implementation ('org.apache.spark:spark-tags_2.12:3.0.0-preview2') {
+        implementation ('org.apache.spark:spark-tags_2.12:3.0.0') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
         }
-        implementation ('org.apache.spark:spark-kubernetes_2.12:3.0.0-preview2') {
+        implementation ('org.apache.spark:spark-kubernetes_2.12:3.0.0') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.spark', module: 'spark-tags_2.12'
         }
-        implementation ('org.apache.spark:spark-catalyst_2.12:3.0.0-preview2') {
+        implementation ('org.apache.spark:spark-catalyst_2.12:3.0.0') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
         }
-        implementation ('org.apache.spark:spark-repl_2.12:3.0.0-preview2') {
+        implementation ('org.apache.spark:spark-repl_2.12:3.0.0') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
         }
