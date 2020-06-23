@@ -58,4 +58,3 @@ class GorDataSource extends FileDataSourceV2 with RelationProvider with SchemaRe
 
   override def getTableName(paths: Seq[String]): String = shortName + paths.mkString("_")
 }
-
