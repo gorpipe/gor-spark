@@ -64,7 +64,10 @@ public class GorSparkUtilities {
                         .config("spark.executor.instances", config.sparkExecutorInstances())
                         .config("spark.submit.deployMode",config.sparkDeployMode())
                         .config("spark.kubernetes.namespace", config.getSparkKuberneteseNamespace())
-                        .config("spark.ui.proxybase","/spark")
+                        .config("spark.ui.proxyBase","/spark")
+                        .config("spark.ui.reverseProxy","true")
+                        //.config("spark.ui.reverseProxyUrl","https://platform.wuxinextcodedev.com/")
+
                         //.config("spark.executor.extraClassPath","/Users/sigmar/gor-services/server/build/install/gor-scripts/lib/*")
                         //.config("spark.executor.extraJavaOptions","-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005")
                         //.config("spark.kubernetes.allocation.batch.delay","30s")
