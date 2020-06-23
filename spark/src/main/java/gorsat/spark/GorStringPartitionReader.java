@@ -28,7 +28,7 @@ public class GorStringPartitionReader extends GorPartitionReader {
 
     @Override
     public InternalRow get() {
-        return encoder.toRow(RowFactory.create(stringRow));
+        return serializer.apply(RowFactory.create(stringRow));
     }
 
     @Override

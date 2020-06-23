@@ -1,5 +1,6 @@
 package gorsat.spark;
 
+import org.apache.hadoop.io.serializer.Deserializer;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.analysis.SimpleAnalyzer$;
@@ -28,7 +29,7 @@ import java.util.zip.Deflater;
 
 public class GorOutputWriter extends OutputWriter {
     GorZipLexOutputStream of;
-    ExpressionEncoder<Row> encoder;
+    ExpressionEncoder.Deserializer<Row> deserializer;
     Path path;
     String startChrom = null;
     int startPos;
@@ -40,7 +41,8 @@ public class GorOutputWriter extends OutputWriter {
         this.originalPath = originalPath;
         List<Attribute> lattr = JavaConverters.asJavaCollection(schema.toAttributes()).stream().map(Attribute::toAttribute).collect(Collectors.toList());
         Seq sattr = JavaConverters.asScalaBuffer(lattr).toSeq();
-        encoder = RowEncoder.apply(schema).resolveAndBind(sattr, SimpleAnalyzer$.MODULE$);
+        ExpressionEncoder<Row> encoder = RowEncoder.apply(schema).resolveAndBind(sattr, SimpleAnalyzer$.MODULE$);
+        deserializer = encoder.createDeserializer();
         String header = String.join("\t", schema.fieldNames());
         URI uri = URI.create(uristr);
         path = Paths.get(uri);
@@ -53,7 +55,7 @@ public class GorOutputWriter extends OutputWriter {
     @Override
     public void write(InternalRow row) {
         try {
-            Row grow = encoder.fromRow(row);
+            Row grow = deserializer.apply(row);
             org.gorpipe.model.genome.files.gor.Row sparkrow = new GorSparkRow(grow);
 
             if( startChrom == null ) {

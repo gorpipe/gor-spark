@@ -30,7 +30,7 @@ public class GorPartitionReader implements PartitionReader<InternalRow> {
     SparkGorRow sparkRow;
     SparkGorMonitor sparkGorMonitor;
     GorRangeInputPartition p;
-    ExpressionEncoder<Row> encoder;
+    ExpressionEncoder.Serializer<Row> serializer;
     String redisUri;
     String jobId;
     String useCpp;
@@ -39,7 +39,8 @@ public class GorPartitionReader implements PartitionReader<InternalRow> {
     boolean nor = false;
 
     public GorPartitionReader(StructType schema, GorRangeInputPartition gorRangeInputPartition, String redisUri, String jobId, String projectRoot, String cacheDir, String useCpp) {
-        encoder = RowEncoder.apply(schema);
+        ExpressionEncoder<Row> encoder = RowEncoder.apply(schema);
+        serializer = encoder.createSerializer();
         sparkRow = new SparkGorRow(schema);
         p = gorRangeInputPartition;
         this.redisUri = redisUri;
@@ -129,7 +130,7 @@ public class GorPartitionReader implements PartitionReader<InternalRow> {
 
     @Override
     public InternalRow get() {
-        return encoder.toRow(sparkRow);
+        return serializer.apply(sparkRow);
     }
 
     @Override

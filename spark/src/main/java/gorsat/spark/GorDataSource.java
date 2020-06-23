@@ -3,6 +3,7 @@ package gorsat.spark;
 import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.connector.catalog.Table;
+import org.apache.spark.sql.connector.expressions.Transform;
 import org.apache.spark.sql.execution.datasources.FileFormat;
 import org.apache.spark.sql.execution.datasources.v2.FileDataSourceV2;
 import org.apache.spark.sql.sources.BaseRelation;
@@ -10,14 +11,13 @@ import org.apache.spark.sql.sources.RelationProvider;
 import org.apache.spark.sql.sources.SchemaRelationProvider;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.util.CaseInsensitiveStringMap;
-import org.apache.spark.streaming.ui.BatchTableBase;
 import scala.collection.Seq;
 import scala.collection.immutable.Map;
 
 import java.io.IOException;
 import java.util.zip.DataFormatException;
 
-public class GorDataSource implements FileDataSourceV2, RelationProvider, SchemaRelationProvider { //TableProvider, RelationProvider, SchemaRelationProvider, DataSourceRegister {
+public abstract class GorDataSource implements FileDataSourceV2, RelationProvider, SchemaRelationProvider { //TableProvider, RelationProvider, SchemaRelationProvider, DataSourceRegister {
     @Override
     public Table getTable(CaseInsensitiveStringMap options) {
         try {
@@ -41,6 +41,26 @@ public class GorDataSource implements FileDataSourceV2, RelationProvider, Schema
         String cachedir = options.get("cachedir");
         if(cachedir!=null) batchTable.setCacheDir(cachedir);
         return batchTable;
+    }
+
+    @Override
+    public boolean supportsExternalMetadata() {
+        return false;
+    }
+
+    @Override
+    public StructType inferSchema(CaseInsensitiveStringMap options) {
+        return null;
+    }
+
+    @Override
+    public Transform[] inferPartitioning(CaseInsensitiveStringMap options) {
+        return null;
+    }
+
+    @Override
+    public Table getTable(StructType schema, Transform[] partitioning, java.util.Map<String, String> properties) {
+        return null;
     }
 
     @Override

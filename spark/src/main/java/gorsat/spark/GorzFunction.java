@@ -8,6 +8,8 @@ import java.util.Spliterators;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.analysis.SimpleAnalyzer$;
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder;
@@ -29,7 +31,8 @@ import scala.collection.Seq;
 
 class GorzFunction implements Function1<PartitionedFile, Iterator<InternalRow>>, Serializable {
     Function1<PartitionedFile, Iterator<InternalRow>> func;
-    ExpressionEncoder encoder;
+    ExpressionEncoder<Row> encoder;
+    ExpressionEncoder.Serializer<Row> serializer;
     Unzipper unzip;
     String chrom;
     int start;
@@ -44,6 +47,7 @@ class GorzFunction implements Function1<PartitionedFile, Iterator<InternalRow>>,
         Seq sattr = JavaConverters.asScalaBuffer(lattr).toSeq();
 
         this.encoder = RowEncoder.apply(schema).resolveAndBind(sattr, SimpleAnalyzer$.MODULE$);
+        this.serializer = encoder.createSerializer();
         this.unzip = new Unzipper();
         this.chrom = filters.stream().filter(f -> f instanceof EqualTo).map(f -> (EqualTo)f).filter(f -> f.attribute().equalsIgnoreCase("chrom")).map(EqualTo::value).map(Object::toString).findFirst().orElse(null);
         this.start = filters.stream().filter(f -> f instanceof GreaterThan).map(f -> (GreaterThan)f).filter(f -> f.attribute().equalsIgnoreCase("pos")).map(GreaterThan::value).map(f -> (Integer)f).findFirst().orElse(-1);
@@ -104,7 +108,7 @@ class GorzFunction implements Function1<PartitionedFile, Iterator<InternalRow>>,
             return stop > Integer.parseInt(f.substring(i, e));
         }) : stream;*/
 
-        Stream<InternalRow> istream = stream.map(RowObj::apply).map(r -> new SparkGorRow(r, encoder.schema())).map(r -> encoder.toRow(r).copy());
+        Stream<InternalRow> istream = stream.map(RowObj::apply).map(r -> new SparkGorRow(r, encoder.schema())).map(r -> serializer.apply(r).copy());
         java.util.Iterator<InternalRow> iterator = istream.iterator();
         return JavaConverters.asScalaIterator(iterator);
     }
