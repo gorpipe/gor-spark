@@ -12,13 +12,12 @@ import org.apache.spark.sql.sources.SchemaRelationProvider;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.util.CaseInsensitiveStringMap;
 import scala.collection.Seq;
-import scala.collection.immutable.Map;
 
-import java.io.IOException;
-import java.util.zip.DataFormatException;
+import java.util.Map;
 
-public abstract class GorDataSource implements FileDataSourceV2, RelationProvider, SchemaRelationProvider { //TableProvider, RelationProvider, SchemaRelationProvider, DataSourceRegister {
-    @Override
+public class GorDataSourceJava { //implements FileDataSourceV2, RelationProvider, SchemaRelationProvider {
+    //TableProvider, RelationProvider, SchemaRelationProvider, DataSourceRegister {
+    /*@Override
     public Table getTable(CaseInsensitiveStringMap options) {
         try {
             GorBatchTable batchTable = new GorBatchTable(options.get("query"), options.getBoolean("tag", false), options.get("path"), options.get("f"), options.get("ff"), options.get("s"), options.get("split"), options.get("p"), options.get("redis"), options.get("jobid"), options.get("cachefile"), options.get("native")) {};
@@ -85,7 +84,7 @@ public abstract class GorDataSource implements FileDataSourceV2, RelationProvide
 
     @Override
     public String shortName() {
-        return "gor";
+        return "gorjava";
     }
 
     @Override
@@ -106,5 +105,5 @@ public abstract class GorDataSource implements FileDataSourceV2, RelationProvide
     @Override
     public SparkSession sparkSession() {
         return SparkSession.active();
-    }
+    }*/
 }
