@@ -3,6 +3,7 @@ package gorsat.spark;
 import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.connector.catalog.Table;
+import org.apache.spark.sql.connector.expressions.Transform;
 import org.apache.spark.sql.execution.datasources.FileFormat;
 import org.apache.spark.sql.execution.datasources.v2.FileDataSourceV2;
 import org.apache.spark.sql.sources.BaseRelation;
@@ -10,15 +11,13 @@ import org.apache.spark.sql.sources.RelationProvider;
 import org.apache.spark.sql.sources.SchemaRelationProvider;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.util.CaseInsensitiveStringMap;
-import org.apache.spark.streaming.ui.BatchTableBase;
 import scala.collection.Seq;
-import scala.collection.immutable.Map;
 
-import java.io.IOException;
-import java.util.zip.DataFormatException;
+import java.util.Map;
 
-public class GorDataSource implements FileDataSourceV2, RelationProvider, SchemaRelationProvider { //TableProvider, RelationProvider, SchemaRelationProvider, DataSourceRegister {
-    @Override
+public class GorDataSourceJava { //implements FileDataSourceV2, RelationProvider, SchemaRelationProvider {
+    //TableProvider, RelationProvider, SchemaRelationProvider, DataSourceRegister {
+    /*@Override
     public Table getTable(CaseInsensitiveStringMap options) {
         try {
             GorBatchTable batchTable = new GorBatchTable(options.get("query"), options.getBoolean("tag", false), options.get("path"), options.get("f"), options.get("ff"), options.get("s"), options.get("split"), options.get("p"), options.get("redis"), options.get("jobid"), options.get("cachefile"), options.get("native")) {};
@@ -44,6 +43,26 @@ public class GorDataSource implements FileDataSourceV2, RelationProvider, Schema
     }
 
     @Override
+    public boolean supportsExternalMetadata() {
+        return false;
+    }
+
+    @Override
+    public StructType inferSchema(CaseInsensitiveStringMap options) {
+        return null;
+    }
+
+    @Override
+    public Transform[] inferPartitioning(CaseInsensitiveStringMap options) {
+        return null;
+    }
+
+    @Override
+    public Table getTable(StructType schema, Transform[] partitioning, java.util.Map<String, String> properties) {
+        return null;
+    }
+
+    @Override
     public BaseRelation createRelation(SQLContext sqlContext, Map<String, String> parameters, StructType schema) {
         return new BaseRelation() {
             @Override
@@ -65,7 +84,7 @@ public class GorDataSource implements FileDataSourceV2, RelationProvider, Schema
 
     @Override
     public String shortName() {
-        return "gor";
+        return "gorjava";
     }
 
     @Override
@@ -86,5 +105,5 @@ public class GorDataSource implements FileDataSourceV2, RelationProvider, Schema
     @Override
     public SparkSession sparkSession() {
         return SparkSession.active();
-    }
+    }*/
 }

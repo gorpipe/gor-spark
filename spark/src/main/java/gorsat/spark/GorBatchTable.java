@@ -3,6 +3,7 @@ package gorsat.spark;
 import gorsat.Script.ScriptEngineFactory;
 import gorsat.Script.ScriptExecutionEngine;
 import org.apache.spark.sql.Encoders;
+import org.apache.spark.sql.connector.write.LogicalWriteInfo;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.StructField;
@@ -186,7 +187,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
     }
 
     @Override
-    public WriteBuilder newWriteBuilder(CaseInsensitiveStringMap caseInsensitiveStringMap) {
+    public WriteBuilder newWriteBuilder(LogicalWriteInfo info) {
         return new GorWriteBuilder() {};
     }
 
