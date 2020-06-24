@@ -7,6 +7,11 @@ project(':spark') {
         }
     }
 
+    java {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
     sourceSets.main.scala.srcDirs 'src/main/java'
     sourceSets.main.java.srcDirs = []
 
@@ -95,10 +100,7 @@ project(':spark') {
         compile group: 'org.apache.logging.log4j', name: 'log4j-1.2-api', version: '2.13.3'
 
         //compile group: 'javax.jms', name: 'javax.jms-api', version: '2.0.1'
-
-        //implementation 'io.projectglow:glow:3.2.1'
-
-        //implementation 'io.projectglow:glow_2.12:0.3.0'
+        implementation 'io.projectglow:glow_2.12:0.4.1'
         //implementation 'io.projectglow:glow:3.2.1'
         //implementation files('../hail/hail/build/libs/hail-all-spark.jar')
         //implementation files('../../glow/core/target/scala-2.12/glow_2.12-0.3.1-SNAPSHOT.jar')
