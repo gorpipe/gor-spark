@@ -7,16 +7,16 @@ project(':spark') {
         }
     }
 
-    java {
+    /*java {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
-    }
+    }*/
 
     sourceSets.main.scala.srcDirs 'src/main/java'
     sourceSets.main.java.srcDirs = []
 
     dependencies {
-        compile("${gorArtifactGroupId}:gor-base:${gorVersion}")
+        compile("${gorArtifactGroupId}:gor-gorbase:${gorVersion}")
         compile("${gorArtifactGroupId}:gor-model:${gorVersion}")
         compile("${gorArtifactGroupId}:gor-gortools:${gorVersion}")
 
