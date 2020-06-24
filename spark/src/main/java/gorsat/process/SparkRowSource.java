@@ -24,7 +24,7 @@ import htsjdk.samtools.SamInputResource;
 import htsjdk.samtools.SamReader;
 import htsjdk.samtools.SamReaderFactory;
 import htsjdk.samtools.ValidationStringency;
-//import io.projectglow.Glow;
+import io.projectglow.Glow;
 import org.apache.parquet.schema.PrimitiveType;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -604,7 +604,7 @@ public class SparkRowSource extends ProcessSource {
                 } else if (fileName.toLowerCase().endsWith(".parquet")) {
                     gor = gorSparkSession.getSparkSession().read().format("org.apache.spark.sql.execution.datasources.v2.parquet.ParquetDataSourceV2").load(fileName);
                     dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
-                } else if (fileName.toLowerCase().endsWith(".vcf")) {
+                } else if (fileName.toLowerCase().endsWith(".vcf") || fileName.toLowerCase().endsWith(".vcf.gz") || fileName.toLowerCase().endsWith(".vcf.bgz")) {
                     //io.projectglow.vcf.VCFFileFormat f;
                     String vcfDataSource = "io.projectglow.vcf.VCFFileFormat"; //vcf
                     gor = gorSparkSession.getSparkSession().read().format(vcfDataSource).load(fileName);
@@ -1435,10 +1435,10 @@ public class SparkRowSource extends ProcessSource {
                     if(psplit[1].startsWith("'")) options.put(psplit[0],psplit[1].substring(1,psplit[1].length()-1));
                     else options.put(psplit[0],psplit[1]);
                 }
-                // hey dataset = Glow.transform("pipe", (Dataset<org.apache.spark.sql.Row>) dataset, options);
+                dataset = Glow.transform("pipe", (Dataset<org.apache.spark.sql.Row>) dataset, options);
             } else if(gor.startsWith("split_multiallelics")) {
                 Map<String, String> options = new HashMap<>();
-                // hey dataset = Glow.transform("split_multiallelics", (Dataset<org.apache.spark.sql.Row>) dataset, options);
+                dataset = Glow.transform("split_multiallelics", (Dataset<org.apache.spark.sql.Row>) dataset, options);
             } else pushdownGorPipe = gor;
         } else {
             pushdownGorPipe += "|" + gor;

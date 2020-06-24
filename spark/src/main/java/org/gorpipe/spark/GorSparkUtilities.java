@@ -1,6 +1,6 @@
 package org.gorpipe.spark;
 
-//import io.projectglow.GlowBase;
+import io.projectglow.GlowBase;
 import org.apache.spark.SparkConf;
 import org.apache.spark.ml.linalg.DenseMatrix;
 import org.apache.spark.ml.linalg.SQLDataTypes;
@@ -81,8 +81,8 @@ public class GorSparkUtilities {
 
                 if(master.startsWith("k8s://")) {
                     ssb = ssb
-                        .config("spark.kubernetes.container.image","nextcode/spark:3.0.0-preview2")
-                        .config("spark.kubernetes.executor.container.image","nextcode/spark:3.0.0-preview2")
+                        .config("spark.kubernetes.container.image","nextcode/spark:3.0.0")
+                        .config("spark.kubernetes.executor.container.image","nextcode/spark:3.0.0")
 
                             //.config("spark.driver.host","noauthgorserver")
                             //.config("spark.driver.port","4099")
@@ -142,8 +142,8 @@ public class GorSparkUtilities {
                 } catch(Exception e) {
                     e.printStackTrace();
                 } finally {
-                    //GlowBase gb = new GlowBase();
-                    //gb.register(spark);
+                    GlowBase gb = new GlowBase();
+                    gb.register(spark);
                 }
             }
         }
