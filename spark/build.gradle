@@ -7,6 +7,11 @@ project(':spark') {
         }
     }
 
+    java {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
     sourceSets.main.scala.srcDirs 'src/main/java'
     sourceSets.main.java.srcDirs = []
 
