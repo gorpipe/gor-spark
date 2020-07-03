@@ -12,6 +12,9 @@ import java.util.stream.StreamSupport;
 import java.util.zip.DataFormatException;
 import java.util.zip.GZIPInputStream;
 
+import io.projectglow.transformers.blockvariantsandsamples.VariantSampleBlockMaker;
+import org.apache.spark.sql.expressions.UserDefinedFunction;
+
 import org.gorpipe.gor.ProjectContext;
 import org.gorpipe.spark.*;
 import gorsat.Commands.Analysis;
@@ -656,7 +659,7 @@ public class SparkRowSource extends ProcessSource {
                             // hey SparkGorUtilities.getSparkSession(GorSparkSession).udf().register("get_pn", (UDF1<String, String>) uNames::get, DataTypes.StringType);
                             if (dictFile != null) {
                                 DataFrameReader dfr = gorSparkSession.getSparkSession().read().format(gordatasourceClassname);
-                                dfr.option("projectroot",fileroot.toString());
+                                if (fileroot != null) dfr.option("projectroot",fileroot.toString());
                                 if (filter != null) dfr = dfr.option("f", filter);
                                 if (filterFile != null) dfr = dfr.option("ff", filterFile);
                                 if (splitFile != null) dfr = dfr.option("split", splitFile);
@@ -928,6 +931,22 @@ public class SparkRowSource extends ProcessSource {
         GorpipeRDD<org.apache.spark.sql.Row> gorpipeRDD = new GorpipeRDD<org.apache.spark.sql.Row>(rdd, pipeStep, encoder, getHeader(), gor, rdd.elementClassTag());
         dataset = gorSparkSession.getSparkSession().createDataset(gorpipeRDD, encoder);
         setHeader(correctHeader(dataset.columns()));
+    }
+
+    public static Dataset<Row> gorpipe(Dataset<? extends org.apache.spark.sql.Row> dataset, String gor) {
+        String inputHeader = String.join("\t", dataset.schema().fieldNames());
+        boolean nor = checkNor(dataset.schema().fields());
+        Dataset<? extends Row> dr = (Dataset<? extends Row>)dataset;//checkRowFormat(dataset);
+
+        GorSpark gs = new GorSparkMaterialize(inputHeader, nor, SparkGOR.sparkrowEncoder().schema(), gor, null, null, "-1", 100);
+        GorSparkRowInferFunction gi = new GorSparkRowInferFunction();
+        Row row = ((Dataset<Row>) dr).mapPartitions(gs, SparkGOR.gorrowEncoder()).limit(100).reduce(gi);
+        if (row.chr != null) row = gi.infer(row, row);
+        StructType schema = schemaFromRow(gs.query().getHeader().split("\t"), row);
+
+        ExpressionEncoder encoder = RowEncoder.apply(schema);
+        gs = new GorSpark(inputHeader, nor, schema, gor, null, null, "-1");
+        return ((Dataset<Row>) dr).mapPartitions(gs, encoder);
     }
 
     public void gor() {
@@ -1375,8 +1394,18 @@ public class SparkRowSource extends ProcessSource {
 
     @Override
     public boolean pushdownCalc(String formula, String colName) {
-        if(pushdownGorPipe!=null) pushdownGor("calc " + colName + " " + formula);
-        else {
+        if(formula.startsWith("udf")) {
+            String newformula = formula.substring(4,formula.length()-1).trim();
+            //dataset.withColumn(colName,);
+        } else if(formula.toLowerCase().startsWith("chartodoublearray")) {
+            if(pushdownGorPipe != null) gor();
+            CharToDoubleArray cda = new CharToDoubleArray();
+            UserDefinedFunction udf1 = org.apache.spark.sql.functions.udf(cda,DataTypes.createArrayType(DataTypes.DoubleType));
+            String colRef = formula.substring("chartodoublearray".length()+1,formula.length()-1);
+            dataset = dataset.withColumn(colName,udf1.apply(dataset.col(colRef)));
+        } else if(pushdownGorPipe!=null) {
+            pushdownGor("calc " + colName + " " + formula);
+        } else {
             StructType st = dataset.schema();
             StructField[] st_fields = st.fields();
             nor = nor | checkNor(st_fields);
@@ -1415,33 +1444,63 @@ public class SparkRowSource extends ProcessSource {
         return true;
     }
 
+    public static Dataset<org.apache.spark.sql.Row> analyse(Dataset<org.apache.spark.sql.Row> dataset, String gor) {
+        Dataset<org.apache.spark.sql.Row> ret = null;
+        if (gor.startsWith("gatk")) {
+            String command = gor.substring(5);
+            if (command.startsWith("haplotypecaller")) {
+                //SparkSession sparkSession = gorSparkSession.getSparkSession();
+                //JavaSparkContext jsc = new JavaSparkContext(sparkSession.sparkContext());
+
+                //JavaRDD<GATKRead> javaRdd = dataset.toJavaRDD();
+                //HaplotypeCallerSpark.callVariantsWithHaplotypeCallerAndWriteOutput(jsc, javaRdd);
+            }
+        } else if (gor.startsWith("pipe")) {
+            Map<String, String> options = new HashMap<>();
+            String cmd = gor.substring(4).trim();
+            String[] pipe_options = cmd.split(" ");
+            for (String popt : pipe_options) {
+                String[] psplit = popt.split("=");
+                if (psplit[1].startsWith("'"))
+                    options.put(psplit[0], psplit[1].substring(1, psplit[1].length() - 1));
+                else options.put(psplit[0], psplit[1]);
+            }
+            ret = Glow.transform("pipe", dataset, options);
+        } else if (gor.startsWith("split_multiallelics")) {
+            Map<String, String> options = new HashMap<>();
+            ret = Glow.transform("split_multiallelics", dataset, options);
+        } else if (gor.startsWith("block_variants_and_samples")) {
+            Map<String, String> options = new HashMap<>();
+            String cmd = gor.substring("block_variants_and_samples".length()).trim();
+            String[] pipe_options = cmd.split(" ");
+            for (String popt : pipe_options) {
+                String[] psplit = popt.split("=");
+                if (psplit[1].startsWith("'"))
+                    options.put(psplit[0], psplit[1].substring(1, psplit[1].length() - 1));
+                else options.put(psplit[0], psplit[1]);
+            }
+            ret = Glow.transform("block_variants_and_samples", dataset, options);
+        } else if (gor.startsWith("make_sample_blocks")) {
+            int sampleCount = Integer.parseInt(gor.substring("make_sample_blocks".length()).trim());
+            ret = VariantSampleBlockMaker.makeSampleBlocks(dataset, sampleCount);
+        }
+        return ret;
+    }
+
     @Override
     public boolean pushdownGor(String gor) {
-        if (pushdownGorPipe == null) {
-            if(gor.startsWith("gatk")) {
-                String command = gor.substring(5);
-                if(command.startsWith("haplotypecaller")) {
-                    SparkSession sparkSession = gorSparkSession.getSparkSession();
-                    JavaSparkContext jsc = new JavaSparkContext(sparkSession.sparkContext());
-                    //JavaRDD<GATKRead> javaRdd = dataset.toJavaRDD();
-                    //HaplotypeCallerSpark.callVariantsWithHaplotypeCallerAndWriteOutput(jsc, javaRdd);
-                }
-            } else if(gor.startsWith("pipe")) {
-                Map<String, String> options = new HashMap<>();
-                String cmd = gor.substring(4).trim();
-                String[] pipe_options = cmd.split(" ");
-                for(String popt : pipe_options) {
-                    String[] psplit = popt.split("=");
-                    if(psplit[1].startsWith("'")) options.put(psplit[0],psplit[1].substring(1,psplit[1].length()-1));
-                    else options.put(psplit[0],psplit[1]);
-                }
-                dataset = Glow.transform("pipe", (Dataset<org.apache.spark.sql.Row>) dataset, options);
-            } else if(gor.startsWith("split_multiallelics")) {
-                Map<String, String> options = new HashMap<>();
-                dataset = Glow.transform("split_multiallelics", (Dataset<org.apache.spark.sql.Row>) dataset, options);
-            } else pushdownGorPipe = gor;
+        if(gor.startsWith("rename")) {
+            if(pushdownGorPipe != null) gor();
+            String[] split = gor.substring("rename".length()).trim().split(" ");
+            dataset = dataset.withColumnRenamed(split[0],split[1]);
         } else {
-            pushdownGorPipe += "|" + gor;
+            if (pushdownGorPipe == null) {
+                Dataset<org.apache.spark.sql.Row> ret = analyse((Dataset<org.apache.spark.sql.Row>)dataset, gor);
+                if(ret!=null) dataset = ret;
+                else pushdownGorPipe = gor;
+            } else {
+                pushdownGorPipe += "|" + gor;
+            }
         }
         return true;
     }
