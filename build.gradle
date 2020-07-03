@@ -281,8 +281,8 @@ configure(allLeafProjects()) {
     }
 
     tasks.withType(ScalaCompile) {
-        sourceCompatibility = "1.8"
-        targetCompatibility = "1.8"
+        //sourceCompatibility = "1.8"
+        //targetCompatibility = "1.8"
         scalaCompileOptions.additionalParameters = ["-Xno-patmat-analysis"]
     }
 }
