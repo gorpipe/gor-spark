@@ -9,6 +9,9 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Spliterators;
 import java.util.stream.Collectors;
@@ -41,6 +44,31 @@ public class UTestGorSparkQuery {
                 "chr1\t34553\t36081\tFAM138A\n" +
                 "chr1\t53048\t54936\tAL627309.1\n" +
                 "chr1\t62947\t63887\tOR4G11P");
+    }
+
+    @Test
+    public void testInnerSparkSQLWithNestedNor() {
+        testSparkQuery("spark select * from ../tests/data/gor/genes.gor where gene_symbol in (select gene_symbol from <(nor ../tests/data/gor/genes.gor | grep 'BRCA' | select gene_symbol))",
+                "chr17\t41196311\t41322290\tBRCA1\n" +
+                        "chr13\t32889610\t32973805\tBRCA2");
+    }
+
+    @Test
+    public void testSparkSQLWithNestedNor() {
+        testSparkQuery("spark select gene_symbol from <(nor ../tests/data/gor/genes.gor | grep 'BRCA' | select gene_symbol)",
+                "BRCA2\n" +
+                        "BRCA1");
+    }
+
+    @Test
+    public void testSparkSQLWithNestedNorFile() throws IOException {
+        String twocolNor = "#stuff\tgene_symbol\na\tBRCA2\nb\tBRCA1\n";
+        Path tmpfile = Files.createTempFile("test","tsv");
+        Files.write(tmpfile,twocolNor.getBytes());
+        testSparkQuery("spark select gene_symbol from <(nor "+tmpfile.toString()+")",
+                "BRCA2\n" +
+                        "BRCA1");
+        Files.delete(tmpfile);
     }
 
     @Test

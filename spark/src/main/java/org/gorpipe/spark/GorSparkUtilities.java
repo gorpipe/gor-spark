@@ -10,6 +10,10 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
 import org.gorpipe.base.config.ConfigManager;
 import org.gorpipe.model.genome.files.gor.Row;
+import org.gorpipe.spark.udfs.CharToDoubleArray;
+import org.gorpipe.spark.udfs.CommaToDoubleArray;
+import org.gorpipe.spark.udfs.CommaToDoubleMatrix;
+import org.gorpipe.spark.udfs.CommaToIntArray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -139,46 +143,19 @@ public class GorSparkUtilities {
 
                 try {
                     spark = ssb.config(sparkConf).getOrCreate();
-                } catch(Exception e) {
-                    e.printStackTrace();
-                } finally {
+
                     GlowBase gb = new GlowBase();
                     gb.register(spark);
+                } catch(Exception e) {
+                    e.printStackTrace();
                 }
             }
         }
 
-        spark.udf().register("todoublearray", (UDF1<String, double[]>) (String s) -> {
-            String[] spl = s.split(",");
-            double[] ret = new double[spl.length];
-            for(int i = 0; i < spl.length; i++) {
-                ret[i] = Double.parseDouble(spl[i]);
-            }
-            return ret;
-        }, DataTypes.createArrayType(DataTypes.DoubleType));
-
-        spark.udf().register("todoublematrix", (UDF1<String, DenseMatrix>) (String s) -> {
-            String[] spl = s.split(";");
-            String[] subspl = spl[0].split(",");
-            double[] ret = new double[spl.length*subspl.length];
-            for(int i = 0; i < spl.length; i++) {
-                subspl = spl[i].split(",");
-                for(int k = 0; k < subspl.length; k++) {
-                    ret[i*spl.length+k] = Double.parseDouble(subspl[k]);
-                }
-            }
-            DenseMatrix dm = new DenseMatrix(subspl.length, spl.length, ret, false);
-            return dm;
-        }, SQLDataTypes.MatrixType());
-
-        spark.udf().register("tointarray", (UDF1<String, int[]>) (String s) -> {
-            String[] spl = s.split(",");
-            int[] ret = new int[spl.length];
-            for(int i = 0; i < spl.length; i++) {
-                ret[i] = Integer.parseInt(spl[i]);
-            }
-            return ret;
-        }, DataTypes.createArrayType(DataTypes.IntegerType));
+        spark.udf().register("chartodoublearray", new CharToDoubleArray(), DataTypes.createArrayType(DataTypes.DoubleType));
+        spark.udf().register("todoublearray", new CommaToDoubleArray(), DataTypes.createArrayType(DataTypes.DoubleType));
+        spark.udf().register("todoublematrix", new CommaToDoubleMatrix(), SQLDataTypes.MatrixType());
+        spark.udf().register("tointarray", new CommaToIntArray(), DataTypes.createArrayType(DataTypes.IntegerType));
         return spark;
     }
 

@@ -57,6 +57,12 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
     new GorSparkRowQueryFunction(q)
   }
 
+  def analyse(ds: Dataset[Row], q: String): Dataset[Row] = {
+    val ret = SparkRowSource.analyse(ds, q)
+    if(ret==null) SparkRowSource.gorpipe(ds, q).asInstanceOf[Dataset[Row]]
+    else ret
+  }
+
   def query(q: String, header: Array[String]): GorSpark = {
     new GorSpark(null, false, null, q, null, null, null)
   }
@@ -108,16 +114,14 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
         val bpia = pi.getIterator.asInstanceOf[BatchedPipeStepIteratorAdaptor]
         var gors : java.util.stream.Stream[org.gorpipe.model.genome.files.gor.Row] = bpia.getStream
         try {
-          /*if (isNor) {
+          if (isNor) {
             gors = bpia.getStream()
             gors = gors.map(r => {
               val cs = r.otherCols()
               val sa = splitArray(cs)
               new RowBase("chrN", 0, cs, sa, null)
             })
-          } else {
-
-          }*/
+          }
 
           val list: java.util.List[Row] = GorSparkUtilities.stream2SparkRowList(gors, schema)
           val ds = sparkSession.createDataset(list)(RowEncoder.apply(schema))

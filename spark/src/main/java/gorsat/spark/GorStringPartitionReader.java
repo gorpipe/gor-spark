@@ -3,6 +3,7 @@ package gorsat.spark;
 import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.types.StructType;
+import org.gorpipe.model.gor.RowObj;
 
 public class GorStringPartitionReader extends GorPartitionReader {
     String stringRow;
@@ -19,9 +20,13 @@ public class GorStringPartitionReader extends GorPartitionReader {
         boolean hasNext = iterator.hasNext();
         if( hasNext ) {
             org.gorpipe.model.genome.files.gor.Row gorrow = iterator.next();
-            if( p.tag != null ) gorrow = gorrow.rowWithAddedColumn(p.tag);
-            hasNext = p.chr == null || (gorrow.chr.equals(p.chr) && (p.end == -1 || gorrow.pos <= p.end));
-            stringRow = gorrow.toString();
+            if (nor) {
+                stringRow = gorrow.otherCols();
+            } else {
+                if (p.tag != null) gorrow = gorrow.rowWithAddedColumn(p.tag);
+                hasNext = p.chr == null || (gorrow.chr.equals(p.chr) && (p.end == -1 || gorrow.pos <= p.end));
+                stringRow = gorrow.toString();
+            }
         }
         return hasNext;
     }
