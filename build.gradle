@@ -95,14 +95,14 @@ configure(allLeafProjects()) {
         //mavenLocal()
         jcenter()
         mavenCentral()
-        maven {
+        /*maven {
             name = "gor"
             url = uri("https://maven.pkg.github.com/sigmarkarl/gor")
             credentials {
                 username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR")
                 password = project.findProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN")
             }
-        }
+        }*/
         maven {
             name "gitlab-gor-maven"
             url uri("https://gitlab.com/api/v4/projects/17033400/packages/maven")
