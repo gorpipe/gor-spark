@@ -30,7 +30,6 @@ import htsjdk.samtools.ValidationStringency;
 import io.projectglow.Glow;
 import org.apache.parquet.schema.PrimitiveType;
 import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.*;
 import org.apache.spark.rdd.RDD;
 import org.apache.spark.sql.*;
@@ -1100,7 +1099,7 @@ public class SparkRowSource extends ProcessSource {
                         public boolean seek(String seekChr, int seekPos, int endPos) {
                             try {
                                 reader.close();
-                                if (seekChr != null && this.chrNameSystem != VcfGzTabixGenomicIterator.ChrNameSystem.WITH_CHR_PREFIX)
+                                if (seekChr != null && this.chrNameSystem != VcfGzGenomicIterator.ChrNameSystem.WITH_CHR_PREFIX)
                                     seekChr = seekChr.substring(3);
                                 InputStream is1 = setRange(seekChr, seekPos, endPos);
                                 reader = new BufferedReader(new InputStreamReader(is1));
@@ -1212,6 +1211,14 @@ public class SparkRowSource extends ProcessSource {
                 }
                 if (!Files.exists(pPath)) {
                     Arrays.stream(dataset.columns()).filter(c -> c.contains("(")).forEach(c -> dataset = dataset.withColumnRenamed(c, c.replace('(', '_').replace(')', '_')));
+
+                    if(!checkNor(dataset.schema().fields())) {
+                        String path = pPath.resolve(pPath.getFileName().toString()+".gorp").toAbsolutePath().normalize().toString();
+                        Encoder<org.apache.spark.sql.Row> enc = (Encoder<org.apache.spark.sql.Row>) dataset.encoder();
+                        GorpWriter gorpWriter = new GorpWriter(path);
+                        dataset = ((Dataset<org.apache.spark.sql.Row>)dataset).mapPartitions(gorpWriter, enc);
+                    }
+
                     DataFrameWriter dfw = dataset.write();
                     if(parts != null) {
                         if(buckets != null) {
