@@ -71,7 +71,7 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
 
             if(!Files.exists(root.resolve(cachePath))) {
                 String commandUpper = commandsToExecute[i].toUpperCase();
-                if (commandUpper.contains("SPARK ") || commandUpper.contains("GORSPARK ") || commandUpper.contains("NORSPARK ")) {
+                if (commandUpper.contains("SELECT ") || commandUpper.contains("SPARK ") || commandUpper.contains("GORSPARK ") || commandUpper.contains("NORSPARK ")) {
                     sparkJobs.add(i);
                 } else {
                     gorJobs.add(i);
