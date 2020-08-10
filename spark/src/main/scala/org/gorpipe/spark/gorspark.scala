@@ -312,7 +312,7 @@ class QueryRDD(private val sparkSession: SparkSession, private val sqlContext: S
           cacheFile = cacheDirectory + "/" + commandSignature + ".dict.gord"
         }
       } else {
-        if (commandUpper.startsWith("SPARK ") || commandUpper.startsWith("GORSPARK ") || commandUpper.startsWith("NORSPARK")) {
+        if (commandUpper.startsWith("SPARK ") || commandUpper.startsWith("SPARK ") || commandUpper.startsWith("GORSPARK ") || commandUpper.startsWith("NORSPARK")) {
           cacheFile = if (header) cacheDirectory + "/" + commandSignature + ".header.parquet" else cacheDirectory + "/" + commandSignature + ".parquet"
         } else if (commandUpper.startsWith("CMD -N ")) {
           cacheFile = if (header) cacheDirectory + "/" + commandSignature + ".header.txt" else cacheDirectory + "/" + commandSignature + ".txt"
