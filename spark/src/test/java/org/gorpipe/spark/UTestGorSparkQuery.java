@@ -65,6 +65,13 @@ public class UTestGorSparkQuery {
     }
 
     @Test
+    public void testSparkSQLWithHint() {
+        testSparkQuery("select /*+ BROADCAST(b) */ a.* from ../tests/data/gor/genes.gor a join (select * from ../tests/data/gor/genes.gor where gene_symbol like 'BRCA%') b where a.gene_symbol = b.gene_symbol",
+                        "chr13\t32889610\t32973805\tBRCA2\n" +
+                "chr17\t41196311\t41322290\tBRCA1");
+    }
+
+    @Test
     public void testSparkSQLWithNestedNor() {
         testSparkQuery("spark select gene_symbol from <(nor ../tests/data/gor/genes.gor | grep 'BRCA' | select gene_symbol)",
                 "BRCA2\n" +
