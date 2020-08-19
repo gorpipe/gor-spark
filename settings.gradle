@@ -2,3 +2,4 @@ rootProject.name = 'gor-spark'
 rootProject.buildFileName = "build.gradle"
 
 include 'spark'
+include 'documentation'

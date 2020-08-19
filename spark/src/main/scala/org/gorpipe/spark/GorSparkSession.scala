@@ -22,6 +22,7 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
   if (GorInputSources.getInfo("SPARK") == null) {
       GorInputSources.register()
       GorInputSources.addInfo(new Spark.Spark)
+      GorInputSources.addInfo(new Spark.Select)
   }
 
   def getSparkSession: SparkSession = {
@@ -91,6 +92,8 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
     }
     schema
   }
+
+  def dataframe(qry: String, sc: StructType = null): Dataset[_ <: Row] = spark(qry, sc)
 
   def spark(qry: String, sc: StructType = null): Dataset[_ <: Row] = {
     val pi = new PipeInstance(this.getGorContext)
@@ -190,15 +193,15 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
     schema
   }
 
-  def query(qry: String): java.util.stream.Stream[org.gorpipe.model.genome.files.gor.Row] = query(qry, null,nor = false, parallel = false)
+  def stream(qry: String): java.util.stream.Stream[org.gorpipe.model.genome.files.gor.Row] = stream(qry, null,nor = false, parallel = false)
 
-  def query(qry: String, nor: Boolean): java.util.stream.Stream[org.gorpipe.model.genome.files.gor.Row] = query(qry, null, nor, parallel = false)
+  def stream(qry: String, nor: Boolean): java.util.stream.Stream[org.gorpipe.model.genome.files.gor.Row] = stream(qry, null, nor, parallel = false)
 
-  def query(qry: String, schema: StructType): java.util.stream.Stream[org.gorpipe.model.genome.files.gor.Row] = query(qry, schema, nor = false, parallel = false)
+  def stream(qry: String, schema: StructType): java.util.stream.Stream[org.gorpipe.model.genome.files.gor.Row] = stream(qry, schema, nor = false, parallel = false)
 
-  def query(qry: String, schema: StructType, nor: Boolean): java.util.stream.Stream[org.gorpipe.model.genome.files.gor.Row] = query(qry, schema, nor, parallel = false)
+  def stream(qry: String, schema: StructType, nor: Boolean): java.util.stream.Stream[org.gorpipe.model.genome.files.gor.Row] = stream(qry, schema, nor, parallel = false)
 
-  def query(qry: String, sc: StructType, nor: Boolean, parallel: Boolean): java.util.stream.Stream[org.gorpipe.model.genome.files.gor.Row] = {
+  def stream(qry: String, sc: StructType, nor: Boolean, parallel: Boolean): java.util.stream.Stream[org.gorpipe.model.genome.files.gor.Row] = {
     val pi = new PipeInstance(this.getGorContext)
     val creates = GorJavaUtilities.createMapString(createMap)
     var fullQuery = if( creates.length > 0 ) creates+";"+qry else qry
@@ -230,13 +233,17 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
     gors //.peek(r => r.setSchema(schema))
   }
 
+  def iterator(qry: String,nor: Boolean, schema: StructType = null): Iterator[org.gorpipe.model.genome.files.gor.Row] = {
+    scala.collection.JavaConverters.asScalaIterator(stream(qry,schema,nor).iterator())
+  }
+
   def gor(qry: String,schema: StructType = null): Iterator[org.gorpipe.model.genome.files.gor.Row] = {
-    val it = query(qry,schema,nor = false).iterator()
+    val it = stream(qry,schema,nor = false).iterator()
     scala.collection.JavaConverters.asScalaIterator(it)
   }
 
   def nor(qry: String,schema: StructType = null): Iterator[org.gorpipe.model.genome.files.gor.Row] = {
-    val it = query(qry,schema, nor = true).iterator()
+    val it = stream(qry,schema, nor = true).iterator()
     scala.collection.JavaConverters.asScalaIterator(it)
   }
 

@@ -13,7 +13,7 @@ import org.gorpipe.model.gor.RowObj
 
 object Spark {
 
-  private def processAllArguments(context: GorContext, argString: String, iargs: Array[String], args: Array[String], isNorContext: Boolean): InputSourceParsingResult = {
+  private def processAllArguments(context: GorContext, iargs: Array[String], args: Array[String], isNorContext: Boolean): InputSourceParsingResult = {
     val range = if (hasOption(args, "-p")) rangeOfOption(args, "-p") else GenomicRange.empty
     val jobId = stringValueOfOptionWithDefault(args,"-j","-1")
     val fi = iargs.indexOf("-ff")
@@ -53,7 +53,7 @@ object Spark {
       val splitFile = stringValueOfOptionWithDefault(args, "-split", null)
       val buckets = intValueOfOptionWithDefault(args, "-buck", -1)
       val parts = stringValueOfOptionWithDefault(args, "-part", null)
-      var tag = hasOption(args, "-tag")
+      val tag = hasOption(args, "-tag")
       val native = hasOption(args, "-c")
 
       val myCommand = GorJavaUtilities.seekReplacement(command, range.chromosome, range.start, range.stop)
@@ -62,12 +62,22 @@ object Spark {
     InputSourceParsingResult(inputSource, inputSource.getHeader, isNorContext)
   }
 
+  class Select() extends InputSourceInfo("SELECT", CommandArguments("-n -c -tag", "-p -s -g -f -j -ff -split -buck -part", 1, -1, ignoreIllegalArguments = true)) {
+
+    override def processArguments(context: GorContext, argString: String, iargs: Array[String],
+                                  args: Array[String]): InputSourceParsingResult = {
+
+      val niargs = "select" +: iargs
+      processAllArguments(context, niargs, args, hasOption(args, "-n"))
+    }
+  }
+
   class Spark() extends InputSourceInfo("SPARK", CommandArguments("-n -c -tag", "-p -s -g -f -j -ff -split -buck -part", 1, -1, ignoreIllegalArguments = true)) {
 
     override def processArguments(context: GorContext, argString: String, iargs: Array[String],
                                   args: Array[String]): InputSourceParsingResult = {
 
-      processAllArguments(context, argString, iargs, args, hasOption(args, "-n"))
+      processAllArguments(context, iargs, args, hasOption(args, "-n"))
     }
   }
 
@@ -76,7 +86,7 @@ object Spark {
     override def processArguments(context: GorContext, argString: String, iargs: Array[String],
                                   args: Array[String]): InputSourceParsingResult = {
 
-      processAllArguments(context, argString, iargs, args, isNorContext = false)
+      processAllArguments(context, iargs, args, isNorContext = false)
     }
   }
 
@@ -85,7 +95,7 @@ object Spark {
     override def processArguments(context: GorContext, argString: String, iargs: Array[String],
                                   args: Array[String]): InputSourceParsingResult = {
 
-      processAllArguments(context, argString, iargs, args, isNorContext = true)
+      processAllArguments(context, iargs, args, isNorContext = true)
     }
   }
 

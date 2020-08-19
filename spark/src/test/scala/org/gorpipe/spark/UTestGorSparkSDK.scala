@@ -23,7 +23,7 @@ class UTestGorSparkSDK {
 
     @Test
     def testGorzSparkSDKQuery() {
-        val res : java.util.stream.Stream[String] = sparkGorSession.query("gor "+genesPath+" | top 5").map(r => r.toString)
+        val res : java.util.stream.Stream[String] = sparkGorSession.stream("gor "+genesPath+" | top 5").map(r => r.toString)
         val res2 = res.collect(Collectors.joining("\n"))
         Assert.assertEquals("Wring result from session query", "chr1\t11868\t14412\tDDX11L1\nchr1\t14362\t29806\tWASH7P\nchr1\t34553\t36081\tFAM138A\nchr1\t53048\t54936\tAL627309.1\nchr1\t62947\t63887\tOR4G11P", res2)
     }
