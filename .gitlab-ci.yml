@@ -50,7 +50,7 @@ build:
   image: "$JAVA_BUILDER_IMAGE"
   script: ./gradlew assemble
   tags:
-    - iceland
+    - gitlab-build-01
   cache:
     key: "$CI_COMMIT_REF_NAME"
     policy: pull-push
@@ -106,7 +106,7 @@ code_quality:
     - .on-releasable-or-release-branch-only
   stage: test
   tags:
-    - iceland
+    - gitlab-build-01
   artifacts:
     reports:
       codequality: gl-code-quality-report.json
@@ -129,7 +129,7 @@ license_management:
 dependency_scanning:
   stage: test
   tags:
-    - iceland
+    - gitlab-build-01
   variables:
     # There is no need to run tests or generate sphinx documentation for license management
     # analysis, however, the license management plugin calls the build task so we have to manually
