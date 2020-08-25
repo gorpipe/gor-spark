@@ -2,11 +2,11 @@ package org.gorpipe.spark
 
 import java.nio.file.{Files, Path, Paths}
 
-import gorsat.AnalysisUtilities
+import gorsat.Utilities.AnalysisUtilities
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.{Partition, TaskContext}
-import org.gorpipe.model.genome.files.gor.GorMonitor
+import org.gorpipe.gor.monitor.GorMonitor
 
 import scala.collection.mutable.ListBuffer
 

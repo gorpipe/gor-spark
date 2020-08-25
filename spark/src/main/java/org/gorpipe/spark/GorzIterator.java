@@ -1,7 +1,7 @@
 package org.gorpipe.spark;
 
 import org.apache.spark.api.java.function.MapPartitionsFunction;
-import org.gorpipe.model.genome.files.binsearch.GorZipLexOutputStream;
+import org.gorpipe.gor.binsearch.GorZipLexOutputStream;
 
 import java.io.*;
 import java.util.Iterator;

@@ -11,14 +11,14 @@ import java.io.Serializable;
 import java.io.Writer;
 
 public class SparkGorRow extends GorSparkRowBase implements Serializable {
-    public org.gorpipe.model.genome.files.gor.Row row;
+    public org.gorpipe.gor.model.Row row;
     StructType schema;
 
     public SparkGorRow(StructType schema) {
         this.schema = schema;
     }
 
-    public SparkGorRow(org.gorpipe.model.genome.files.gor.Row row, StructType schema) {
+    public SparkGorRow(org.gorpipe.gor.model.Row row, StructType schema) {
         this(schema);
         this.row = row;
     }
@@ -104,12 +104,12 @@ public class SparkGorRow extends GorSparkRowBase implements Serializable {
     }
 
     @Override
-    public org.gorpipe.model.genome.files.gor.Row slicedRow(int startCol, int stopCol) {
+    public org.gorpipe.gor.model.Row slicedRow(int startCol, int stopCol) {
         return row.slicedRow(startCol, stopCol);
     }
 
     @Override
-    public org.gorpipe.model.genome.files.gor.Row rowWithSelectedColumns(int[] columnIndices) {
+    public org.gorpipe.gor.model.Row rowWithSelectedColumns(int[] columnIndices) {
         return row.rowWithSelectedColumns(columnIndices);
     }
 

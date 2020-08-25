@@ -11,7 +11,7 @@ import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.connector.read.PartitionReader;
 import org.apache.spark.sql.types.StructType;
-import org.gorpipe.model.genome.files.gor.RowBase;
+import org.gorpipe.gor.model.RowBase;
 import org.gorpipe.model.gor.RowObj;
 import org.gorpipe.model.gor.iterators.RowSource;
 import org.gorpipe.spark.GorSparkSession;
@@ -120,7 +120,7 @@ public class GorPartitionReader implements PartitionReader<InternalRow> {
         }
         boolean hasNext = iterator.hasNext();
         if( hasNext ) {
-            org.gorpipe.model.genome.files.gor.Row gorrow = iterator.next();
+            org.gorpipe.gor.model.Row gorrow = iterator.next();
             if (nor) {
                 String rowstr = gorrow.otherCols();
                 int[] sa = RowObj.splitArray(rowstr);

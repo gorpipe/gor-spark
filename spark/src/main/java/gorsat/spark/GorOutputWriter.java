@@ -9,8 +9,8 @@ import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.catalyst.expressions.Attribute;
 import org.apache.spark.sql.execution.datasources.OutputWriter;
 import org.apache.spark.sql.types.StructType;
-import org.gorpipe.model.genome.files.binsearch.GorIndexType;
-import org.gorpipe.model.genome.files.binsearch.GorZipLexOutputStream;
+import org.gorpipe.gor.binsearch.GorIndexType;
+import org.gorpipe.gor.binsearch.GorZipLexOutputStream;
 import org.gorpipe.spark.GorSparkRow;
 import scala.collection.JavaConverters;
 import scala.collection.Seq;
@@ -56,7 +56,7 @@ public class GorOutputWriter extends OutputWriter {
     public void write(InternalRow row) {
         try {
             Row grow = deserializer.apply(row);
-            org.gorpipe.model.genome.files.gor.Row sparkrow = new GorSparkRow(grow);
+            org.gorpipe.gor.model.Row sparkrow = new GorSparkRow(grow);
 
             if( startChrom == null ) {
                 startChrom = sparkrow.chr;

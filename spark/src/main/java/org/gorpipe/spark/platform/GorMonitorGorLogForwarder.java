@@ -1,6 +1,6 @@
 package org.gorpipe.spark.platform;
 
-import org.gorpipe.model.genome.files.gor.GorMonitor;
+import org.gorpipe.gor.monitor.GorMonitor;
 
 /**
  * Forward messages from remote jobs to local job

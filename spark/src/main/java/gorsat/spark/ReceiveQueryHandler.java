@@ -1,7 +1,7 @@
 package gorsat.spark;
 
-import org.gorpipe.model.genome.files.gor.GorMonitor;
-import org.gorpipe.model.genome.files.gor.GorParallelQueryHandler;
+import org.gorpipe.gor.model.GorParallelQueryHandler;
+import org.gorpipe.gor.monitor.GorMonitor;
 
 public class ReceiveQueryHandler implements GorParallelQueryHandler {
     String[] commandsToExecute;

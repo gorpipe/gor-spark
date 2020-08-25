@@ -8,7 +8,7 @@ import gorsat.Commands.CommandParseUtilities._
 import gorsat.Commands.{CommandArguments, GenomicRange, InputSourceInfo, InputSourceParsingResult}
 import gorsat.Iterators.RowListIterator
 import gorsat.process.{GorJavaUtilities, SparkRowSource}
-import org.gorpipe.gor.GorContext
+import org.gorpipe.gor.session.GorContext
 import org.gorpipe.model.gor.RowObj
 
 object Spark {

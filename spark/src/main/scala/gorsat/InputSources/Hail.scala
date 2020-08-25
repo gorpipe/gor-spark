@@ -2,7 +2,7 @@ package gorsat.InputSources
 
 import gorsat.Commands.{CommandArguments, InputSourceInfo, InputSourceParsingResult}
 import gorsat.process.HailInputSource
-import org.gorpipe.gor.GorContext
+import org.gorpipe.gor.session.GorContext
 
 object Hail {
   class Hail() extends InputSourceInfo("Hail", CommandArguments("-n -u", "-p -s -b", 1, -1, true)) {

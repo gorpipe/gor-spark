@@ -13,15 +13,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.IntStream;
 
-import org.gorpipe.spark.GorQueryRDD;
-import org.gorpipe.spark.GorSparkSession;
+import org.gorpipe.gor.model.GorParallelQueryHandler;
 import gorsat.Commands.CommandParseUtilities;
 import gorsat.process.PipeInstance;
 import gorsat.process.PipeOptions;
 import org.apache.spark.sql.SparkSession;
-import org.gorpipe.gor.GorRunner;
-import org.gorpipe.model.genome.files.gor.GorMonitor;
-import org.gorpipe.model.genome.files.gor.GorParallelQueryHandler;
+import org.gorpipe.gor.monitor.GorMonitor;
+import org.gorpipe.gor.session.GorRunner;
 import org.gorpipe.spark.platform.*;
 import redis.clients.jedis.JedisPool;
 

@@ -4,9 +4,9 @@ import gorsat._
 import gorsat.process.{GorPipeFirstOrderCommands, PipeOptions}
 import org.gorpipe.base.config.ConfigManager
 import org.gorpipe.exceptions.{ExceptionUtilities, GorException}
+import org.gorpipe.gor.model.{DbSource, DefaultFileReader}
 import org.gorpipe.gor.servers.GorConfig
-import org.gorpipe.model.genome.files.gor.{DbSource, DefaultFileReader}
-import org.gorpipe.model.util.ConfigUtil
+import org.gorpipe.gor.util.ConfigUtil
 import org.slf4j.LoggerFactory
 
 import scala.language.postfixOps

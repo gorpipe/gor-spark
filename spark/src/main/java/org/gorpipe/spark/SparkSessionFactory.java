@@ -1,15 +1,17 @@
 package org.gorpipe.spark;
 
-import gorsat.QueryHandlers.GeneralQueryHandler;
-import gorsat.process.FreemarkerReportBuilder;
-import gorsat.process.GenericRunnerFactory;
-import gorsat.process.SessionBasedQueryEvaluator;
+import gorsat.process.*;
 import org.apache.spark.sql.SparkSession;
-import org.gorpipe.gor.*;
+
 import org.gorpipe.gor.clients.LocalFileCacheClient;
-import org.gorpipe.model.genome.files.gor.DriverBackedFileReader;
-import org.gorpipe.model.genome.files.gor.GorMonitor;
-import org.gorpipe.model.genome.files.gor.GorParallelQueryHandler;
+import org.gorpipe.gor.model.DriverBackedFileReader;
+import org.gorpipe.gor.model.GorParallelQueryHandler;
+import org.gorpipe.gor.monitor.GorMonitor;
+import org.gorpipe.gor.session.GorSession;
+import org.gorpipe.gor.session.GorSessionCache;
+import org.gorpipe.gor.session.ProjectContext;
+import org.gorpipe.gor.session.SystemContext;
+
 
 import java.nio.file.Path;
 import java.nio.file.Paths;

@@ -2,16 +2,17 @@ package org.gorpipe.spark
 
 import java.util.concurrent.ConcurrentHashMap
 
-import org.gorpipe.model.genome.files.gor.RowBase
+import org.gorpipe.gor.model.RowBase
 import org.gorpipe.model.gor.RowObj.splitArray
 import gorsat.InputSources.Spark
 import gorsat.Script.ScriptEngineFactory
+import gorsat.Utilities.StringUtilities
 import gorsat.process._
-import gorsat.{BatchedPipeStepIteratorAdaptor, StringUtilities}
+import gorsat.BatchedPipeStepIteratorAdaptor
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{Dataset, Encoder, Row, SparkSession}
-import org.gorpipe.gor.GorSession
+import org.gorpipe.gor.session.GorSession
 
 class GorSparkSession(requestId: String) extends GorSession(requestId) with AutoCloseable {
   var sparkSession: SparkSession = _
@@ -38,12 +39,12 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
     redisUri
   }
 
-  def where(w: String, schema: StructType): GorSparkRowFilterFunction[_ >: org.gorpipe.model.genome.files.gor.Row] = {
-    new GorSparkRowFilterFunction[org.gorpipe.model.genome.files.gor.Row](w, schema)
+  def where(w: String, schema: StructType): GorSparkRowFilterFunction[_ >: org.gorpipe.gor.model.Row] = {
+    new GorSparkRowFilterFunction[org.gorpipe.gor.model.Row](w, schema)
   }
 
-  def where(w: String, header: Array[String], gortypes: Array[String]): GorSparkRowFilterFunction[org.gorpipe.model.genome.files.gor.Row] = {
-    new GorSparkRowFilterFunction[org.gorpipe.model.genome.files.gor.Row](w, header, gortypes)
+  def where(w: String, header: Array[String], gortypes: Array[String]): GorSparkRowFilterFunction[org.gorpipe.gor.model.Row] = {
+    new GorSparkRowFilterFunction[org.gorpipe.gor.model.Row](w, header, gortypes)
   }
 
   def calc(name: String, query: String, schema: StructType): GorSparkRowMapFunction = {
@@ -115,7 +116,7 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
 
         pi.subProcessArguments(options)
         val bpia = pi.getIterator.asInstanceOf[BatchedPipeStepIteratorAdaptor]
-        var gors : java.util.stream.Stream[org.gorpipe.model.genome.files.gor.Row] = bpia.getStream
+        var gors : java.util.stream.Stream[org.gorpipe.gor.model.Row] = bpia.getStream
         try {
           if (isNor) {
             gors = bpia.getStream()
@@ -155,9 +156,9 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
     createMap.remove(name)
   }
 
-  def encoder(qry: String,nor: Boolean=false,parallel: Boolean=false): Encoder[org.gorpipe.model.genome.files.gor.Row] = {
+  def encoder(qry: String,nor: Boolean=false,parallel: Boolean=false): Encoder[org.gorpipe.gor.model.Row] = {
     val sc = schema(qry,nor,parallel)
-    RowEncoder(sc).asInstanceOf[Encoder[org.gorpipe.model.genome.files.gor.Row]]
+    RowEncoder(sc).asInstanceOf[Encoder[org.gorpipe.gor.model.Row]]
   }
 
   def schema(qry: String,nor: Boolean=false,parallel: Boolean=false): StructType = {
@@ -184,7 +185,7 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
     val header = pi.getHeader()
     val schema = pi.getIterator match {
       case srs: SparkRowSource =>
-        val typ = srs.getDataset.map(r => new SparkRow(r).asInstanceOf[org.gorpipe.model.genome.files.gor.Row])(SparkGOR.gorrowEncoder).limit(100).reduce(gr)
+        val typ = srs.getDataset.map(r => new SparkRow(r).asInstanceOf[org.gorpipe.gor.model.Row])(SparkGOR.gorrowEncoder).limit(100).reduce(gr)
         SparkRowSource.schemaFromRow(header.split("\t"), typ)
       case _ =>
         val bpia = pi.getIterator.asInstanceOf[BatchedPipeStepIteratorAdaptor]
@@ -193,15 +194,15 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
     schema
   }
 
-  def stream(qry: String): java.util.stream.Stream[org.gorpipe.model.genome.files.gor.Row] = stream(qry, null,nor = false, parallel = false)
+  def stream(qry: String): java.util.stream.Stream[org.gorpipe.gor.model.Row] = stream(qry, null,nor = false, parallel = false)
 
-  def stream(qry: String, nor: Boolean): java.util.stream.Stream[org.gorpipe.model.genome.files.gor.Row] = stream(qry, null, nor, parallel = false)
+  def stream(qry: String, nor: Boolean): java.util.stream.Stream[org.gorpipe.gor.model.Row] = stream(qry, null, nor, parallel = false)
 
-  def stream(qry: String, schema: StructType): java.util.stream.Stream[org.gorpipe.model.genome.files.gor.Row] = stream(qry, schema, nor = false, parallel = false)
+  def stream(qry: String, schema: StructType): java.util.stream.Stream[org.gorpipe.gor.model.Row] = stream(qry, schema, nor = false, parallel = false)
 
-  def stream(qry: String, schema: StructType, nor: Boolean): java.util.stream.Stream[org.gorpipe.model.genome.files.gor.Row] = stream(qry, schema, nor, parallel = false)
+  def stream(qry: String, schema: StructType, nor: Boolean): java.util.stream.Stream[org.gorpipe.gor.model.Row] = stream(qry, schema, nor, parallel = false)
 
-  def stream(qry: String, sc: StructType, nor: Boolean, parallel: Boolean): java.util.stream.Stream[org.gorpipe.model.genome.files.gor.Row] = {
+  def stream(qry: String, sc: StructType, nor: Boolean, parallel: Boolean): java.util.stream.Stream[org.gorpipe.gor.model.Row] = {
     val pi = new PipeInstance(this.getGorContext)
     val creates = GorJavaUtilities.createMapString(createMap)
     var fullQuery = if( creates.length > 0 ) creates+";"+qry else qry
@@ -233,16 +234,16 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
     gors //.peek(r => r.setSchema(schema))
   }
 
-  def iterator(qry: String,nor: Boolean, schema: StructType = null): Iterator[org.gorpipe.model.genome.files.gor.Row] = {
+  def iterator(qry: String,nor: Boolean, schema: StructType = null): Iterator[org.gorpipe.gor.model.Row] = {
     scala.collection.JavaConverters.asScalaIterator(stream(qry,schema,nor).iterator())
   }
 
-  def gor(qry: String,schema: StructType = null): Iterator[org.gorpipe.model.genome.files.gor.Row] = {
+  def gor(qry: String,schema: StructType = null): Iterator[org.gorpipe.gor.model.Row] = {
     val it = stream(qry,schema,nor = false).iterator()
     scala.collection.JavaConverters.asScalaIterator(it)
   }
 
-  def nor(qry: String,schema: StructType = null): Iterator[org.gorpipe.model.genome.files.gor.Row] = {
+  def nor(qry: String,schema: StructType = null): Iterator[org.gorpipe.gor.model.Row] = {
     val it = stream(qry,schema, nor = true).iterator()
     scala.collection.JavaConverters.asScalaIterator(it)
   }

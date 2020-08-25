@@ -2,7 +2,7 @@ package gorsat.process;
 
 import gorsat.BatchedPipeStepIteratorAdaptor;
 import org.apache.spark.sql.types.StructType;
-import org.gorpipe.model.genome.files.gor.Row;
+import org.gorpipe.gor.model.Row;
 
 import java.util.Iterator;
 import java.util.List;
