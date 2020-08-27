@@ -10,7 +10,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.Optional;
 import org.apache.spark.api.java.function.MapPartitionsFunction;
-import org.gorpipe.model.genome.files.gor.Row;
+import org.gorpipe.gor.model.Row;
 import org.gorpipe.model.gor.RowObj;
 
 public class HeaderInferFunction implements MapPartitionsFunction<String, String>, Serializable {

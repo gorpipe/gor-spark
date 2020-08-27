@@ -6,7 +6,7 @@ import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.gorpipe.gor.function.GorRowMapFunction;
-import org.gorpipe.model.genome.files.gor.Row;
+import org.gorpipe.gor.model.Row;
 
 import java.util.Arrays;
 import java.util.stream.IntStream;

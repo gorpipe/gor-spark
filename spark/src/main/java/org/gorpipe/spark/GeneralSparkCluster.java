@@ -1,8 +1,8 @@
 package org.gorpipe.spark;
 
 import org.gorpipe.exceptions.GorSystemException;
-import org.gorpipe.model.genome.files.gor.GorMonitor;
-import org.gorpipe.model.genome.files.gor.GorParallelQueryHandler;
+import org.gorpipe.gor.model.GorParallelQueryHandler;
+import org.gorpipe.gor.monitor.GorMonitor;
 import org.gorpipe.spark.platform.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -154,7 +154,7 @@ public final class GeneralSparkCluster extends GorClusterBase {
 
     @Override
     public void subscribeGorMonitor(String requestId, GorMonitor gorMonitor) {
-
+        
     }
 
     @Override

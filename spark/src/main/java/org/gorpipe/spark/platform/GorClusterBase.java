@@ -1,7 +1,7 @@
 package org.gorpipe.spark.platform;
 
-import org.gorpipe.model.genome.files.gor.GorMonitor;
-import org.gorpipe.model.genome.files.gor.GorParallelQueryHandler;
+import org.gorpipe.gor.model.GorParallelQueryHandler;
+import org.gorpipe.gor.monitor.GorMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.JedisPool;

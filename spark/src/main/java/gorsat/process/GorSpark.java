@@ -9,9 +9,9 @@ import gorsat.BatchedPipeStepIteratorAdaptor;
 import gorsat.Commands.Analysis;
 import org.apache.spark.api.java.function.MapPartitionsFunction;
 import org.apache.spark.sql.types.StructType;
-import org.gorpipe.gor.GorSession;
-import org.gorpipe.model.genome.files.gor.GorMonitor;
-import org.gorpipe.model.genome.files.gor.Row;
+import org.gorpipe.gor.model.Row;
+import org.gorpipe.gor.monitor.GorMonitor;
+import org.gorpipe.gor.session.GorSession;
 import org.gorpipe.spark.SparkGorMonitor;
 import org.gorpipe.spark.SparkGorRow;
 

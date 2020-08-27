@@ -17,8 +17,8 @@ import org.apache.spark.mllib.linalg.Matrix;
 import org.apache.spark.mllib.linalg.Vector;
 import org.apache.spark.mllib.linalg.distributed.*;
 import org.apache.spark.sql.*;
-import org.gorpipe.gor.GorContext;
-import org.gorpipe.gor.GorSession;
+import org.gorpipe.gor.session.GorContext;
+import org.gorpipe.gor.session.GorSession;
 import scala.Tuple2;
 
 import java.io.BufferedWriter;

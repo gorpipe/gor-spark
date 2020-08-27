@@ -13,9 +13,16 @@ import java.util.zip.DataFormatException;
 import java.util.zip.GZIPInputStream;
 
 import io.projectglow.transformers.blockvariantsandsamples.VariantSampleBlockMaker;
+import org.apache.spark.sql.*;
 import org.apache.spark.sql.expressions.UserDefinedFunction;
 
-import org.gorpipe.gor.ProjectContext;
+import org.gorpipe.gor.binsearch.CompressionType;
+import org.gorpipe.gor.binsearch.Unzipper;
+import org.gorpipe.gor.driver.providers.stream.datatypes.bam.BamIterator;
+import org.gorpipe.gor.model.*;
+import org.gorpipe.gor.model.Row;
+import org.gorpipe.gor.session.GorSession;
+import org.gorpipe.gor.session.ProjectContext;
 import org.gorpipe.spark.*;
 import gorsat.Commands.Analysis;
 import gorsat.Commands.CommandParseUtilities;
@@ -32,23 +39,16 @@ import org.apache.parquet.schema.PrimitiveType;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.*;
 import org.apache.spark.rdd.RDD;
-import org.apache.spark.sql.*;
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.types.*;
-import org.gorpipe.gor.GorSession;
 import org.gorpipe.gor.driver.GorDriverFactory;
 import org.gorpipe.gor.driver.meta.SourceReference;
 import org.gorpipe.gor.driver.providers.stream.sources.StreamSource;
-import org.gorpipe.model.genome.files.binsearch.CompressionType;
-import org.gorpipe.model.genome.files.binsearch.Unzipper;
-import org.gorpipe.model.genome.files.gor.*;
-import org.gorpipe.model.genome.files.gor.Row;
 import org.gorpipe.spark.udfs.CharToDoubleArray;
 import org.gorpipe.util.collection.ByteArray;
 import scala.Function1;
 import scala.collection.JavaConverters;
-
 
 import static org.apache.spark.sql.types.DataTypes.*;
 
@@ -249,8 +249,10 @@ public class SparkRowSource extends ProcessSource {
 
         Set<Integer> remSet = new HashSet<>();
         Set<Integer> dSet = new HashSet<>();
-        Stream<String[]> strstr = linestream.limit(1000).map(line -> line.split("\t"));
+        Stream<String[]> strstr = linestream.limit(1000).map(line -> line.split("\t", -1));
         if (nor) strstr = strstr.map(a -> Arrays.copyOfRange(a, 2, a.length));
+        List<String[]> ok = strstr.collect(Collectors.toList());
+        strstr = ok.stream();
         strstr.allMatch(line -> {
             dataTypeMap.forEach((idx, colType) -> {
                 String value = line[idx];
@@ -575,7 +577,7 @@ public class SparkRowSource extends ProcessSource {
                         uNames.put(p.toUri().toString(), fNames.get(p));
                     }
                 } else if (fns.length > 1) {
-                    fNames = Arrays.stream(fns).collect(Collectors.toMap(s -> Paths.get(s), s -> s));
+                    fNames = Arrays.stream(fns).collect(Collectors.toMap(Paths::get, s -> s));
                     fileName = fNames.keySet().iterator().next().toString();
                     filePath = standalone != null && standalone.length() > 0 ? Paths.get(standalone).resolve(fileName) : Paths.get(fileName);
                     uNames = new HashMap<>();
@@ -1212,12 +1214,12 @@ public class SparkRowSource extends ProcessSource {
                 if (!Files.exists(pPath)) {
                     Arrays.stream(dataset.columns()).filter(c -> c.contains("(")).forEach(c -> dataset = dataset.withColumnRenamed(c, c.replace('(', '_').replace(')', '_')));
 
-                    if(!checkNor(dataset.schema().fields())) {
+                    /*if(!checkNor(dataset.schema().fields())) {
                         String path = pPath.resolve(pPath.getFileName().toString()+".gorp").toAbsolutePath().normalize().toString();
                         Encoder<org.apache.spark.sql.Row> enc = (Encoder<org.apache.spark.sql.Row>) dataset.encoder();
                         GorpWriter gorpWriter = new GorpWriter(path);
                         dataset = ((Dataset<org.apache.spark.sql.Row>)dataset).mapPartitions(gorpWriter, enc);
-                    }
+                    }*/
 
                     DataFrameWriter dfw = dataset.write();
                     if(parts != null) {

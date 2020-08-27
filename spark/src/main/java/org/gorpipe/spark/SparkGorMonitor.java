@@ -3,7 +3,7 @@ package org.gorpipe.spark;
 import java.io.Serializable;
 import java.time.Duration;
 
-import org.gorpipe.model.genome.files.gor.GorMonitor;
+import org.gorpipe.gor.monitor.GorMonitor;
 import org.gorpipe.spark.platform.JedisURIHelper;
 import org.gorpipe.spark.platform.JobField;
 import org.gorpipe.spark.platform.SharedRedisPools;

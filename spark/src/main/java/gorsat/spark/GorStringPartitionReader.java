@@ -19,7 +19,7 @@ public class GorStringPartitionReader extends GorPartitionReader {
         }
         boolean hasNext = iterator.hasNext();
         if( hasNext ) {
-            org.gorpipe.model.genome.files.gor.Row gorrow = iterator.next();
+            org.gorpipe.gor.model.Row gorrow = iterator.next();
             if (nor) {
                 stringRow = gorrow.otherCols();
             } else {

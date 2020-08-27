@@ -8,7 +8,7 @@ import io.kubernetes.client.openapi.Configuration;
 import io.kubernetes.client.openapi.apis.CustomObjectsApi;
 import io.kubernetes.client.util.Config;
 import org.gorpipe.gor.driver.DataSource;
-import org.gorpipe.model.genome.files.gor.DriverBackedFileReader;
+import org.gorpipe.gor.model.DriverBackedFileReader;
 
 import java.io.IOException;
 import java.nio.file.Path;

@@ -9,10 +9,10 @@ import gorsat.Outputs.StdOut;
 import gorsat.process.GorExecutionEngine;
 import gorsat.process.GorPipe;
 import gorsat.process.PipeInstance;
-import org.gorpipe.gor.GorRunner;
-import org.gorpipe.gor.GorSession;
-import org.gorpipe.model.genome.files.binsearch.GorIndexType;
-import org.gorpipe.model.genome.files.gor.GorMonitor;
+import org.gorpipe.gor.binsearch.GorIndexType;
+import org.gorpipe.gor.monitor.GorMonitor;
+import org.gorpipe.gor.session.GorRunner;
+import org.gorpipe.gor.session.GorSession;
 import org.gorpipe.model.gor.iterators.RowSource;
 import scala.Option;
 

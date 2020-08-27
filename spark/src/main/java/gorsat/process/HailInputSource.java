@@ -145,7 +145,7 @@ public class HailInputSource extends RowSource {
     }
 
     @Override
-    public org.gorpipe.model.genome.files.gor.Row next() {
+    public org.gorpipe.gor.model.Row next() {
         return new GorSparkRow(it.next());
     }
 

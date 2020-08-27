@@ -12,7 +12,7 @@ import java.util.stream.Stream;
 import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
-import org.gorpipe.model.genome.files.gor.Row;
+import org.gorpipe.gor.model.Row;
 import org.gorpipe.model.gor.RowObj;
 
 public class SparkRow extends GorSparkRowBase implements Serializable {

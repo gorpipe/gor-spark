@@ -5,7 +5,7 @@ import gorsat.Commands.Analysis;
 import gorsat.process.PipeInstance;
 import org.apache.spark.api.java.function.FlatMapFunction;
 import org.gorpipe.gor.function.GorRowQueryFunction;
-import org.gorpipe.model.genome.files.gor.Row;
+import org.gorpipe.gor.model.Row;
 
 public class GorSparkRowQueryFunction extends GorRowQueryFunction implements FlatMapFunction<Row, Row> {
     public GorSparkRowQueryFunction(String query) {

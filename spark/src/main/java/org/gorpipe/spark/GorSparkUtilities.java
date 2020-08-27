@@ -2,14 +2,12 @@ package org.gorpipe.spark;
 
 import io.projectglow.GlowBase;
 import org.apache.spark.SparkConf;
-import org.apache.spark.ml.linalg.DenseMatrix;
 import org.apache.spark.ml.linalg.SQLDataTypes;
 import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.api.java.UDF1;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
 import org.gorpipe.base.config.ConfigManager;
-import org.gorpipe.model.genome.files.gor.Row;
+import org.gorpipe.gor.model.Row;
 import org.gorpipe.spark.udfs.CharToDoubleArray;
 import org.gorpipe.spark.udfs.CommaToDoubleArray;
 import org.gorpipe.spark.udfs.CommaToDoubleMatrix;
@@ -68,8 +66,8 @@ public class GorSparkUtilities {
                         .config("spark.executor.instances", config.sparkExecutorInstances())
                         .config("spark.submit.deployMode",config.sparkDeployMode())
                         .config("spark.kubernetes.namespace", config.getSparkKuberneteseNamespace())
-                        .config("spark.ui.proxyBase","/spark")
-                        .config("spark.ui.reverseProxy","true")
+                        //.config("spark.ui.proxyBase","/spark")
+                        //.config("spark.ui.reverseProxy","true")
                         //.config("spark.ui.reverseProxyUrl","https://platform.wuxinextcodedev.com/")
 
                         //.config("spark.executor.extraClassPath","/Users/sigmar/gor-services/server/build/install/gor-scripts/lib/*")
@@ -99,11 +97,13 @@ public class GorSparkUtilities {
                         .config("spark.kubernetes.driver.volumes.hostPath.userhome.mount.readOnly", "false")
                         .config("spark.kubernetes.driver.volumes.hostPath.userhome.options.path", gorroot);*/
 
+
                         .config("spark.kubernetes.executor.volumes.persistentVolumeClaim.mntcsa.options.claimName", config.getSparkPersistentVolumeClaim())
                         .config("spark.kubernetes.executor.volumes.persistentVolumeClaim.mntcsa.mount.path", config.getSparkMountPath())
 
                         .config("spark.kubernetes.container.image.pullSecrets", "dockerhub-nextcode-download-credentials")
                         .config("spark.kubernetes.container.image.pullPolicy", "Always")
+                        .config("spark.kubernetes.executor.deleteOnTermination","false")
                         .config("spark.kubernetes.authenticate.driver.serviceAccountName", "spark-autoscaler");
                 } else if(master.startsWith("local")) {
                     ssb = ssb.config("spark.driver.bindAddress", "127.0.0.1");
@@ -156,6 +156,8 @@ public class GorSparkUtilities {
         spark.udf().register("todoublearray", new CommaToDoubleArray(), DataTypes.createArrayType(DataTypes.DoubleType));
         spark.udf().register("todoublematrix", new CommaToDoubleMatrix(), SQLDataTypes.MatrixType());
         spark.udf().register("tointarray", new CommaToIntArray(), DataTypes.createArrayType(DataTypes.IntegerType));
+
+        //spark.udf().register("md5", s -> StringUtilities.createMD5((String) s), DataTypes.StringType);
         return spark;
     }
 
