@@ -16,54 +16,60 @@ import org.apache.spark.sql.catalyst.ScalaReflection
 import org.apache.spark.sql.catalyst.encoders.{ExpressionEncoder, RowEncoder}
 import org.apache.spark.sql.types._
 import org.apache.spark.{Partition, TaskContext}
-import org.gorpipe.gor.binsearch.GorIndexType
-import org.gorpipe.gor.function.{GorRowFilterFunction, GorRowMapFunction}
-import org.gorpipe.gor.model.RowBase
 import org.gorpipe.gor.session.GorContext
+import org.gorpipe.gor.function.{GorRowFilterFunction, GorRowMapFunction}
+import org.gorpipe.gor.binsearch.GorIndexType
+import org.gorpipe.gor.model.RowBase
 import org.gorpipe.model.gor.iterators.RowSource
 
 import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
 
-class GorFunctions[T:ClassTag](rdd:RDD[T]) {
-  def gor(cmd:String,header:String) = new GorRDD(rdd,cmd,header,true)
-  def nor(cmd:String,header:String) = new GorRDD(rdd,cmd,header,false)
+class GorFunctions[T: ClassTag](rdd: RDD[T]) {
+  def gor(cmd: String, header: String) = new GorRDD(rdd, cmd, header, true)
+
+  def nor(cmd: String, header: String) = new GorRDD(rdd, cmd, header, false)
 }
 
 object GorFunctions {
-  implicit def addCustomFunctions[T:ClassTag](rdd: RDD[T]): GorFunctions[T] = new GorFunctions(rdd)
+  implicit def addCustomFunctions[T: ClassTag](rdd: RDD[T]): GorFunctions[T] = new GorFunctions(rdd)
 }
 
-class GorDatasetFunctions[T:ClassTag](ds:Dataset[T])(implicit tag: ClassTag[T]) {
+class GorDatasetFunctions[T: ClassTag](ds: Dataset[T])(implicit tag: ClassTag[T]) {
   def gorrow(): Dataset[org.gorpipe.gor.model.Row] = {
     ds.map(r => {
-      if( r.isInstanceOf[org.gorpipe.gor.model.Row] ) r
+      if (r.isInstanceOf[org.gorpipe.gor.model.Row]) r
       else new GorSparkRow(r.asInstanceOf[Row])
     })(ds.encoder.asInstanceOf[Encoder[Any]]).asInstanceOf[Dataset[org.gorpipe.gor.model.Row]]
   }
-  def gorpipe(cmd: String, outSchema: StructType = null): Dataset[org.gorpipe.gor.model.Row] = {
-    val gpf = new GorPipeFunction(cmd, ds.schema.fieldNames.mkString("\t")/*, outSchema*/)
 
-    val encoder: Encoder[org.gorpipe.gor.model.Row] = if( outSchema == null ) SparkGOR.gorrowEncoder else RowEncoder.apply(outSchema).asInstanceOf[Encoder[org.gorpipe.gor.model.Row]]
-    ds.asInstanceOf[Dataset[org.gorpipe.gor.model.Row]].mapPartitions(gpf,encoder)
+  def gorpipe(cmd: String, outSchema: StructType = null): Dataset[org.gorpipe.gor.model.Row] = {
+    val gpf = new GorPipeFunction(cmd, ds.schema.fieldNames.mkString("\t") /*, outSchema*/)
+
+    val encoder: Encoder[org.gorpipe.gor.model.Row] = if (outSchema == null) SparkGOR.gorrowEncoder else RowEncoder.apply(outSchema).asInstanceOf[Encoder[org.gorpipe.gor.model.Row]]
+    ds.asInstanceOf[Dataset[org.gorpipe.gor.model.Row]].mapPartitions(gpf, encoder)
   }
+
   def pipe(cmd: String, header: String): Dataset[String] = {
     val pf = new PipeFunction(cmd, header)
-    ds.asInstanceOf[Dataset[String]].mapPartitions(pf,Encoders.STRING)
+    ds.asInstanceOf[Dataset[String]].mapPartitions(pf, Encoders.STRING)
   }
+
   def pipe(cmd: String): Dataset[String] = {
     val pf = new PipeFunction(cmd, ds.schema.fieldNames.mkString("\t"))
-    ds.asInstanceOf[Dataset[String]].mapPartitions(pf,Encoders.STRING)
+    ds.asInstanceOf[Dataset[String]].mapPartitions(pf, Encoders.STRING)
   }
-  def gorwhere(cmd:String): Dataset[org.gorpipe.gor.model.Row] = {
-    val gw = new GorSparkRowFilterFunction[org.gorpipe.gor.model.Row](cmd,ds.schema)
+
+  def gorwhere(cmd: String): Dataset[org.gorpipe.gor.model.Row] = {
+    val gw = new GorSparkRowFilterFunction[org.gorpipe.gor.model.Row](cmd, ds.schema)
 
     tag.runtimeClass match {
       case _ => ds.asInstanceOf[Dataset[org.gorpipe.gor.model.Row]].filter(gw)
     }
   }
-  def calc(colname:String,cmd:String): Dataset[org.gorpipe.gor.model.Row] = {
-    val gc = new GorSparkRowMapFunction(colname,cmd,ds.schema)
+
+  def calc(colname: String, cmd: String): Dataset[org.gorpipe.gor.model.Row] = {
+    val gc = new GorSparkRowMapFunction(colname, cmd, ds.schema)
 
     val cn = tag.runtimeClass.getName
     val ds2 = if (cn.equals("org.apache.spark.sql.Row")) {
@@ -75,26 +81,27 @@ class GorDatasetFunctions[T:ClassTag](ds:Dataset[T])(implicit tag: ClassTag[T]) 
     }
     val sc2 = gc.getSchema
     val enc = RowEncoder.apply(sc2).asInstanceOf[Encoder[org.gorpipe.gor.model.Row]]
-    ds2.map(gc,enc)
+    ds2.map(gc, enc)
   }
-  def gor(cmd:String,inferschema:Boolean = false): Dataset[org.gorpipe.gor.model.Row] = {
+
+  def gor(cmd: String, inferschema: Boolean = false): Dataset[org.gorpipe.gor.model.Row] = {
     val header = ds.schema.fieldNames.mkString("\t")
     val cn = tag.runtimeClass.getName
     val nor = SparkRowSource.checkNor(ds.schema.fields)
-    val dsr = if(cn.equals("org.apache.spark.sql.Row")) {
-      if(nor) ds.asInstanceOf[Dataset[Row]].map(row => new SparkRow(row).asInstanceOf[org.gorpipe.gor.model.Row])(SparkGOR.gorrowEncoder)
+    val dsr = if (cn.equals("org.apache.spark.sql.Row")) {
+      if (nor) ds.asInstanceOf[Dataset[Row]].map(row => new SparkRow(row).asInstanceOf[org.gorpipe.gor.model.Row])(SparkGOR.gorrowEncoder)
       else ds.asInstanceOf[Dataset[Row]].map(row => new GorSparkRow(row).asInstanceOf[org.gorpipe.gor.model.Row])(SparkGOR.gorrowEncoder)
-    } else if(cn.equals("java.lang.String")) {
+    } else if (cn.equals("java.lang.String")) {
       ds.asInstanceOf[Dataset[String]].map(row => RowObj(row))(SparkGOR.gorrowEncoder)
     } else {
       ds.asInstanceOf[Dataset[org.gorpipe.gor.model.Row]]
     }
 
-    if( inferschema ) {
+    if (inferschema) {
       val gs = new GorSpark(header, nor, SparkGOR.gorrowEncoder.schema, cmd, "/gorproject")
       val gr = new GorSparkRowInferFunction()
 
-      val gsm = new GorSparkMaterialize(header, nor, SparkGOR.gorrowEncoder.schema, cmd, "/gorproject",100)
+      val gsm = new GorSparkMaterialize(header, nor, SparkGOR.gorrowEncoder.schema, cmd, "/gorproject", 100)
       val mu = ds.asInstanceOf[Dataset[Row]].map(row => new GorSparkRow(row).asInstanceOf[org.gorpipe.gor.model.Row])(SparkGOR.gorrowEncoder)
 
       val row = mu.mapPartitions(gsm, SparkGOR.gorrowEncoder).limit(100).reduce(gr)
@@ -107,32 +114,38 @@ class GorDatasetFunctions[T:ClassTag](ds:Dataset[T])(implicit tag: ClassTag[T]) 
       dsr.mapPartitions(gs, SparkGOR.gorrowEncoder)
     }
   }
+
   def header(): String = ds.schema.fieldNames.mkString("\t")
+
   def header(cmd: String, header: String): String = {
     val pf = new HeaderFunction(cmd, header)
-    ds.asInstanceOf[Dataset[String]].mapPartitions(pf,Encoders.STRING).head()
+    ds.asInstanceOf[Dataset[String]].mapPartitions(pf, Encoders.STRING).head()
   }
+
   def headerInfo(cmd: String, header: String): String = {
     val ghif = new GorHeaderInferFunction()
     val pf = new HeaderInferFunction(cmd, header)
-    ds.asInstanceOf[Dataset[String]].mapPartitions(pf,Encoders.STRING).reduce(ghif)
+    ds.asInstanceOf[Dataset[String]].mapPartitions(pf, Encoders.STRING).reduce(ghif)
   }
+
   def infer(): org.gorpipe.gor.model.Row = {
     val gr = new GorSparkRowInferFunction()
     val cn = tag.runtimeClass.getName
-    val dsr = if(cn.equals("org.apache.spark.sql.Row")) {
+    val dsr = if (cn.equals("org.apache.spark.sql.Row")) {
       ds.asInstanceOf[Dataset[Row]].map(row => new GorSparkRow(row))(ds.asInstanceOf[Dataset[GorSparkRow]].encoder).asInstanceOf[Dataset[org.gorpipe.gor.model.Row]]
-    } else if(cn.equals("java.lang.String")) {
+    } else if (cn.equals("java.lang.String")) {
       ds.asInstanceOf[Dataset[String]].map(row => RowObj(row))(SparkGOR.gorrowEncoder)
     } else {
       ds.asInstanceOf[Dataset[org.gorpipe.gor.model.Row]]
     }
     dsr.reduce(gr)
   }
+
   def inferSchema(header: String): StructType = {
     val row = infer()
     SparkRowSource.gor2Schema(header, row)
   }
+
   def inferEncoder(header: String): Encoder[org.gorpipe.gor.model.Row] = {
     val sc = inferSchema(header)
     RowEncoder(sc).asInstanceOf[Encoder[org.gorpipe.gor.model.Row]]
@@ -140,14 +153,15 @@ class GorDatasetFunctions[T:ClassTag](ds:Dataset[T])(implicit tag: ClassTag[T]) 
 }
 
 object GorDatasetFunctions {
-  implicit def addCustomFunctions[T:ClassTag](ds: Dataset[T]): GorDatasetFunctions[T] = new GorDatasetFunctions(ds)
+  implicit def addCustomFunctions[T: ClassTag](ds: Dataset[T]): GorDatasetFunctions[T] = new GorDatasetFunctions(ds)
 }
 
-class GorpipeRDD[T:ClassTag](prev:RDD[T], pipeStep:Analysis, encoder:ExpressionEncoder[T], header:String, gor:Boolean) extends RDD[T](prev) {
+class GorpipeRDD[T: ClassTag](prev: RDD[T], pipeStep: Analysis, encoder: ExpressionEncoder[T], header: String, gor: Boolean) extends RDD[T](prev) {
   override def compute(split: Partition, context: TaskContext): Iterator[T] = {
     val rowit = firstParent[T].iterator(split, context)
-    val rs = if( gor ) new RowSource {
+    val rs = if (gor) new RowSource {
       override def hasNext: Boolean = rowit.hasNext
+
       override def next(): org.gorpipe.gor.model.Row = {
         val r = rowit.next()
         r match {
@@ -155,27 +169,31 @@ class GorpipeRDD[T:ClassTag](prev:RDD[T], pipeStep:Analysis, encoder:ExpressionE
           case _ => RowObj.apply(r.toString)
         }
       }
+
       override def close(): Unit = {}
 
       override def setPosition(seekChr: String, seekPos: Int): Unit = ???
     } else new RowSource {
       override def hasNext: Boolean = rowit.hasNext
+
       override def next(): org.gorpipe.gor.model.Row = {
         val r = rowit.next()
         r match {
           case row: Row => new SparkRow(row)
-          case _ => RowObj.apply("chrN\t0\t"+r.toString)
+          case _ => RowObj.apply("chrN\t0\t" + r.toString)
         }
       }
+
       override def close(): Unit = {}
 
       override def setPosition(seekChr: String, seekPos: Int): Unit = ???
     }
-    rs.setHeader(if( gor ) header else "chromNOR\tposNOR\t"+header)
+    rs.setHeader(if (gor) header else "chromNOR\tposNOR\t" + header)
 
     val bpsia = new BatchedPipeStepIteratorAdaptor(rs, pipeStep, rs.getHeader, GorPipe.brsConfig)
     new Iterator[T] {
       override def hasNext: Boolean = bpsia.hasNext
+
       override def next(): T = {
         val nspl = bpsia.next.toString.split("\t")
         val objs = new Array[Object](nspl.length)
@@ -196,11 +214,12 @@ class GorpipeRDD[T:ClassTag](prev:RDD[T], pipeStep:Analysis, encoder:ExpressionE
   override protected def getPartitions: Array[Partition] = firstParent[T].partitions
 }
 
-class TestGorRDD(prev:RDD[Row],gorcmd:String,header:String,gor:Boolean) extends RDD[org.gorpipe.gor.model.Row](prev) {
+class TestGorRDD(prev: RDD[Row], gorcmd: String, header: String, gor: Boolean) extends RDD[org.gorpipe.gor.model.Row](prev) {
   override def compute(split: Partition, context: TaskContext): Iterator[org.gorpipe.gor.model.Row] = {
     val rowit = firstParent[Row].iterator(split, context)
-    val rs = if( gor ) new RowSource {
+    val rs = if (gor) new RowSource {
       override def hasNext: Boolean = rowit.hasNext
+
       override def next(): org.gorpipe.gor.model.Row = {
         val r = rowit.next()
         r match {
@@ -208,18 +227,21 @@ class TestGorRDD(prev:RDD[Row],gorcmd:String,header:String,gor:Boolean) extends 
           case _ => RowObj.apply(r.toString)
         }
       }
+
       override def close(): Unit = {}
 
       override def setPosition(seekChr: String, seekPos: Int): Unit = ???
     } else new RowSource {
       override def hasNext: Boolean = rowit.hasNext
+
       override def next(): org.gorpipe.gor.model.Row = {
         val r = rowit.next()
         r match {
           case row: Row => new SparkRow(row)
-          case _ => RowObj.apply("chrN\t0\t"+r.toString)
+          case _ => RowObj.apply("chrN\t0\t" + r.toString)
         }
       }
+
       override def close(): Unit = {}
 
       override def setPosition(seekChr: String, seekPos: Int): Unit = ???
@@ -238,21 +260,24 @@ class TestGorRDD(prev:RDD[Row],gorcmd:String,header:String,gor:Boolean) extends 
     val bpsia = new BatchedPipeStepIteratorAdaptor(rs, an, header, GorPipe.brsConfig)
     new Iterator[org.gorpipe.gor.model.Row] {
       override def hasNext: Boolean = bpsia.hasNext
+
       override def next(): org.gorpipe.gor.model.Row = {
         val ret = bpsia.next
         ret
       }
     }
   }
+
   override protected def getPartitions: Array[Partition] = firstParent[Row].partitions
 }
 
-class GorRDD[T:ClassTag](prev:RDD[T],gorcmd:String,header:String,gor:Boolean) extends RDD[org.gorpipe.gor.model.Row](prev) {
+class GorRDD[T: ClassTag](prev: RDD[T], gorcmd: String, header: String, gor: Boolean) extends RDD[org.gorpipe.gor.model.Row](prev) {
   // override compute method to calculate the discount
   override def compute(split: Partition, context: TaskContext): Iterator[org.gorpipe.gor.model.Row] = {
     val rowit = firstParent[Row].iterator(split, context)
-    val rs = if( gor ) new RowSource {
+    val rs = if (gor) new RowSource {
       override def hasNext: Boolean = rowit.hasNext
+
       override def next(): org.gorpipe.gor.model.Row = {
         val r = rowit.next()
         r match {
@@ -260,11 +285,13 @@ class GorRDD[T:ClassTag](prev:RDD[T],gorcmd:String,header:String,gor:Boolean) ex
           case _ => new GorSparkRow(r)
         }
       }
+
       override def close(): Unit = {}
 
       override def setPosition(seekChr: String, seekPos: Int): Unit = ???
     } else new RowSource {
       override def hasNext: Boolean = rowit.hasNext
+
       override def next(): org.gorpipe.gor.model.Row = {
         val r = rowit.next()
         r match {
@@ -272,12 +299,13 @@ class GorRDD[T:ClassTag](prev:RDD[T],gorcmd:String,header:String,gor:Boolean) ex
           case _ => new SparkRow(r)
         }
       }
+
       override def close(): Unit = {}
 
       override def setPosition(seekChr: String, seekPos: Int): Unit = ???
     }
 
-    val newheader = if( gor ) header else "chromNOR\tposNOR\t"+header
+    val newheader = if (gor) header else "chromNOR\tposNOR\t" + header
     val gp = Paths.get("/gorproject")
     val gsf = if (Files.exists(gp)) new GenericSessionFactory(gp.toString, "result_cache") else new GenericSessionFactory
     val gps = gsf.create
@@ -287,6 +315,7 @@ class GorRDD[T:ClassTag](prev:RDD[T],gorcmd:String,header:String,gor:Boolean) ex
     val bpsia = new BatchedPipeStepIteratorAdaptor(rs, pi.thePipeStep, newheader, GorPipe.brsConfig)
     new Iterator[org.gorpipe.gor.model.Row] {
       override def hasNext: Boolean = bpsia.hasNext
+
       override def next(): org.gorpipe.gor.model.Row = bpsia.next
     }
   }
@@ -294,7 +323,7 @@ class GorRDD[T:ClassTag](prev:RDD[T],gorcmd:String,header:String,gor:Boolean) ex
   override protected def getPartitions: Array[Partition] = firstParent[T].partitions
 }
 
-class QueryRDD(private val sparkSession: SparkSession, private val sqlContext: SQLContext /*, gorPipeSession: GorPipeSession**/, commandsToExecute: Array[String], commandSignatures: Array[String], header: Boolean, projectDirectory: String, cacheDir: String, hash: String/*FileCache*/) extends RDD[String](sparkSession.sparkContext,Nil) {
+class QueryRDD(private val sparkSession: SparkSession, private val sqlContext: SQLContext /*, gorPipeSession: GorPipeSession**/ , commandsToExecute: Array[String], commandSignatures: Array[String], header: Boolean, projectDirectory: String, cacheDir: String, hash: String /*FileCache*/) extends RDD[String](sparkSession.sparkContext, Nil) {
   override def compute(split: Partition, context: TaskContext): Iterator[String] = {
     val i = split.index
     val (commandSignature, commandToExecute) = (commandSignatures(i), commandsToExecute(i))
@@ -378,7 +407,7 @@ class QueryRDD(private val sparkSession: SparkSession, private val sqlContext: S
           extension = ".gord"
         } else {
           val temp_cacheFile = AnalysisUtilities.getTempFileName(cacheFile)
-          val parquet = if( temp_cacheFile.endsWith( """.parquet""") ) projectPath.resolve(temp_cacheFile).toAbsolutePath.toString else null
+          val parquet = if (temp_cacheFile.endsWith(""".parquet""")) projectPath.resolve(temp_cacheFile).toAbsolutePath.toString else null
           val sessionFactory = new GenericSessionFactory(projectDirectory, null)
           val gorPipeSession = sessionFactory.create() //new GorSession("")
           DynIterator.createGorIterator = (gorContext: GorContext) => {
@@ -390,9 +419,9 @@ class QueryRDD(private val sparkSession: SparkSession, private val sqlContext: S
           val oldName = projectPath.resolve(temp_cacheFile)
           try {
             val nor = theSource.isNor
-            val grc = if( gorPipeSession.getSystemContext.getRunnerFactory != null ) gorPipeSession.getSystemContext.getRunnerFactory else new GenericRunnerFactory()
+            val grc = if (gorPipeSession.getSystemContext.getRunnerFactory != null) gorPipeSession.getSystemContext.getRunnerFactory else new GenericRunnerFactory()
             val runner = grc.create()
-            runner.run(theSource, if( parquet != null ) null else OutFile(oldName.toAbsolutePath.normalize().toString, theHeader, skipHeader = false, columnCompress = nor, nor = true, md5 = true, GorIndexType.NONE, Option.empty))
+            runner.run(theSource, if (parquet != null) null else OutFile(oldName.toAbsolutePath.normalize().toString, theHeader, skipHeader = false, columnCompress = nor, nor = true, md5 = true, GorIndexType.NONE, Option.empty))
             Files.move(oldName, cpath)
           } catch {
             case e: Exception =>
@@ -421,9 +450,10 @@ class QueryRDD(private val sparkSession: SparkSession, private val sqlContext: S
   override protected def getPartitions: Array[Partition] = {
     val plist = ListBuffer[Partition]()
     var i = 0
-    while( i < commandsToExecute.length ) {
+    while (i < commandsToExecute.length) {
       plist += new Partition {
         val p: Int = i
+
         override def index: Int = {
           p
         }
@@ -434,16 +464,16 @@ class QueryRDD(private val sparkSession: SparkSession, private val sqlContext: S
   }
 }
 
-class RowGorRDD(@transient private val sparkSession: SparkSession,gorcmd:String,header:String,filter:String,chr:String,pos:Int,end:Int,gor:Boolean) extends PgorRDD[org.gorpipe.gor.model.Row](sparkSession,gorcmd,header,filter,chr,pos,end,gor)
+class RowGorRDD(@transient private val sparkSession: SparkSession, gorcmd: String, header: String, filter: String, chr: String, pos: Int, end: Int, gor: Boolean) extends PgorRDD[org.gorpipe.gor.model.Row](sparkSession, gorcmd, header, filter, chr, pos, end, gor)
 
-class PgorRDD[T:ClassTag](@transient private val sparkSession: SparkSession,gorcmd:String,header:String,filter:String,chr:String,pos:Int,end:Int,gor:Boolean) extends RDD[org.gorpipe.gor.model.Row](sparkSession.sparkContext,Nil) {
+class PgorRDD[T: ClassTag](@transient private val sparkSession: SparkSession, gorcmd: String, header: String, filter: String, chr: String, pos: Int, end: Int, gor: Boolean) extends RDD[org.gorpipe.gor.model.Row](sparkSession.sparkContext, Nil) {
   override def compute(split: Partition, context: TaskContext): Iterator[org.gorpipe.gor.model.Row] = {
 
     var newgorcmd = gorcmd
-    if( filter != null && filter.length > 0 ) {
+    if (filter != null && filter.length > 0) {
       val i = split.index
       val fsel = filter.split(",")(i)
-      newgorcmd = newgorcmd.substring(0,4)+"-f"+fsel+newgorcmd.substring(3)
+      newgorcmd = newgorcmd.substring(0, 4) + "-f" + fsel + newgorcmd.substring(3)
     }
     val args = Array[String](newgorcmd)
     val pi = new PipeInstance(null)
@@ -462,12 +492,13 @@ class PgorRDD[T:ClassTag](@transient private val sparkSession: SparkSession,gorc
 
   override protected def getPartitions: Array[Partition] = {
     val plist = ListBuffer[Partition]()
-    if( filter != null && filter.length > 0 ) {
+    if (filter != null && filter.length > 0) {
       var i = 0
       val s = filter.split(",")
-      while( i < s.length ) {
+      while (i < s.length) {
         plist += new Partition {
           val p: Int = i
+
           override def index: Int = {
             p
           }
@@ -485,8 +516,9 @@ class PgorRDD[T:ClassTag](@transient private val sparkSession: SparkSession,gorc
 }
 
 object sparkGorTest {
+
   case class Person(name: String, age: Long) {
-    override def toString: String = name+"\t"+age
+    override def toString: String = name + "\t" + age
   }
 
   def testSparkGor(): Unit = {
@@ -496,32 +528,37 @@ object sparkGorTest {
       .appName("Spark SQL basic example")
       .getOrCreate()
 
-    val g = new PgorRDD[String](spark,"gor","more", null, null, 0, -1,true)
-    g.foreach( f => System.err.println(f) )
+    val g = new PgorRDD[String](spark, "gor", "more", null, null, 0, -1, true)
+    g.foreach(f => System.err.println(f))
   }
 }
 
-case class Gorz(CHROM:String,POS:Int,block:String)
-case class GorzStr(CHROM:String,POS:String,block:String)
-case class Result(CHROM:String,POS:Int,REF:String,ALT:String,ID:String,M:String)
+case class Gorz(CHROM: String, POS: Int, block: String)
+
+case class GorzStr(CHROM: String, POS: String, block: String)
+
+case class Result(CHROM: String, POS: Int, REF: String, ALT: String, ID: String, M: String)
 
 object SparkGOR {
+
   import org.apache.spark.sql.Encoders
   import org.apache.spark.sql.types.StructType
 
   def bool(b: scala.Boolean): scala.Boolean = b
 
-  def me(map : Map[String,String]): Map[String,String] = {
-    val mutableMap = scala.collection.mutable.Map[String,String](map.toSeq: _*)
-    mutableMap.put("header","true")
+  def me(map: Map[String, String]): Map[String, String] = {
+    val mutableMap = scala.collection.mutable.Map[String, String](map.toSeq: _*)
+    mutableMap.put("header", "true")
     mutableMap.toMap
   }
 
   val gorzSchema = ScalaReflection.schemaFor[Gorz].dataType.asInstanceOf[StructType]
 
   case class Skat(chrom: String, start: Int, stop: Int, tag: String, numMarkers: Int, pvalue: String)
-  case class Gene(chr:String,pos:Int,end:Int,Gene_Symbol:String)
-  case class Dbsnp(CHROM:String,POS:Int,REF:String,ALT:String,ID:String)
+
+  case class Gene(chr: String, pos: Int, end: Int, Gene_Symbol: String)
+
+  case class Dbsnp(CHROM: String, POS: Int, REF: String, ALT: String, ID: String)
 
   val gorzFlatMap = new GorzFlatMap
   val gorrowEncoder: Encoder[org.gorpipe.gor.model.Row] = Encoders.javaSerialization(classOf[org.gorpipe.gor.model.Row])
@@ -531,7 +568,7 @@ object SparkGOR {
   val gorSparkrowEncoder: Encoder[GorSparkRow] = Encoders.javaSerialization(classOf[GorSparkRow])
   val gorzIterator = new GorzIterator()
 
-  case class Variants(chrom:String,pos:Int,ref:String,alt:String,cc:Int,cr:Double,depth:Int,gl:Int,filter:String,fs:Double,formatZip:String,pn:String)
+  case class Variants(chrom: String, pos: Int, ref: String, alt: String, cc: Int, cr: Double, depth: Int, gl: Int, filter: String, fs: Double, formatZip: String, pn: String)
 
   def where(w: String, schema: StructType): GorRowFilterFunction[org.gorpipe.gor.model.Row] = {
     new GorSparkRowFilterFunction[org.gorpipe.gor.model.Row](w, schema)
@@ -555,14 +592,14 @@ object SparkGOR {
 
   def createSession(sparkSession: SparkSession, root: String, cache: String, operator: Int): GorSparkSession = {
     val standalone = System.getProperty("sm.standalone")
-    if( standalone == null || standalone.length == 0) System.setProperty("sm.standalone",root)
+    if (standalone == null || standalone.length == 0) System.setProperty("sm.standalone", root)
     val sessionFactory = new SparkSessionFactory(sparkSession, root, cache, null)
     val sparkGorSession = sessionFactory.create().asInstanceOf[GorSparkSession]
     sparkGorSession
   }
 
   def createSession(sparkSession: SparkSession): GorSparkSession = {
-    createSession(sparkSession,"/gorproject", "result_cache", 0)
+    createSession(sparkSession, "/gorproject", "result_cache", 0)
   }
 
   def createSession(sparkSession: SparkSession, operator: Int): GorSparkSession = {

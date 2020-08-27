@@ -2,16 +2,16 @@ package org.gorpipe.spark
 
 import java.util.concurrent.ConcurrentHashMap
 
+import org.gorpipe.gor.model.RowBase
 import org.gorpipe.model.gor.RowObj.splitArray
 import gorsat.InputSources.Spark
 import gorsat.Script.ScriptEngineFactory
+import gorsat.Utilities.StringUtilities
 import gorsat.process._
 import gorsat.BatchedPipeStepIteratorAdaptor
-import gorsat.Utilities.StringUtilities
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{Dataset, Encoder, Row, SparkSession}
-import org.gorpipe.gor.model.RowBase
 import org.gorpipe.gor.session.GorSession
 
 class GorSparkSession(requestId: String) extends GorSession(requestId) with AutoCloseable {

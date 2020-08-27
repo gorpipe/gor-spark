@@ -2,6 +2,7 @@ package org.gorpipe.spark;
 
 import gorsat.process.*;
 import org.apache.spark.sql.SparkSession;
+
 import org.gorpipe.gor.clients.LocalFileCacheClient;
 import org.gorpipe.gor.model.DriverBackedFileReader;
 import org.gorpipe.gor.model.GorParallelQueryHandler;
@@ -10,6 +11,7 @@ import org.gorpipe.gor.session.GorSession;
 import org.gorpipe.gor.session.GorSessionCache;
 import org.gorpipe.gor.session.ProjectContext;
 import org.gorpipe.gor.session.SystemContext;
+
 
 import java.nio.file.Path;
 import java.nio.file.Paths;

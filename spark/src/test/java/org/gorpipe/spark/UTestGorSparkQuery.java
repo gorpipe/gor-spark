@@ -4,7 +4,7 @@ import gorsat.process.PipeInstance;
 import gorsat.process.PipeOptions;
 import io.projectglow.Glow;
 import org.apache.spark.sql.SparkSession;
-import org.gorpipe.gor.GorSession;
+import org.gorpipe.gor.session.GorSession;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -35,7 +35,7 @@ public class UTestGorSparkQuery {
         PipeOptions pipeOptions = new PipeOptions();
         pipeOptions.query_$eq(query);
         pi.subProcessArguments(pipeOptions);
-        String result = StreamSupport.stream(Spliterators.spliteratorUnknownSize(pi.theInputSource(),0), false).map(Object::toString).collect(Collectors.joining("\n"));
+        String result = StreamSupport.stream(Spliterators.spliteratorUnknownSize(pi.theInputSource(), 0), false).map(Object::toString).collect(Collectors.joining("\n"));
         Assert.assertEquals("Wrong results from spark query: " + query, expectedResult, result);
     }
 
@@ -81,9 +81,9 @@ public class UTestGorSparkQuery {
     @Test
     public void testSparkSQLWithNestedNorFile() throws IOException {
         String twocolNor = "#stuff\tgene_symbol\na\tBRCA2\nb\tBRCA1\n";
-        Path tmpfile = Files.createTempFile("test","tsv");
-        Files.write(tmpfile,twocolNor.getBytes());
-        testSparkQuery("spark select gene_symbol from <(nor "+tmpfile.toString()+")",
+        Path tmpfile = Files.createTempFile("test", "tsv");
+        Files.write(tmpfile, twocolNor.getBytes());
+        testSparkQuery("spark select gene_symbol from <(nor " + tmpfile.toString() + ")",
                 "BRCA2\n" +
                         "BRCA1");
         Files.delete(tmpfile);
@@ -91,7 +91,7 @@ public class UTestGorSparkQuery {
 
     @Test
     public void testGorSparkSQLQuery() {
-        testSparkQuery("spark select * from ../tests/data/gor/genes.gor limit 5","chr1\t11868\t14412\tDDX11L1\n" +
+        testSparkQuery("spark select * from ../tests/data/gor/genes.gor limit 5", "chr1\t11868\t14412\tDDX11L1\n" +
                 "chr1\t14362\t29806\tWASH7P\n" +
                 "chr1\t34553\t36081\tFAM138A\n" +
                 "chr1\t53048\t54936\tAL627309.1\n" +
@@ -100,7 +100,7 @@ public class UTestGorSparkQuery {
 
     @Test
     public void testParquetSparkSQLQuery() {
-        testSparkQuery("spark select * from ../tests/data/parquet/dbsnp_test.parquet limit 5","chr1\t10179\tC\tCC\trs367896724\n" +
+        testSparkQuery("spark select * from ../tests/data/parquet/dbsnp_test.parquet limit 5", "chr1\t10179\tC\tCC\trs367896724\n" +
                 "chr1\t10250\tA\tC\trs199706086\n" +
                 "chr10\t60803\tT\tG\trs536478188\n" +
                 "chr10\t61023\tC\tG\trs370414480\n" +
@@ -164,6 +164,6 @@ public class UTestGorSparkQuery {
 
     @After
     public void close() {
-        if(pi != null) pi.close();
+        if (pi != null) pi.close();
     }
 }

@@ -13,11 +13,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.IntStream;
 
+import org.gorpipe.gor.model.GorParallelQueryHandler;
 import gorsat.Commands.CommandParseUtilities;
 import gorsat.process.PipeInstance;
 import gorsat.process.PipeOptions;
 import org.apache.spark.sql.SparkSession;
-import org.gorpipe.gor.model.GorParallelQueryHandler;
 import org.gorpipe.gor.monitor.GorMonitor;
 import org.gorpipe.gor.session.GorRunner;
 import org.gorpipe.spark.platform.*;
@@ -69,7 +69,7 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
 
             if(!Files.exists(root.resolve(cachePath))) {
                 String commandUpper = commandsToExecute[i].toUpperCase();
-                if (commandUpper.startsWith("SELECT ") || commandUpper.contains("SPARK ") || commandUpper.contains("GORSPARK ") || commandUpper.contains("NORSPARK ")) {
+                if (commandUpper.startsWith("SELECT ") || commandUpper.startsWith("SPARK ") || commandUpper.startsWith("GORSPARK ") || commandUpper.startsWith("NORSPARK ")) {
                     sparkJobs.add(i);
                 } else {
                     gorJobs.add(i);

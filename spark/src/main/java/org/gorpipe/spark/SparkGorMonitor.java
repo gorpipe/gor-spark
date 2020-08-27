@@ -25,7 +25,7 @@ public class SparkGorMonitor extends GorMonitor implements Serializable {
     public SparkGorMonitor(String uri, String jobId) {
         this.uri = uri;
         this.jobId = jobId;
-        if(uri != null && uri.length() > 0) {
+        if (uri != null && uri.length() > 0) {
             try {
                 jedisPool = SharedRedisPools.getJedisPool(JedisURIHelper.create(uri));
             } catch (Exception e) {
