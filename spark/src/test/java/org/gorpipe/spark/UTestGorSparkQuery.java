@@ -162,6 +162,22 @@ public class UTestGorSparkQuery {
         testSparkQuery("spark ../tests/data/gor/genes.gorz | top 5 | group chrom -count", "chr1\t0\t250000000\t5");
     }
 
+    @Test
+    public void testExternalCommand() throws IOException {
+        String pycode = "#!/usr/bin/env python\n" +
+                "import sys\n" +
+                "line = sys.stdin.readline()\n" +
+                "sys.stdout.write( line )\n" +
+                "sys.stdout.flush()\n" +
+                "line = sys.stdin.readline()\n" +
+                "while line:\n" +
+                "    sys.stdout.write( line )\n" +
+                "    line = sys.stdin.readline()\n";
+        Path pyscript = Paths.get("pass.py");
+        Files.writeString(pyscript, pycode);
+        testSparkQuery("spark ../tests/data/gor/genes.gorz | top 100 | cmd {python pass.py} | group chrom -count", "chr1\t0\t250000000\t100");
+    }
+
     @After
     public void close() {
         if (pi != null) pi.close();

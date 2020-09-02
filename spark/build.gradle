@@ -60,6 +60,22 @@ project(':spark') {
             exclude group: 'org.apache.hadoop', module: 'hadoop-client'
             exclude group: 'org.apache.hadoop', module: 'hadoop-common'
         }
+        implementation ('org.apache.spark:spark-hive_2.12:3.0.0') {
+            exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
+            exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
+            exclude group: 'com.fasterxml.jackson.module', module: 'jackson-module-scala'
+            exclude group: 'org.apache.spark', module: 'spark-tags_2.12'
+            exclude group: 'org.apache.hadoop', module: 'hadoop-client'
+            exclude group: 'org.apache.hadoop', module: 'hadoop-common'
+        }
+        implementation ('org.apache.spark:spark-hive-thriftserver_2.12:3.0.0') {
+            exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
+            exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
+            exclude group: 'com.fasterxml.jackson.module', module: 'jackson-module-scala'
+            exclude group: 'org.apache.spark', module: 'spark-tags_2.12'
+            exclude group: 'org.apache.hadoop', module: 'hadoop-client'
+            exclude group: 'org.apache.hadoop', module: 'hadoop-common'
+        }
         implementation ('org.apache.spark:spark-catalyst_2.12:3.0.0') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
@@ -137,6 +153,8 @@ project(':spark') {
         implementation 'io.kubernetes:client-java:8.0.2'
         //compile group: 'io.fabric8', name: 'kubernetes-client', version: '4.7.1'
 
+        testImplementation project(':gortools')
+        testImplementation project(':model')
         testCompile("${gorArtifactGroupId}:gor-test:${gorVersion}")
     }
 

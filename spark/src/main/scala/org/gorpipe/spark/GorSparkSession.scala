@@ -9,6 +9,7 @@ import gorsat.Script.ScriptEngineFactory
 import gorsat.Utilities.StringUtilities
 import gorsat.process._
 import gorsat.BatchedPipeStepIteratorAdaptor
+import gorsat.commands.Pyspark
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{Dataset, Encoder, Row, SparkSession}
@@ -24,10 +25,18 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
       GorInputSources.register()
       GorInputSources.addInfo(new Spark.Spark)
       GorInputSources.addInfo(new Spark.Select)
+
+      GorPipeCommands.addInfo(new Pyspark())
   }
 
   def getSparkSession: SparkSession = {
     if(sparkSession == null) sparkSession = GorSparkUtilities.getSparkSession(null,null)
+    sparkSession
+  }
+
+  def getSparkSession(gorroot: String, hostMount: String, profile: String): SparkSession = {
+    if(profile != null) return GorSparkUtilities.getSparkSession(gorroot, hostMount, profile)
+    if(sparkSession == null) sparkSession = GorSparkUtilities.getSparkSession(gorroot, hostMount, profile)
     sparkSession
   }
 
