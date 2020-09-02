@@ -9,6 +9,11 @@ variables:
   GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.caching=true"
   RELEASABLE_BRANCH: master                                         # Optional (master is the default).  If this matches the current branch, the built image will be releasable with a semver tag.
 
+  # Vars for build resources
+  KUBERNETES_CPU_REQUEST: 4
+  KUBERNETES_CPU_LIMIT: 6
+  KUBERNETES_MEMORY_REQUEST: 2Gi
+  KUBERNETES_MEMORY_LIMIT: 4Gi
 
 .on-branches:
   rules:
@@ -44,24 +49,11 @@ before_script:
   - export GRADLE_USER_HOME=`pwd`/.gradle
 
 
-build:
+.build_with_cache:
   extends: .on-branches
-  stage: build
   image: "$JAVA_BUILDER_IMAGE"
-  script: ./gradlew assemble
   tags:
     - gitlab-build-01
-  cache:
-    key: "$CI_COMMIT_REF_NAME"
-    policy: pull-push
-    paths:
-      - "build"
-      - "**/build"
-      - ".gradle"
-
-
-.build_cache:
-  extends: build
   cache:
     key: "$CI_COMMIT_REF_NAME"
     policy: pull
@@ -71,8 +63,16 @@ build:
       - ".gradle"
 
 
+build:
+  extends: .build_with_cache
+  stage: build
+  script: ./gradlew classes
+  cache:
+    policy: pull-push
+
+
 .test:
-  extends: .build_cache
+  extends: .build_with_cache
   stage: test
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
@@ -100,7 +100,7 @@ integrationtest:
   script: ./gradlew --continue integrationTest
 
 
-# This codequality block is needed to work around https://gitlab.com/gitlab-org/gitlab/issues/12274
+# This code quality block is needed to work around https://gitlab.com/gitlab-org/gitlab/issues/12274
 code_quality:
   extends:
     - .on-releasable-or-release-branch-only
@@ -114,9 +114,9 @@ code_quality:
     expire_in: 1 week
 
 
-license_management:
+license_scanning:
   extends:
-    - .build_cache
+    - .build_with_cache
     - .on-releasable-or-release-branch-only
   stage: test
   variables:
@@ -131,6 +131,7 @@ dependency_scanning:
   tags:
     - gitlab-build-01
   variables:
+    DS_DEFAULT_ANALYZERS: "gemnasium-maven"
     # There is no need to run tests or generate sphinx documentation for license management
     # analysis, however, the license management plugin calls the build task so we have to manually
     # disable tests and documentation generation.
@@ -141,7 +142,7 @@ dependency_scanning:
 
 publish:
   extends:
-    - .build_cache
+    - .build_with_cache
     - .on-releasable-or-semver-tag-only
   stage: publish
   script: ./gradlew publish -x test -x slowTest -x integrationTest
