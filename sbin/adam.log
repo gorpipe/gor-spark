@@ -1,4 +1,0 @@
-2019-12-11 16:29:01 INFO  Worker:2610 - Started daemon with process name: 75872@nc-mbp-0116.nextcode.local
-2019-12-11 16:29:01 INFO  SignalUtils:57 - Registered signal handler for TERM
-2019-12-11 16:29:01 INFO  SignalUtils:57 - Registered signal handler for HUP
-2019-12-11 16:29:01 INFO  SignalUtils:57 - Registered signal handler for INT

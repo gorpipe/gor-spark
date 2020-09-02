@@ -19,10 +19,10 @@ RUN set -ex && \
     rm -rf /var/cache/apt/*
 
 COPY spark/build/install/gor-scripts/lib /opt/spark/jars
-COPY bin /opt/spark/bin
-COPY sbin /opt/spark/sbin
-COPY entrypoint.sh /opt/
-COPY decom.sh /opt/
+COPY spark/src/main/docker/bin /opt/spark/bin
+COPY spark/src/main/docker/sbin /opt/spark/sbin
+COPY spark/src/main/docker/entrypoint.sh /opt/
+COPY spark/src/main/docker/decom.sh /opt/
 
 ENV SPARK_HOME /opt/spark
 
