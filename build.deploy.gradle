@@ -53,7 +53,15 @@ configure(allLeafProjects()){
         }
     }
 
+    apply plugin: 'java-library'
     apply plugin: 'maven-publish'
+    apply plugin: 'signing'
+
+    java {
+        withJavadocJar()
+        withSourcesJar()
+    }
+
     publishing {
         repositories {
             maven {
@@ -81,9 +89,46 @@ configure(allLeafProjects()){
                 from components.java
                 
                 artifactId = getCustomProjectId()
-                groupId = 'com.wuxinextcode.gor'
+                groupId = 'org.gorpipe'
+            }
+            pom {
+                name = 'Gorpipe'
+                description = 'GORpipe allows analysis of large sets of genomic and phenotypic tabular data using a declarative query language in a parallel execution engine'
+                url = 'http://gorpipe.org'
+                licenses {
+                    license {
+                        name = 'GNU Affero General Public License'
+                        url = 'https://www.gnu.org/licenses/agpl-3.0.en.html'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'gisli'
+                        name = 'Gisli Magnusson'
+                        email = 'gisli@genuitysci.com'
+                    }
+                    developer {
+                        id = 'sigmar'
+                        name = 'Sigmar Stefansson'
+                        email = 'sigmar@genuitysci.com'
+                    }
+                    developer {
+                        id = 'vidar'
+                        name = 'Vidar Hrafnkelsson'
+                        email = 'vidar@genuitysci.com'
+                    }
+                }
+                scm {
+                    connection = 'scm:git:git://github.com/gorpipe/gor.git'
+                    developerConnection = 'scm:git:ssh://github.com/gorpipe/gor.git'
+                    url = 'http://docs.gorpipe.org/'
+                }
             }
         }
+    }
+
+    signing {
+        sign publishing.publications.mavenJava
     }
 
     apply plugin: "com.jfrog.artifactory"
