@@ -30,6 +30,7 @@ project(':spark') {
             exclude group: 'com.fasterxml.jackson.module', module: 'jackson-module-scala'
             exclude group: 'org.apache.hadoop', module: 'hadoop-client'
             exclude group: 'org.apache.hadoop', module: 'hadoop-common'
+            exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
         implementation ('org.apache.spark:spark-sql_2.12:3.0.0') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
@@ -37,6 +38,7 @@ project(':spark') {
             exclude group: 'com.fasterxml.jackson.module', module: 'jackson-module-scala'
             exclude group: 'org.apache.hadoop', module: 'hadoop-client'
             exclude group: 'org.apache.hadoop', module: 'hadoop-common'
+            exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
         implementation ('org.apache.spark:spark-mllib_2.12:3.0.0') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
@@ -44,6 +46,7 @@ project(':spark') {
             exclude group: 'com.fasterxml.jackson.module', module: 'jackson-module-scala'
             exclude group: 'org.apache.hadoop', module: 'hadoop-client'
             exclude group: 'org.apache.hadoop', module: 'hadoop-common'
+            exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
         implementation ('org.apache.spark:spark-tags_2.12:3.0.0') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
@@ -51,6 +54,7 @@ project(':spark') {
             exclude group: 'com.fasterxml.jackson.module', module: 'jackson-module-scala'
             exclude group: 'org.apache.hadoop', module: 'hadoop-client'
             exclude group: 'org.apache.hadoop', module: 'hadoop-common'
+            exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
         implementation ('org.apache.spark:spark-kubernetes_2.12:3.0.0') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
@@ -65,6 +69,7 @@ project(':spark') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'com.fasterxml.jackson.module', module: 'jackson-module-scala'
             exclude group: 'org.apache.spark', module: 'spark-tags_2.12'
+            exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
             exclude group: 'org.apache.hadoop', module: 'hadoop-client'
             exclude group: 'org.apache.hadoop', module: 'hadoop-common'
         }
@@ -79,6 +84,7 @@ project(':spark') {
         implementation ('org.apache.spark:spark-catalyst_2.12:3.0.0') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
+            exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
             exclude group: 'com.fasterxml.jackson.module', module: 'jackson-module-scala'
             exclude group: 'org.apache.hadoop', module: 'hadoop-client'
             exclude group: 'org.apache.hadoop', module: 'hadoop-common'
@@ -89,6 +95,7 @@ project(':spark') {
             exclude group: 'com.fasterxml.jackson.module', module: 'jackson-module-scala'
             exclude group: 'org.apache.hadoop', module: 'hadoop-client'
             exclude group: 'org.apache.hadoop', module: 'hadoop-common'
+            exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
 
         compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.11.0'
