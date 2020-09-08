@@ -145,10 +145,10 @@ public class SparkRowSource extends ProcessSource {
                     if (gorSparkSession.getSystemContext().getServer()) ProjectContext.validateServerFileName(fn, true);
                     SparkRowUtilities.registerFile(new String[]{fn}, profile,null, gpSession, standalone, fileroot, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp, tag);
                 }
-                dataset = getSparkSession(gpSession,fileroot,profile).sql(sql);
+                dataset = SparkRowUtilities.getSparkSession(gpSession,fileroot,profile).sql(sql);
             } else {
                 fileNames = headercommands.toArray(new String[0]);
-                dataset = registerFile(fileNames, null, profile, gpSession, standalone, fileroot, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp, tag);
+                dataset = SparkRowUtilities.registerFile(fileNames, null, profile, gpSession, standalone, fileroot, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp, tag);
             }
 
             if (chr != null) {
@@ -212,7 +212,7 @@ public class SparkRowSource extends ProcessSource {
         setHeader(correctHeader(dataset.columns()));
     }
 
-    public Dataset<Row> gorpipe(Dataset<? extends org.apache.spark.sql.Row> dataset, String gor) {
+    public static Dataset<Row> gorpipe(Dataset<? extends org.apache.spark.sql.Row> dataset, String gor) {
         String inputHeader = String.join("\t", dataset.schema().fieldNames());
         boolean nor = checkNor(dataset.schema().fields());
         Dataset<? extends Row> dr = (Dataset<? extends Row>) dataset;//checkRowFormat(dataset);
@@ -260,7 +260,7 @@ public class SparkRowSource extends ProcessSource {
         tmap.put("D", DoubleType);
     }
 
-    public StructType schemaFromRow(String[] header, Row row) {
+    public static StructType schemaFromRow(String[] header, Row row) {
         return new StructType(IntStream.range(0, row.numCols()).mapToObj(i -> new StructField(header[i], tmap.get(row.stringValue(i)), true, Metadata.empty())).toArray(StructField[]::new));
     }
 

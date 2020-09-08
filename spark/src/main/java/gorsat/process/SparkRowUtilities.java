@@ -388,7 +388,7 @@ public class SparkRowUtilities {
                                             filterColumnIndex = oi.getAsInt();
                                         }
                                     }
-                                    FilterFunction<org.apache.spark.sql.Row> ff = new SparkRowSource.PNFilterFunction(filter, filterColumnIndex);
+                                    FilterFunction<org.apache.spark.sql.Row> ff = new PNFilterFunction(filter, filterColumnIndex);
                                     sgor = sgor.filter(ff);
                                 }
                                 gor = sgor;

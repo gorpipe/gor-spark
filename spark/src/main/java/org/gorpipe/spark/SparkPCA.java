@@ -37,7 +37,12 @@ import java.util.stream.StreamSupport;
 public class SparkPCA {
     static String[] testargs = {"--projectroot","/gorproject","--freeze","plink_wes","--variants","testvars2.gorz","--pnlist","testpns.txt","--partsize","10","--pcacomponents","3","--outfile","out.txt"};//,"--sparse"};
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
+        SparkSession sparkSession = SparkSession.builder().master("local[1]").getOrCreate();
+        System.err.println(sparkSession);
+    }
+
+    public static void main2(String[] args) throws IOException {
         //args = testargs;
         List<String> argList = Arrays.asList(args);
         int i = argList.indexOf("--appname");

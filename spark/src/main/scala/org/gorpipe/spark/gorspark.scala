@@ -143,7 +143,7 @@ class GorDatasetFunctions[T: ClassTag](ds: Dataset[T])(implicit tag: ClassTag[T]
 
   def inferSchema(header: String): StructType = {
     val row = infer()
-    SparkRowSource.gor2Schema(header, row)
+    SparkRowUtilities.gor2Schema(header, row)
   }
 
   def inferEncoder(header: String): Encoder[org.gorpipe.gor.model.Row] = {
@@ -604,5 +604,9 @@ object SparkGOR {
 
   def createSession(sparkSession: SparkSession, operator: Int): GorSparkSession = {
     createSession(sparkSession, "/gorproject", "result_cache", operator)
+  }
+
+  def createSession(sparkSession: SparkSession, gorconfig: String): GorSparkSession = {
+    createSession(sparkSession, "/gorproject", "result_cache", 0)
   }
 }
