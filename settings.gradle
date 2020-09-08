@@ -3,23 +3,23 @@ rootProject.buildFileName = "build.gradle"
 
 include 'spark'
 
-include 'querydialogs'
+//include 'querydialogs'
 include 'gortools'
 include 'model'
-include 'gordrivers'
+//include 'gordrivers'
 include 'gorbase'
-include 'test'
+//include 'test'
 
 include 'gorutil'
-include 'external'
+//include 'external'
 
-include 'documentation'
+//include 'documentation'
 
 project(":gortools").projectDir = file("../gor/gortools")
 project(":model").projectDir = file("../gor/model")
-project(":gordrivers").projectDir = file("../gor/drivers")
+//project(":gordrivers").projectDir = file("../gor/drivers")
 project(":gorbase").projectDir = file("../gor/base")
-project(":test").projectDir = file("../gor/test")
+//project(":test").projectDir = file("../gor/test")
 project(":gorutil").projectDir = file("../gor/util")
-project(":external").projectDir = file("../gor/external")
-project(":documentation").projectDir = file("../gor/documentation")
+//project(":external").projectDir = file("../gor/external")
+//project(":documentation").projectDir = file("../gor/documentation")

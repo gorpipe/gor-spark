@@ -13,7 +13,9 @@ project(':spark') {
     dependencies {
         implementation project(':gorbase')
         implementation project(':model')
-        implementation project(':gortools')
+        implementation(project(':gortools')) {
+            exclude group: 'net.sourceforge.f2j', module: 'arpack_combined_all'
+        }
 
         /*compile("${gorArtifactGroupId}:gor-base-config:${gorVersion}")
         compile("${gorArtifactGroupId}:gor-base-logging:${gorVersion}")
@@ -24,7 +26,7 @@ project(':spark') {
         implementation ('org.glassfish.jaxb:jaxb-runtime:2.3.2')
         implementation ('jakarta.xml.bind:jakarta.xml.bind-api:2.3.2')
 
-        implementation ('org.apache.spark:spark-core_2.12:3.0.0') {
+        implementation ('org.apache.spark:spark-core_2.12:3.0.1') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'com.fasterxml.jackson.module', module: 'jackson-module-scala'
@@ -32,7 +34,7 @@ project(':spark') {
             exclude group: 'org.apache.hadoop', module: 'hadoop-common'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
-        implementation ('org.apache.spark:spark-sql_2.12:3.0.0') {
+        implementation ('org.apache.spark:spark-sql_2.12:3.0.1') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'com.fasterxml.jackson.module', module: 'jackson-module-scala'
@@ -40,7 +42,16 @@ project(':spark') {
             exclude group: 'org.apache.hadoop', module: 'hadoop-common'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
-        implementation ('org.apache.spark:spark-mllib_2.12:3.0.0') {
+        implementation ('org.apache.spark:spark-mllib_2.12:3.0.1') {
+            exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
+            exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
+            exclude group: 'com.fasterxml.jackson.module', module: 'jackson-module-scala'
+            exclude group: 'org.apache.hadoop', module: 'hadoop-client'
+            exclude group: 'org.apache.hadoop', module: 'hadoop-common'
+            exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
+            exclude group: 'net.sourceforge.f2j', module: 'arpack_combined_all'
+        }
+        implementation ('org.apache.spark:spark-tags_2.12:3.0.1') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'com.fasterxml.jackson.module', module: 'jackson-module-scala'
@@ -48,15 +59,7 @@ project(':spark') {
             exclude group: 'org.apache.hadoop', module: 'hadoop-common'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
-        implementation ('org.apache.spark:spark-tags_2.12:3.0.0') {
-            exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
-            exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
-            exclude group: 'com.fasterxml.jackson.module', module: 'jackson-module-scala'
-            exclude group: 'org.apache.hadoop', module: 'hadoop-client'
-            exclude group: 'org.apache.hadoop', module: 'hadoop-common'
-            exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
-        }
-        implementation ('org.apache.spark:spark-kubernetes_2.12:3.0.0') {
+        implementation ('org.apache.spark:spark-kubernetes_2.12:3.0.1') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'com.fasterxml.jackson.module', module: 'jackson-module-scala'
@@ -64,7 +67,7 @@ project(':spark') {
             exclude group: 'org.apache.hadoop', module: 'hadoop-client'
             exclude group: 'org.apache.hadoop', module: 'hadoop-common'
         }
-        implementation ('org.apache.spark:spark-hive_2.12:3.0.0') {
+        implementation ('org.apache.spark:spark-hive_2.12:3.0.1') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'com.fasterxml.jackson.module', module: 'jackson-module-scala'
@@ -72,16 +75,18 @@ project(':spark') {
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
             exclude group: 'org.apache.hadoop', module: 'hadoop-client'
             exclude group: 'org.apache.hadoop', module: 'hadoop-common'
+            exclude group: 'org.pentaho', module: 'pentaho-aggdesigner-algorithm'
         }
-        implementation ('org.apache.spark:spark-hive-thriftserver_2.12:3.0.0') {
+        implementation ('org.apache.spark:spark-hive-thriftserver_2.12:3.0.1') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'com.fasterxml.jackson.module', module: 'jackson-module-scala'
             exclude group: 'org.apache.spark', module: 'spark-tags_2.12'
             exclude group: 'org.apache.hadoop', module: 'hadoop-client'
             exclude group: 'org.apache.hadoop', module: 'hadoop-common'
+            exclude group: 'org.pentaho', module: 'pentaho-aggdesigner-algorithm'
         }
-        implementation ('org.apache.spark:spark-catalyst_2.12:3.0.0') {
+        implementation ('org.apache.spark:spark-catalyst_2.12:3.0.1') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
@@ -89,7 +94,7 @@ project(':spark') {
             exclude group: 'org.apache.hadoop', module: 'hadoop-client'
             exclude group: 'org.apache.hadoop', module: 'hadoop-common'
         }
-        implementation ('org.apache.spark:spark-repl_2.12:3.0.0') {
+        implementation ('org.apache.spark:spark-repl_2.12:3.0.1') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'com.fasterxml.jackson.module', module: 'jackson-module-scala'
@@ -112,12 +117,18 @@ project(':spark') {
         }
         compile group: 'org.broadinstitute', name: 'gatk-native-bindings', version: '1.0.0'*/
 
-        compile group: 'org.apache.logging.log4j', name: 'log4j', version: '2.13.3', ext: 'pom'
-        compile group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.13.3', ext: 'pom'
-        compile group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.13.3', ext: 'pom'
-        compile group: 'org.apache.logging.log4j', name: 'log4j-jcl', version: '2.13.3', ext: 'pom'
+        compile group: 'org.apache.logging.log4j', name: 'log4j', version: '2.13.3'
+        compile group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.13.3'
+        compile group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.13.3'
+        compile group: 'org.apache.logging.log4j', name: 'log4j-jcl', version: '2.13.3'
         compile group: 'org.apache.logging.log4j', name: 'log4j-slf4j-impl', version: '2.13.3'
         compile group: 'org.apache.logging.log4j', name: 'log4j-1.2-api', version: '2.13.3'
+
+        //compile group: 'net.sourceforge.f2j', name: 'arpack_combined_all', version: '0.1'
+        compile(group: 'org.apache.hive', name: 'hive-exec', version: '2.3.7') {
+            exclude group: 'org.pentaho', module: 'pentaho-aggdesigner-algorithm'
+        }
+        compile group: 'org.apache.avro', name: 'avro-mapred', version: '1.8.2'
 
         //compile group: 'javax.jms', name: 'javax.jms-api', version: '2.0.1'
 
@@ -155,14 +166,14 @@ project(':spark') {
         compile 'org.apache.hadoop:hadoop-hdfs:3.2.1'
         compile 'org.apache.hadoop:hadoop-hdfs-client:3.2.1'
 
-        implementation("redis.clients:jedis:3.1.+")
+        implementation("redis.clients:jedis:3.1.0")
 
-        implementation 'io.kubernetes:client-java:8.0.2'
+        implementation 'io.kubernetes:client-java:9.0.2'
         //compile group: 'io.fabric8', name: 'kubernetes-client', version: '4.7.1'
 
         testImplementation project(':gortools')
         testImplementation project(':model')
-        testCompile("${gorArtifactGroupId}:gor-test:${gorVersion}")
+        //testCompile("${gorArtifactGroupId}:gor-test:${gorVersion}")
     }
 
     jar {

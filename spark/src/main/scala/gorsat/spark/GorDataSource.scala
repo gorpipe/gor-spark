@@ -55,6 +55,4 @@ class GorDataSource extends FileDataSourceV2 with RelationProvider with SchemaRe
   override def fallbackFileFormat: Class[_ <: FileFormat] = classOf[GorFileFormat]
 
   override def getPaths(map: CaseInsensitiveStringMap): Seq[String] = null //super.getPaths(map);
-
-  override def getTableName(paths: Seq[String]): String = shortName + paths.mkString("_")
 }

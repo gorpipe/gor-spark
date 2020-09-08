@@ -63,8 +63,50 @@ configure(allLeafProjects()){
     }
 
     publishing {
+        publications {
+            mavenJava(MavenPublication) {
+                from components.java
+                
+                artifactId = getCustomProjectId()
+                groupId = 'org.gorpipe'
+
+                pom {
+                    name = 'Gorpipe'
+                    description = 'GORpipe allows analysis of large sets of genomic and phenotypic tabular data using a declarative query language in a parallel execution engine'
+                    url = 'http://gorpipe.org'
+                    licenses {
+                        license {
+                            name = 'GNU Affero General Public License'
+                            url = 'https://www.gnu.org/licenses/agpl-3.0.en.html'
+                        }
+                    }
+                    developers {
+                        developer {
+                            id = 'gisli'
+                            name = 'Gisli Magnusson'
+                            email = 'gisli@genuitysci.com'
+                        }
+                        developer {
+                            id = 'sigmar'
+                            name = 'Sigmar Stefansson'
+                            email = 'sigmar@genuitysci.com'
+                        }
+                        developer {
+                            id = 'vidar'
+                            name = 'Vidar Hrafnkelsson'
+                            email = 'vidar@genuitysci.com'
+                        }
+                    }
+                    scm {
+                        connection = 'scm:git:git://github.com/gorpipe/gor.git'
+                        developerConnection = 'scm:git:ssh://github.com/gorpipe/gor.git'
+                        url = 'http://docs.gorpipe.org/'
+                    }
+                }
+            }
+        }
         repositories {
-            maven {
+            /*maven {
                 name = "GitHubPackages"
                 url = "https://maven.pkg.github.com/sigmarkarl/sparkgor"
                 credentials {
@@ -72,7 +114,7 @@ configure(allLeafProjects()){
                     password = project.findProperty('github_token') ?: System.getenv("GITHUB_TOKEN")
                 }
             }
-            /*maven {
+            maven {
                 name = "gitlab-gor-spark-maven"
                 url = uri("https://gitlab.com/api/v4/projects/17267784/packages/maven")
                 credentials(HttpHeaderCredentials) {
@@ -83,45 +125,12 @@ configure(allLeafProjects()){
                     header(HttpHeaderAuthentication)
                 }
             }*/
-        }
-        publications {
-            mavenJavaLibModule(MavenPublication) {
-                from components.java
-                
-                artifactId = getCustomProjectId()
-                groupId = 'org.gorpipe'
-            }
-            pom {
-                name = 'Gorpipe'
-                description = 'GORpipe allows analysis of large sets of genomic and phenotypic tabular data using a declarative query language in a parallel execution engine'
-                url = 'http://gorpipe.org'
-                licenses {
-                    license {
-                        name = 'GNU Affero General Public License'
-                        url = 'https://www.gnu.org/licenses/agpl-3.0.en.html'
-                    }
-                }
-                developers {
-                    developer {
-                        id = 'gisli'
-                        name = 'Gisli Magnusson'
-                        email = 'gisli@genuitysci.com'
-                    }
-                    developer {
-                        id = 'sigmar'
-                        name = 'Sigmar Stefansson'
-                        email = 'sigmar@genuitysci.com'
-                    }
-                    developer {
-                        id = 'vidar'
-                        name = 'Vidar Hrafnkelsson'
-                        email = 'vidar@genuitysci.com'
-                    }
-                }
-                scm {
-                    connection = 'scm:git:git://github.com/gorpipe/gor.git'
-                    developerConnection = 'scm:git:ssh://github.com/gorpipe/gor.git'
-                    url = 'http://docs.gorpipe.org/'
+            maven {
+                name = "MavenCentral"
+                url = uri("https://oss.sonatype.org/service/local/staging/deploy/maven2")
+                credentials {
+                    username = "sigmarkarl"
+                    password = "drSmorc.311-SKC"
                 }
             }
         }
