@@ -1,6 +1,5 @@
 package gorsat.process;
 
-import gorsat.Commands.CommandParseUtilities;
 import gorsat.DynIterator;
 import org.apache.parquet.schema.PrimitiveType;
 import org.apache.spark.api.java.JavaRDD;
@@ -21,7 +20,6 @@ import org.gorpipe.gor.driver.meta.SourceReference;
 import org.gorpipe.gor.driver.providers.stream.sources.StreamSource;
 import org.gorpipe.gor.model.ParquetLine;
 import org.gorpipe.gor.model.Row;
-import org.gorpipe.gor.session.ProjectContext;
 import org.gorpipe.spark.GorSparkSession;
 import org.gorpipe.spark.RowDataType;
 import org.gorpipe.spark.RowGorRDD;
@@ -125,13 +123,14 @@ public class SparkRowUtilities {
         return gorSparkSession.getSparkSession(fileroot != null ? fileroot.toString() : null, null, profile);
     }
 
-    public static Dataset<? extends org.apache.spark.sql.Row> registerFile(String[] fns, String name, String profile, GorSparkSession gorSparkSession, String standalone, Path fileroot, boolean usestreaming, String filter, String filterFile, String filterColumn, String splitFile, final boolean nor, final String chr, final int pos, final int end, final String jobid, String cacheFile, boolean cpp, boolean tag) throws IOException, DataFormatException {
+    public static Dataset<? extends org.apache.spark.sql.Row> registerFile(String[] fns, String name, String profile, GorSparkSession gorSparkSession, String standalone, Path fileroot, Path cacheDir, boolean usestreaming, String filter, String filterFile, String filterColumn, String splitFile, final boolean nor, final String chr, final int pos, final int end, final String jobid, String cacheFile, boolean cpp, boolean tag) throws IOException, DataFormatException {
         String fn = fns[0];
-        boolean nestedQuery = fn.startsWith("<(");
+        boolean curlyQuery = fn.startsWith("{");
+        boolean nestedQuery = fn.startsWith("<(") || curlyQuery;
         Path filePath = null;
         String fileName;
         if (nestedQuery) {
-            fileName = fn.substring(2, fn.length() - 1);
+            fileName = fn.substring(curlyQuery ? 1 : 2, fn.length() - 1);
         } else {
             fileName = translatePath(fn, fileroot, standalone);
             filePath = Paths.get(fileName);
@@ -274,6 +273,7 @@ public class SparkRowUtilities {
                     dfr.option("query", fileName);
                     if (tag) dfr.option("tag", true);
                     dfr.option("projectroot", fileroot.toString());
+                    dfr.option("cachedir", cacheDir.toString());
                     gor = dfr.load();
                     dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
                 } else if (fileName.toLowerCase().endsWith(".parquet")) {

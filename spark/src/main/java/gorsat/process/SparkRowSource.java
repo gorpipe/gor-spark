@@ -10,7 +10,6 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import java.util.zip.DataFormatException;
-import java.util.zip.GZIPInputStream;
 
 import gorsat.commands.PysparkAnalysis;
 import io.projectglow.transformers.blockvariantsandsamples.VariantSampleBlockMaker;
@@ -27,29 +26,20 @@ import gorsat.Commands.Analysis;
 import gorsat.Commands.CommandParseUtilities;
 import gorsat.DynIterator;
 import gorsat.RowBuffer;
-import gorsat.parser.ParseArith;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SamInputResource;
 import htsjdk.samtools.SamReader;
 import htsjdk.samtools.SamReaderFactory;
 import htsjdk.samtools.ValidationStringency;
 import io.projectglow.Glow;
-import org.apache.parquet.schema.PrimitiveType;
-import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.*;
 import org.apache.spark.rdd.RDD;
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.types.*;
-import org.gorpipe.gor.driver.GorDriverFactory;
-import org.gorpipe.gor.driver.meta.SourceReference;
-import org.gorpipe.gor.driver.providers.stream.sources.StreamSource;
-import org.gorpipe.gor.binsearch.CompressionType;
-import org.gorpipe.gor.binsearch.Unzipper;
 import org.gorpipe.spark.udfs.CharToDoubleArray;
-import org.gorpipe.util.collection.ByteArray;
-import scala.Function1;
 import scala.collection.JavaConverters;
+import scala.collection.Seq;
 
 import static org.apache.spark.sql.types.DataTypes.*;
 
@@ -93,10 +83,13 @@ public class SparkRowSource extends ProcessSource {
             this.end = end;
 
             String root = gpSession.getProjectContext().getRoot();
+            String cachedir = gpSession.getProjectContext().getCacheDir();
             if (root != null && root.length() > 0) {
                 int i = root.indexOf(' ');
                 if (i == -1) i = root.length();
                 fileroot = Paths.get(root.substring(0, i));
+                cachepath = Paths.get(cachedir);
+                if(!cachepath.isAbsolute()) cachepath = fileroot.resolve(cachepath);
             }
 
             String[] cmdsplit = CommandParseUtilities.quoteCurlyBracketsSafeSplit(sql, ' ');
@@ -143,12 +136,12 @@ public class SparkRowSource extends ProcessSource {
                 fileNames = Arrays.stream(cmdsplit).flatMap(gorfileflat).filter(gorpred).toArray(String[]::new);
                 for (String fn : fileNames) {
                     if (gorSparkSession.getSystemContext().getServer()) ProjectContext.validateServerFileName(fn, true);
-                    SparkRowUtilities.registerFile(new String[]{fn}, profile,null, gpSession, standalone, fileroot, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp, tag);
+                    SparkRowUtilities.registerFile(new String[]{fn}, profile,null, gpSession, standalone, fileroot, cachepath, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp, tag);
                 }
                 dataset = SparkRowUtilities.getSparkSession(gpSession,fileroot,profile).sql(sql);
             } else {
                 fileNames = headercommands.toArray(new String[0]);
-                dataset = SparkRowUtilities.registerFile(fileNames, null, profile, gpSession, standalone, fileroot, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp, tag);
+                dataset = SparkRowUtilities.registerFile(fileNames, null, profile, gpSession, standalone, fileroot, cachepath, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp, tag);
             }
 
             if (chr != null) {
@@ -173,6 +166,7 @@ public class SparkRowSource extends ProcessSource {
     ProcessBuilder pb;
     Process p;
     Path fileroot = null;
+    Path cachepath = null;
     String parquetPath = null;
     String pushdownGorPipe = null;
     GorSparkSession gorSparkSession;
@@ -690,7 +684,12 @@ public class SparkRowSource extends ProcessSource {
     public boolean pushdownCalc(String formula, String colName) {
         if (formula.startsWith("udf")) {
             String newformula = formula.substring(4, formula.length() - 1).trim();
-            dataset = dataset.withColumn(colName,functions.callUDF(newformula));
+            int i = newformula.indexOf('(');
+            String udfname = newformula.substring(0,i);
+            String[] args = newformula.substring(i+1,newformula.length()-1).split(",");
+            List<Column> colist = Arrays.stream(args).map(functions::col).collect(Collectors.toList());
+            Seq<Column> colseq = JavaConverters.asScalaIterator(colist.iterator()).toSeq();
+            dataset = dataset.withColumn(colName,functions.callUDF(udfname,colseq));
         } else if (formula.toLowerCase().startsWith("chartodoublearray")) {
             if (pushdownGorPipe != null) gor();
             CharToDoubleArray cda = new CharToDoubleArray();
@@ -820,6 +819,9 @@ public class SparkRowSource extends ProcessSource {
             } catch(Exception e) {
                 dataset.repartition();
             }
+        } else if (gor.toLowerCase().startsWith("selectexpr ")) {
+            String[] selects = gor.substring("selectexpr".length()).trim().split(",");
+            dataset = dataset.selectExpr(selects);
         } else if (gor.startsWith("pyspark")) {
             if (pushdownGorPipe != null) gor();
             String cmd = gor.substring("pyspark".length());

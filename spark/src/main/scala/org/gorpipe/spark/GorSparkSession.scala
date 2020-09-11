@@ -9,6 +9,7 @@ import gorsat.Script.ScriptEngineFactory
 import gorsat.Utilities.StringUtilities
 import gorsat.process._
 import gorsat.BatchedPipeStepIteratorAdaptor
+import gorsat.Commands.CommandParseUtilities
 import gorsat.commands.Pyspark
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.types.StructType
@@ -18,6 +19,8 @@ import org.gorpipe.gor.session.GorSession
 class GorSparkSession(requestId: String) extends GorSession(requestId) with AutoCloseable {
   var sparkSession: SparkSession = _
   val createMap = new java.util.HashMap[String,String]
+  val defMap = new java.util.HashMap[String,String]
+  var creates = ""
   val datasetMap = new ConcurrentHashMap[String, RowDataType]
   var redisUri: String = _
 
@@ -26,7 +29,7 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
       GorInputSources.addInfo(new Spark.Spark)
       GorInputSources.addInfo(new Spark.Select)
 
-      GorPipeCommands.addInfo(new Pyspark())
+      //GorPipeCommands.addInfo(new Pyspark())
   }
 
   def getSparkSession: SparkSession = {
@@ -103,13 +106,23 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
     schema
   }
 
+  def getCreateQueries(increates: String): String = {
+    GorJavaUtilities.createMapString(createMap, defMap, creates + increates)
+  }
+
   def dataframe(qry: String, sc: StructType = null): Dataset[_ <: Row] = spark(qry, sc)
 
   def spark(qry: String, sc: StructType = null): Dataset[_ <: Row] = {
     val pi = new PipeInstance(this.getGorContext)
 
-    val creates = GorJavaUtilities.createMapString(createMap)
-    val fullQuery = if( creates.length > 0 ) creates+"; "+qry else qry
+    val qryspl = CommandParseUtilities.quoteSafeSplit(qry,';')
+    val lastqry : String = qryspl.last.trim
+    val increates = qryspl.slice(0,qryspl.length-1).mkString("",";",";")
+    val query = if(!lastqry.toLowerCase.startsWith("spark ") && !lastqry.toLowerCase.startsWith("select ")) {
+      "spark {"+lastqry+"}"
+    } else lastqry
+    val createQueries = getCreateQueries(increates)
+    val fullQuery = if (createQueries.length > 0) createQueries + query else query
     val args = Array[String](fullQuery)
     val options = new PipeOptions
     options.parseOptions(args)
@@ -121,11 +134,11 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
         ds
       case _ =>
         val isNor = qry.toLowerCase().startsWith("nor")
-        val schema = if(sc == null) infer(pi.getIterator.asInstanceOf[BatchedPipeStepIteratorAdaptor], pi.getHeader(), isNor, parallel = false) else sc
+        val schema = if (sc == null) infer(pi.getIterator.asInstanceOf[BatchedPipeStepIteratorAdaptor], pi.getHeader(), isNor, parallel = false) else sc
 
         pi.subProcessArguments(options)
         val bpia = pi.getIterator.asInstanceOf[BatchedPipeStepIteratorAdaptor]
-        var gors : java.util.stream.Stream[org.gorpipe.gor.model.Row] = bpia.getStream
+        var gors: java.util.stream.Stream[org.gorpipe.gor.model.Row] = bpia.getStream
         try {
           if (isNor) {
             gors = bpia.getStream()
@@ -140,7 +153,7 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
           val ds = sparkSession.createDataset(list)(RowEncoder.apply(schema))
           ds
         } finally {
-          if( gors != null ) gors.close()
+          if (gors != null) gors.close()
         }
     }
   }
@@ -150,6 +163,22 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
     val scriptExecutionEngine = ScriptEngineFactory.create(this.getGorContext)
     val signature = scriptExecutionEngine.getFileSignatureAndUpdateSignatureMap(cmd, scriptExecutionEngine.getUsedFiles(cmd))
     StringUtilities.createMD5(cmd+signature)
+  }
+
+  def setDef(name: String, defstr: String) {
+    defMap.put(name,defstr)
+  }
+
+  def setCreateAndDefs(cmd: String) {
+    creates = cmd
+  }
+
+  def setCreate(name: String, cmd: String): String = create(name, cmd)
+
+  def removeCreate(name: String): String = remove(name)
+
+  def removeDef(name: String): String = {
+    defMap.remove(name)
   }
 
   def create(name: String, cmd: String): String = {
@@ -173,8 +202,8 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
   def schema(qry: String,nor: Boolean=false,parallel: Boolean=false): StructType = {
     //gorContext.useSparkQueryHandler(true)
     val pi = new PipeInstance(this.getGorContext)
-    val creates = GorJavaUtilities.createMapString(createMap)
-    var fullQuery = if( creates.length > 0 ) creates+";"+qry else qry
+    val createQueries = GorJavaUtilities.createMapString(createMap, defMap, creates)
+    var fullQuery = if( createQueries.length > 0 ) createQueries+qry else qry
 
     val querySplit = fullQuery.split(";")
     val lastQuery = querySplit(querySplit.length-1).trim
@@ -213,8 +242,8 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
 
   def stream(qry: String, sc: StructType, nor: Boolean, parallel: Boolean): java.util.stream.Stream[org.gorpipe.gor.model.Row] = {
     val pi = new PipeInstance(this.getGorContext)
-    val creates = GorJavaUtilities.createMapString(createMap)
-    var fullQuery = if( creates.length > 0 ) creates+";"+qry else qry
+    val createQueries = GorJavaUtilities.createMapString(createMap, defMap, creates)
+    var fullQuery = if( createQueries.length > 0 ) createQueries+qry else qry
 
     val querySplit = fullQuery.split(";")
     val lastQuery = querySplit(querySplit.length-1).trim
