@@ -27,10 +27,8 @@ public class PysparkAnalysis extends Analysis {
         env.put("PYSPARK_PIN_THREAD","true");
 
         Process p = pb.start();
-        String error = new String(p.getErrorStream().readAllBytes());
-        int exitCode = p.waitFor();
-        System.err.println("exitCode " + exitCode + " " + error);
-        //return (Dataset<Row>)ds.filter("gene_symbol = 'BRCA2'");
+        p.waitFor();
+
         return spark.sql("select * from input");
     }
 }

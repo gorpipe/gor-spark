@@ -12,6 +12,7 @@ import java.util.stream.StreamSupport;
 import java.util.zip.DataFormatException;
 import java.util.zip.GZIPInputStream;
 
+import gorsat.commands.PysparkAnalysis;
 import io.projectglow.transformers.blockvariantsandsamples.VariantSampleBlockMaker;
 import org.apache.spark.sql.expressions.UserDefinedFunction;
 
@@ -1504,6 +1505,14 @@ public class SparkRowSource extends ProcessSource {
             if (pushdownGorPipe != null) gor();
             String[] split = gor.substring("rename".length()).trim().split(" ");
             dataset = dataset.withColumnRenamed(split[0], split[1]);
+        } else if (gor.startsWith("pyspark")) {
+            if (pushdownGorPipe != null) gor();
+            String cmd = gor.substring("pyspark".length());
+            try {
+                dataset = PysparkAnalysis.pyspark(dataset, cmd);
+            } catch (IOException | InterruptedException e) {
+                e.printStackTrace();
+            }
         } else {
             if (pushdownGorPipe == null) {
                 Dataset<org.apache.spark.sql.Row> ret = analyse((Dataset<org.apache.spark.sql.Row>) dataset, gor);
