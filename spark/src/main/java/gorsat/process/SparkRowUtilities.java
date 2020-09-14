@@ -44,6 +44,12 @@ public class SparkRowUtilities {
     static final String csvDataSource = "csv";
     static final String gordatasourceClassname = "gorsat.spark.GorDataSource";
 
+    public static String createMapString(Map<String,String> createMap, Map<String,String> defMap, String creates) {
+        String mcreates = createMap.size() > 0 ? createMap.entrySet().stream().map(e -> "create "+e.getKey()+" = "+e.getValue()).collect(Collectors.joining("; ","",";")) : "";
+        String mdefs = defMap.size() > 0 ? defMap.entrySet().stream().map(e -> "def "+e.getKey()+" = "+e.getValue()).collect(Collectors.joining("; ","",";")) : "";
+        return mdefs + mcreates + creates;
+    }
+    
     public static String generateTempViewName(String fileName, boolean usegorpipe, String filter, String chr, int pos, int end) {
         String fixName = fileName;
         String prekey = usegorpipe + fixName;

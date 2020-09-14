@@ -107,7 +107,7 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
   }
 
   def getCreateQueries(increates: String): String = {
-    GorJavaUtilities.createMapString(createMap, defMap, creates + increates)
+    SparkRowUtilities.createMapString(createMap, defMap, creates + increates)
   }
 
   def dataframe(qry: String, sc: StructType = null): Dataset[_ <: Row] = spark(qry, sc)
@@ -202,7 +202,7 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
   def schema(qry: String,nor: Boolean=false,parallel: Boolean=false): StructType = {
     //gorContext.useSparkQueryHandler(true)
     val pi = new PipeInstance(this.getGorContext)
-    val createQueries = GorJavaUtilities.createMapString(createMap, defMap, creates)
+    val createQueries = SparkRowUtilities.createMapString(createMap, defMap, creates)
     var fullQuery = if( createQueries.length > 0 ) createQueries+qry else qry
 
     val querySplit = fullQuery.split(";")
@@ -242,7 +242,7 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
 
   def stream(qry: String, sc: StructType, nor: Boolean, parallel: Boolean): java.util.stream.Stream[org.gorpipe.gor.model.Row] = {
     val pi = new PipeInstance(this.getGorContext)
-    val createQueries = GorJavaUtilities.createMapString(createMap, defMap, creates)
+    val createQueries = SparkRowUtilities.createMapString(createMap, defMap, creates)
     var fullQuery = if( createQueries.length > 0 ) createQueries+qry else qry
 
     val querySplit = fullQuery.split(";")
