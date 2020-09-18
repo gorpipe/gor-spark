@@ -1,6 +1,7 @@
 package org.gorpipe.spark;
 
 import org.apache.spark.SparkConf;
+import org.apache.spark.api.python.Py4JServer;
 import org.apache.spark.ml.linalg.SQLDataTypes;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.DataTypes;
@@ -26,8 +27,13 @@ public class GorSparkUtilities {
     private static final Logger log = LoggerFactory.getLogger(GorSparkUtilities.class);
     private static SparkSession spark;
     private static Map<String,SparkSession> sessionProfiles = new HashMap<>();
+    private static Py4JServer py4jServer;
 
     private GorSparkUtilities() {}
+
+    public static Py4JServer getPyServer() {
+        return py4jServer;
+    }
 
     public static SparkSession  getSparkSession(String gorroot, String hostMount) {
         return getSparkSession(gorroot, hostMount, null);
@@ -150,6 +156,16 @@ public class GorSparkUtilities {
             }*/
 
         SparkSession spark = ssb.config(sparkConf).getOrCreate();
+
+        String pyspark = System.getenv("PYSPARK_PIN_THREAD");
+        if(pyspark!=null&&pyspark.length()>0) {
+            //if(py4jServer!=null) py4jServer.
+            py4jServer = new Py4JServer(spark.sparkContext().conf());
+            System.err.println("Py4jServer");
+            System.err.println(py4jServer.secret());
+            System.err.println(py4jServer.getListeningPort());
+            py4jServer.start();
+        }
 
         spark.udf().register("chartodoublearray", new CharToDoubleArray(), DataTypes.createArrayType(DataTypes.DoubleType));
         spark.udf().register("todoublearray", new CommaToDoubleArray(), DataTypes.createArrayType(DataTypes.DoubleType));

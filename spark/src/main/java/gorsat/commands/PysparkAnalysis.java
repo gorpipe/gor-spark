@@ -11,14 +11,9 @@ import java.io.IOException;
 import java.util.Map;
 
 public class PysparkAnalysis extends Analysis {
-    static Py4JServer py4JServer = null;
-
     public static Dataset<Row> pyspark(Dataset<? extends Row> ds, String cmd) throws IOException, InterruptedException {
         SparkSession spark = GorSparkUtilities.getSparkSession(null,null);
-        if(py4JServer == null) {
-            py4JServer = new Py4JServer(spark.sparkContext().conf());
-            py4JServer.start();
-        }
+        Py4JServer py4JServer = GorSparkUtilities.getPyServer();
 
         ProcessBuilder pb = new ProcessBuilder("python3", cmd.trim());
         Map<String,String> env = pb.environment();

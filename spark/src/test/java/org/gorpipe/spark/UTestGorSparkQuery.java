@@ -170,7 +170,8 @@ public class UTestGorSparkQuery {
                 "line = sys.stdin.readline()\n" +
                 "while line:\n" +
                 "    sys.stdout.write( line )\n" +
-                "    line = sys.stdin.readline()\n";
+                "    line = sys.stdin.readline()\n" +
+                "sys.stdout.flush()\n";
         Path pyscript = Paths.get("pass.py");
         Files.writeString(pyscript, pycode);
         testSparkQuery("spark ../tests/data/gor/genes.gorz | top 100 | cmd {python pass.py} | group chrom -count", "chr1\t0\t250000000\t100");
