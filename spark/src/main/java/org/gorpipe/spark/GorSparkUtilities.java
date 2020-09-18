@@ -1,8 +1,6 @@
 package org.gorpipe.spark;
 
-import io.projectglow.GlowBase;
 import org.apache.spark.SparkConf;
-import org.apache.spark.SparkContext;
 import org.apache.spark.api.python.Py4JServer;
 import org.apache.spark.ml.linalg.SQLDataTypes;
 import org.apache.spark.sql.SparkSession;
@@ -113,7 +111,7 @@ public class GorSparkUtilities {
                     .config("spark.kubernetes.container.image.pullPolicy", "Always")
                     .config("spark.kubernetes.executor.deleteOnTermination", "false")
                     .config("spark.kubernetes.authenticate.driver.serviceAccountName", "spark-autoscaler");
-                    
+
             if(profile!=null) {
                 ssb = ssb
                     .config("spark.kubernetes.executor.volumes.persistentVolumeClaim.mntcsa.mount.path",gorroot)
@@ -158,7 +156,7 @@ public class GorSparkUtilities {
             }*/
 
         SparkSession spark = ssb.config(sparkConf).getOrCreate();
-        
+
         String pyspark = System.getenv("PYSPARK_PIN_THREAD");
         if(pyspark!=null&&pyspark.length()>0) {
             //if(py4jServer!=null) py4jServer.
@@ -174,8 +172,8 @@ public class GorSparkUtilities {
         spark.udf().register("todoublematrix", new CommaToDoubleMatrix(), SQLDataTypes.MatrixType());
         spark.udf().register("tointarray", new CommaToIntArray(), DataTypes.createArrayType(DataTypes.IntegerType));
 
-        GlowBase gb = new GlowBase();
-        gb.register(spark);
+        //GlowBase gb = new GlowBase();
+        //gb.register(spark);
 
         return spark;
     }

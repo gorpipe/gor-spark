@@ -74,8 +74,7 @@ public class UTestGorSparkQuery {
     @Test
     public void testSparkSQLWithNestedNor() {
         testSparkQuery("spark select gene_symbol from <(nor ../tests/data/gor/genes.gor | grep 'BRCA' | select gene_symbol)",
-                "BRCA2\n" +
-                        "BRCA1");
+                "BRCA2\nBRCA1");
     }
 
     @Test

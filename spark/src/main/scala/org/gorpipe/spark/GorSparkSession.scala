@@ -10,7 +10,6 @@ import gorsat.Utilities.StringUtilities
 import gorsat.process._
 import gorsat.BatchedPipeStepIteratorAdaptor
 import gorsat.Commands.CommandParseUtilities
-import gorsat.commands.Pyspark
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{Dataset, Encoder, Row, SparkSession}
