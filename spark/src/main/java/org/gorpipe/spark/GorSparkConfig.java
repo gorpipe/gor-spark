@@ -117,4 +117,10 @@ public interface GorSparkConfig extends Config {
     @Key(SPARK_MOUNT_PATH)
     @DefaultValue("/mnt/csa")
     String getSparkMountPath();
+
+    String SPARK_IMAGE = "GOR_SPARK_IMAGE";
+    @Documentation("")
+    @Key(SPARK_IMAGE)
+    @DefaultValue("nextcode/spark:3.0.1")
+    String getSparkImage();
 }

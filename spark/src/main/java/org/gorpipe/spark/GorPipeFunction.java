@@ -7,6 +7,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.Serializable;
 import java.util.Iterator;
+
 import org.apache.spark.api.java.function.MapPartitionsFunction;
 import org.gorpipe.gor.model.Row;
 import org.gorpipe.model.gor.RowObj;

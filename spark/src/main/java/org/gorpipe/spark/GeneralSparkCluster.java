@@ -154,7 +154,7 @@ public final class GeneralSparkCluster extends GorClusterBase {
 
     @Override
     public void subscribeGorMonitor(String requestId, GorMonitor gorMonitor) {
-
+        
     }
 
     @Override

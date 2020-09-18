@@ -34,8 +34,8 @@ public class JedisURIHelper {
      * Create redis Uri.
      *
      * @param host host
-     * @param port port (if port >= 0 then the default port is used).
-     * @param db   db (if db >= -1 then the default db is used).
+     * @param port port (if port &ge; 0 then the default port is used).
+     * @param db   db (if db &ge; -1 then the default db is used).
      * @return uri representing the input parameters.
      */
     public static URI create(String host, int port, int db) {

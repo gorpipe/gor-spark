@@ -55,14 +55,15 @@ object Spark {
       val parts = stringValueOfOptionWithDefault(args, "-part", null)
       val tag = hasOption(args, "-tag")
       val native = hasOption(args, "-c")
+      val profile = stringValueOfOptionWithDefault(args,"-profile",null)
 
       val myCommand = GorJavaUtilities.seekReplacement(command, range.chromosome, range.start, range.stop)
-      new SparkRowSource(myCommand, null, null, isNorContext, gpSession.asInstanceOf[GorSparkSession], filter, filterFile, filterColumn, splitFile, range.chromosome, range.start, range.stop, usegorpipe, jobId, native, parts, buckets, tag)
+      new SparkRowSource(myCommand, profile, null, null, isNorContext, gpSession.asInstanceOf[GorSparkSession], filter, filterFile, filterColumn, splitFile, range.chromosome, range.start, range.stop, usegorpipe, jobId, native, parts, buckets, tag)
     }
     InputSourceParsingResult(inputSource, inputSource.getHeader, isNorContext)
   }
 
-  class Select() extends InputSourceInfo("SELECT", CommandArguments("-n -c -tag", "-p -s -g -f -j -ff -split -buck -part", 1, -1, ignoreIllegalArguments = true)) {
+  class Select() extends InputSourceInfo("SELECT", CommandArguments("-n -c -tag", "-p -s -g -f -j -ff -split -buck -part -profile", 1, -1, ignoreIllegalArguments = true)) {
 
     override def processArguments(context: GorContext, argString: String, iargs: Array[String],
                                   args: Array[String]): InputSourceParsingResult = {
@@ -72,7 +73,7 @@ object Spark {
     }
   }
 
-  class Spark() extends InputSourceInfo("SPARK", CommandArguments("-n -c -tag", "-p -s -g -f -j -ff -split -buck -part", 1, -1, ignoreIllegalArguments = true)) {
+  class Spark() extends InputSourceInfo("SPARK", CommandArguments("-n -c -tag", "-p -s -g -f -j -ff -split -buck -part -profile", 1, -1, ignoreIllegalArguments = true)) {
 
     override def processArguments(context: GorContext, argString: String, iargs: Array[String],
                                   args: Array[String]): InputSourceParsingResult = {

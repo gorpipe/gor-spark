@@ -25,7 +25,7 @@ public class GorpWriter implements MapPartitionsFunction<Row, Row> {
             @Override
             public boolean hasNext() {
                 boolean ret = input.hasNext();
-                if(!ret) {
+                if(!ret&&first!=null) {
                     try {
                         Path gorp = Paths.get(path);
                         Files.writeString(gorp,first.getString(0)+"\t"+first.getInt(1)+"\t"+last.getString(0)+"\t"+last.getInt(1)+"\n");

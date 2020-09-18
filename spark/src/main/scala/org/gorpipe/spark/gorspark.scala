@@ -2,11 +2,12 @@ package org.gorpipe.spark
 
 import java.nio.file.{Files, Paths}
 
-import gorsat.Commands.Analysis
+import gorsat.Commands.{Analysis, CommandParseUtilities}
 import org.gorpipe.model.gor.RowObj
 import gorsat.DynIterator.DynamicRowSource
 import gorsat.Outputs.OutFile
 import gorsat.QueryHandlers.GeneralQueryHandler
+import gorsat.Script.{ScriptEngineFactory, ScriptExecutionEngine}
 import gorsat.Utilities.AnalysisUtilities
 import gorsat.process._
 import gorsat.{BatchedPipeStepIteratorAdaptor, DynIterator}
@@ -70,7 +71,6 @@ class GorDatasetFunctions[T: ClassTag](ds: Dataset[T])(implicit tag: ClassTag[T]
 
   def calc(colname: String, cmd: String): Dataset[org.gorpipe.gor.model.Row] = {
     val gc = new GorSparkRowMapFunction(colname, cmd, ds.schema)
-
     val cn = tag.runtimeClass.getName
     val ds2 = if (cn.equals("org.apache.spark.sql.Row")) {
       ds.asInstanceOf[Dataset[Row]].map(row => new GorSparkRow(row))(ds.asInstanceOf[Dataset[GorSparkRow]].encoder).asInstanceOf[Dataset[org.gorpipe.gor.model.Row]]
@@ -84,7 +84,7 @@ class GorDatasetFunctions[T: ClassTag](ds: Dataset[T])(implicit tag: ClassTag[T]
     ds2.map(gc, enc)
   }
 
-  def gor(cmd: String, inferschema: Boolean = false): Dataset[org.gorpipe.gor.model.Row] = {
+  def gor(ocmd: String, inferschema: Boolean = true)(implicit sgs: GorSparkSession): Dataset[org.gorpipe.gor.model.Row] = {
     val header = ds.schema.fieldNames.mkString("\t")
     val cn = tag.runtimeClass.getName
     val nor = SparkRowSource.checkNor(ds.schema.fields)
@@ -97,11 +97,19 @@ class GorDatasetFunctions[T: ClassTag](ds: Dataset[T])(implicit tag: ClassTag[T]
       ds.asInstanceOf[Dataset[org.gorpipe.gor.model.Row]]
     }
 
+    val allquery = sgs.getCreateQueries("") + ocmd
+    val gorCommands = CommandParseUtilities.quoteSafeSplitAndTrim(allquery, ';')
+
+    val see: ScriptExecutionEngine = ScriptEngineFactory.create(sgs.getGorContext)
+    val fixedQuery = see.execute(gorCommands, false)
+    val fixedCommands = CommandParseUtilities.quoteSafeSplitAndTrim(fixedQuery, ';')
+    val cmd = fixedCommands.last
+
     if (inferschema) {
-      val gs = new GorSpark(header, nor, SparkGOR.gorrowEncoder.schema, cmd, "/gorproject")
+      val gs = new GorSpark(header, nor, SparkGOR.gorrowEncoder.schema, cmd, sgs.getProjectContext.getRoot)
       val gr = new GorSparkRowInferFunction()
 
-      val gsm = new GorSparkMaterialize(header, nor, SparkGOR.gorrowEncoder.schema, cmd, "/gorproject", 100)
+      val gsm = new GorSparkMaterialize(header, nor, SparkGOR.gorrowEncoder.schema, cmd, sgs.getProjectContext.getRoot, 100)
       val mu = ds.asInstanceOf[Dataset[Row]].map(row => new GorSparkRow(row).asInstanceOf[org.gorpipe.gor.model.Row])(SparkGOR.gorrowEncoder)
 
       val row = mu.mapPartitions(gsm, SparkGOR.gorrowEncoder).limit(100).reduce(gr)
@@ -110,7 +118,7 @@ class GorDatasetFunctions[T: ClassTag](ds: Dataset[T])(implicit tag: ClassTag[T]
       gs.setSchema(schema)
       mu.mapPartitions(gs, encoder.asInstanceOf[Encoder[org.gorpipe.gor.model.Row]])
     } else {
-      val gs = new GorSpark(header, nor, SparkGOR.gorrowEncoder.schema, cmd, "/gorproject")
+      val gs = new GorSpark(header, nor, SparkGOR.gorrowEncoder.schema, cmd, sgs.getProjectContext.getRoot)
       dsr.mapPartitions(gs, SparkGOR.gorrowEncoder)
     }
   }
@@ -143,7 +151,7 @@ class GorDatasetFunctions[T: ClassTag](ds: Dataset[T])(implicit tag: ClassTag[T]
 
   def inferSchema(header: String): StructType = {
     val row = infer()
-    SparkRowSource.gor2Schema(header, row)
+    SparkRowUtilities.gor2Schema(header, row)
   }
 
   def inferEncoder(header: String): Encoder[org.gorpipe.gor.model.Row] = {
@@ -604,5 +612,9 @@ object SparkGOR {
 
   def createSession(sparkSession: SparkSession, operator: Int): GorSparkSession = {
     createSession(sparkSession, "/gorproject", "result_cache", operator)
+  }
+
+  def createSession(sparkSession: SparkSession, gorconfig: String): GorSparkSession = {
+    createSession(sparkSession, "/gorproject", "result_cache", 0)
   }
 }
