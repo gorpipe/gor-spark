@@ -81,9 +81,31 @@ public class UTestGorSparkQuery {
     @Test
     public void testSparkSQLWithNestedNorFile() throws IOException {
         String twocolNor = "#stuff\tgene_symbol\na\tBRCA2\nb\tBRCA1\n";
-        Path tmpfile = Files.createTempFile("test", "tsv");
+        Path tmpfile = Files.createTempFile("test", ".tsv");
         Files.write(tmpfile, twocolNor.getBytes());
         testSparkQuery("spark select gene_symbol from <(nor " + tmpfile.toString() + ")",
+                "BRCA2\n" +
+                        "BRCA1");
+        Files.delete(tmpfile);
+    }
+
+    @Test
+    public void testSparkSQLWithNestedNorParquetFile() throws IOException {
+        String twocolNor = "#stuff\tgene_symbol\na\tBRCA2\nb\tBRCA1\n";
+        Path tmpfile = Files.createTempFile("test", ".tsv");
+        Files.write(tmpfile, twocolNor.getBytes());
+        testSparkQuery("create xxx = select * from "+tmpfile.toString()+"; select gene_symbol from <(nor [xxx])",
+                "BRCA2\n" +
+                        "BRCA1");
+        Files.delete(tmpfile);
+    }
+
+    @Test
+    public void testSparkSQLWithNestedNorCacheFile() throws IOException {
+        String twocolNor = "#stuff\tgene_symbol\na\tBRCA2\nb\tBRCA1\n";
+        Path tmpfile = Files.createTempFile("test", ".tsv");
+        Files.write(tmpfile, twocolNor.getBytes());
+        testSparkQuery("create xxx = nor "+tmpfile.toString()+"; select gene_symbol from <(nor [xxx])",
                 "BRCA2\n" +
                         "BRCA1");
         Files.delete(tmpfile);
@@ -160,6 +182,11 @@ public class UTestGorSparkQuery {
     @Test
     public void testGorzSparkQueryWithGorpipe() {
         testSparkQuery("spark ../tests/data/gor/genes.gorz | top 5 | group chrom -count", "chr1\t0\t250000000\t5");
+    }
+
+    @Test
+    public void testNorQuery() {
+        testSparkQuery("create xxx = select * from /Users/sigmar/part-00000-9dcd53a5-865c-4be2-88ae-eb333b8a0e10-c000.snappy.parquet limit 10; create mmm = nor [xxx]; create uuu = select * from [mmm]; nor [uuu]", "chr1\t0\t250000000\t5");
     }
 
     @Test

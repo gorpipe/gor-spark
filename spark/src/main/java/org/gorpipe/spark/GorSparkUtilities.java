@@ -83,7 +83,7 @@ public class GorSparkUtilities {
                 .config("spark.dynamicAllocation.executorIdleTimeout", config.getSparkExecutorTimeout());
 
         if (master.startsWith("k8s://")) {
-            String image = profile == null ? "nextcode/spark:3.0.0" : profile;
+            String image = profile == null ? config.getSparkImage() : profile;
             //String path = profile == null ? config.getSparkMountPath() : "";
             ssb = ssb
                     .config("spark.kubernetes.container.image", image)

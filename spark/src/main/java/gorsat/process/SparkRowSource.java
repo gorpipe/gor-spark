@@ -88,7 +88,7 @@ public class SparkRowSource extends ProcessSource {
                 int i = root.indexOf(' ');
                 if (i == -1) i = root.length();
                 fileroot = Paths.get(root.substring(0, i));
-                cachepath = Paths.get(cachedir);
+                cachepath = Paths.get(cachedir != null && cachedir.length() > 0 ? cachedir : "result_cache");
                 if(!cachepath.isAbsolute()) cachepath = fileroot.resolve(cachepath);
             }
 
