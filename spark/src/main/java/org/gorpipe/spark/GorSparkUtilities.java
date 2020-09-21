@@ -35,7 +35,15 @@ public class GorSparkUtilities {
         return py4jServer;
     }
 
-    public static SparkSession  getSparkSession(String gorroot, String hostMount) {
+    public static int getPyServerPort() {
+        return py4jServer != null ? py4jServer.getListeningPort() : 0;
+    }
+
+    public static String getPyServerSecret() {
+        return py4jServer != null ? py4jServer.secret() : "";
+    }
+
+    public static SparkSession getSparkSession(String gorroot, String hostMount) {
         return getSparkSession(gorroot, hostMount, null);
     }
 
