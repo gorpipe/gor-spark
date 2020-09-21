@@ -293,7 +293,12 @@ public class SparkRowUtilities {
                 } else if (fileName.toLowerCase().endsWith(".bgen")) {
                     //io.projectglow.vcf.VCFFileFormat f;
                     String bgenDataSource = "io.projectglow.bgen.BgenFileFormat"; //vcf
-                    gor = getSparkSession(gorSparkSession,fileroot,profile).read().format(bgenDataSource).load(fileName);
+                    gor = getSparkSession(gorSparkSession, fileroot, profile).read().format(bgenDataSource).load(fileName);
+                    dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
+                } else if (fileName.toLowerCase().endsWith(".gor") || fileName.toLowerCase().endsWith(".nor") || fileName.toLowerCase().endsWith(".tsv") || fileName.toLowerCase().endsWith(".csv")) {
+                    DataFrameReader dfr = getSparkSession(gorSparkSession,fileroot,profile).read().format("csv").option("header",true).option("inferSchema",true);
+                    if(!fileName.toLowerCase().endsWith(".csv")) dfr = dfr.option("delimiter","\t");
+                    gor = dfr.load(fileName);
                     dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
                 } else {
                     boolean isGorz = fileName.toLowerCase().endsWith(".gorz");

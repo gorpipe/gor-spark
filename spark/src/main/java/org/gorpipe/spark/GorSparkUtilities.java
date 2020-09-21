@@ -79,6 +79,7 @@ public class GorSparkUtilities {
                 .config("spark.executor.instances", config.sparkExecutorInstances())
                 .config("spark.submit.deployMode", config.sparkDeployMode())
                 .config("spark.kubernetes.namespace", config.getSparkKuberneteseNamespace())
+
                 //.config("spark.ui.proxyBase","/spark")
                 //.config("spark.ui.reverseProxy","true")
                 //.config("spark.ui.reverseProxyUrl","https://platform.wuxinextcodedev.com/")
@@ -93,6 +94,14 @@ public class GorSparkUtilities {
                 .config("spark.dynamicAllocation.maxExecutors", config.getSparkMaxExecutors())
                 .config("spark.dynamicAllocation.initialExecutors", config.getSparkInitialExecutors())
                 .config("spark.dynamicAllocation.executorIdleTimeout", config.getSparkExecutorTimeout());
+
+                String sparkRedisUrl = config.sparkRedisUrl();
+                if(sparkRedisUrl!=null&&sparkRedisUrl.length()>0) {
+                    String[] redisSplit = sparkRedisUrl.split(":");
+                    String redisHost = redisSplit[0];
+                    String redisPort = redisSplit[1];
+                    ssb = ssb.config("spark.redis.host", redisHost).config("spark.redis.port", redisPort);
+                }
 
         if (master.startsWith("k8s://")) {
             String image = profile == null ? config.getSparkImage() : profile;

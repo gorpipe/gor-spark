@@ -75,8 +75,8 @@ public interface GorSparkConfig extends Config {
     String SPARK_REDIS_URL = "gor.spark.redis.url";
     @Documentation("The fully qualified redis url to the redis that is servicing spark jobs")
     @Key(SPARK_REDIS_URL)
-    @DefaultValue("")
-    //@DefaultValue("localhost:6379/8")
+    //@DefaultValue("")
+    @DefaultValue("localhost:6379/8")
     //@DefaultValue("plat-redis.gorkube:6379/8")
         //@DefaultValue("docker.for.mac.localhost:6379/8")
         //@DefaultValue("host.docker.internal:6379/8")
