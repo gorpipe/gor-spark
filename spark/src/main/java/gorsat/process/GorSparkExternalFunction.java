@@ -1,7 +1,6 @@
 package gorsat.process;
 
 import org.apache.spark.api.java.function.MapPartitionsFunction;
-import org.gorpipe.gor.model.Line;
 import org.gorpipe.gor.model.Row;
 import org.gorpipe.gor.model.RowBase;
 import org.gorpipe.gor.session.GorSession;
