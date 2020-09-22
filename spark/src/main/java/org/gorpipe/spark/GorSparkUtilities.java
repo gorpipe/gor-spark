@@ -99,8 +99,15 @@ public class GorSparkUtilities {
                 if(sparkRedisUrl!=null&&sparkRedisUrl.length()>0) {
                     String[] redisSplit = sparkRedisUrl.split(":");
                     String redisHost = redisSplit[0];
-                    String redisPort = redisSplit[1];
-                    ssb = ssb.config("spark.redis.host", redisHost).config("spark.redis.port", redisPort);
+                    String redisPortDb = redisSplit[1];
+                    String[] splitPortDb = redisPortDb.split("/");
+                    String redisPort = splitPortDb[0];
+                    ssb = ssb.config("spark.redis.host", redisHost)
+                            .config("spark.redis.port", redisPort);
+                    if(splitPortDb.length>1) {
+                        String redisDb = splitPortDb[1];
+                        ssb = ssb.config("spark.redis.db", redisDb);
+                    }
                 }
 
         if (master.startsWith("k8s://")) {
