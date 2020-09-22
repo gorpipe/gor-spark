@@ -72,7 +72,7 @@ public interface GorSparkConfig extends Config {
     @DefaultValue("gorkube")
     String getSparkKuberneteseNamespace();
 
-    String SPARK_REDIS_URL = "gor.spark.redis.url";
+    String SPARK_REDIS_URL = "GOR_SPARK_REDIS_URL";
     @Documentation("The fully qualified redis url to the redis that is servicing spark jobs")
     @Key(SPARK_REDIS_URL)
     @DefaultValue("")
