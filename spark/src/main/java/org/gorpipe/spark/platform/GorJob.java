@@ -73,7 +73,7 @@ public interface GorJob {
     /**
      * Get client job id (unique across multiple clusters)
      *
-     * @return client job id.  Base64 encode job url <redis uri>/<jobid>
+     * @return client job id.  Base64 encode job url redis uri/jobid
      */
     String getClientJobId();
 

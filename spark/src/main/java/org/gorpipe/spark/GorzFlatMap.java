@@ -4,7 +4,6 @@ import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.sql.Row;
 import org.gorpipe.gor.binsearch.CompressionType;
 import org.gorpipe.gor.binsearch.Unzipper;
-import org.gorpipe.util.collection.ByteArray;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;

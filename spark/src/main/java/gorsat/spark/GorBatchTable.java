@@ -2,6 +2,8 @@ package gorsat.spark;
 
 import gorsat.Script.ScriptEngineFactory;
 import gorsat.Script.ScriptExecutionEngine;
+import gorsat.process.GorDataType;
+import gorsat.process.SparkRowUtilities;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.connector.write.LogicalWriteInfo;
 import org.apache.spark.sql.types.DataType;
@@ -57,7 +59,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
     String projectRoot;
     String cacheDir;
 
-    public GorBatchTable(String query, boolean tag, String path, String filter, String filterFile, String filterColumn, String splitFile, String seek, String redisUri, String jobId, String cacheFile, String useCpp) throws IOException, DataFormatException {
+    public GorBatchTable(String query, boolean tag, String path, String filter, String filterFile, String filterColumn, String splitFile, String seek, String redisUri, String jobId, String cacheFile, String useCpp) {
         init(query,tag,path,filter,filterFile,filterColumn,splitFile,seek,redisUri,jobId,cacheFile,useCpp);
     }
 
@@ -126,7 +128,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
         if(path!=null) {
             Path ppath = Paths.get(path);
             try {
-                schema = SparkRowSource.inferSchema(ppath, ppath.getFileName().toString(), false, path.toLowerCase().endsWith(".gorz"));
+                schema = SparkRowUtilities.inferSchema(ppath, ppath.getFileName().toString(), false, path.toLowerCase().endsWith(".gorz"));
             } catch (IOException | DataFormatException e) {
                 throw new RuntimeException("Unable to infer schema from "+ppath.toString(), e);
             }
@@ -135,7 +137,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
             boolean nor = query.toLowerCase().startsWith("nor ");
             SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectRoot, cacheDir, null);
             GorSparkSession gorPipeSession = (GorSparkSession) sessionFactory.create();
-            SparkRowSource.GorDataType gdt = SparkRowSource.gorCmdSchema(query,gorPipeSession, nor);
+            GorDataType gdt = SparkRowUtilities.gorCmdSchema(query,gorPipeSession, nor);
 
             String[] headerArray = gdt.header;
             DataType[] dataTypes = new DataType[headerArray.length];

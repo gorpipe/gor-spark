@@ -24,6 +24,7 @@ public class UTestGorSparkQuery {
     @Before
     public void init() {
         SparkSession sparkSession = SparkSession.builder().master("local[1]").getOrCreate();
+        //Glow.register(sparkSession);
         SparkSessionFactory sparkSessionFactory = new SparkSessionFactory(sparkSession, Paths.get(".").toAbsolutePath().normalize().toString(), "/tmp", null);
         GorSession session = sparkSessionFactory.create();
         pi = new PipeInstance(session.getGorContext());
@@ -63,10 +64,16 @@ public class UTestGorSparkQuery {
     }
 
     @Test
+    public void testSparkSQLWithHint() {
+        testSparkQuery("select /*+ BROADCAST(b) */ a.* from ../tests/data/gor/genes.gor a join (select * from ../tests/data/gor/genes.gor where gene_symbol like 'BRCA%') b where a.gene_symbol = b.gene_symbol",
+                        "chr13\t32889610\t32973805\tBRCA2\n" +
+                "chr17\t41196311\t41322290\tBRCA1");
+    }
+
+    @Test
     public void testSparkSQLWithNestedNor() {
         testSparkQuery("spark select gene_symbol from <(nor ../tests/data/gor/genes.gor | grep 'BRCA' | select gene_symbol)",
-                "BRCA2\n" +
-                        "BRCA1");
+                "BRCA2\nBRCA1");
     }
 
     @Test
@@ -151,6 +158,23 @@ public class UTestGorSparkQuery {
     @Test
     public void testGorzSparkQueryWithGorpipe() {
         testSparkQuery("spark ../tests/data/gor/genes.gorz | top 5 | group chrom -count", "chr1\t0\t250000000\t5");
+    }
+
+    @Test
+    public void testExternalCommand() throws IOException {
+        String pycode = "#!/usr/bin/env python\n" +
+                "import sys\n" +
+                "line = sys.stdin.readline()\n" +
+                "sys.stdout.write( line )\n" +
+                "sys.stdout.flush()\n" +
+                "line = sys.stdin.readline()\n" +
+                "while line:\n" +
+                "    sys.stdout.write( line )\n" +
+                "    line = sys.stdin.readline()\n" +
+                "sys.stdout.flush()\n";
+        Path pyscript = Paths.get("pass.py");
+        Files.writeString(pyscript, pycode);
+        testSparkQuery("spark ../tests/data/gor/genes.gorz | top 100 | cmd {python pass.py} | group chrom -count", "chr1\t0\t250000000\t100");
     }
 
     @After
