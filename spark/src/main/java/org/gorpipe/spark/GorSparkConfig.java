@@ -109,7 +109,7 @@ public interface GorSparkConfig extends Config {
     String SPARK_PERSISTENT_VOLUME_CLAIM = "GOR_SPARK_KUBERNETES_PERSISTENT_VOLUME_CLAIM";
     @Documentation("")
     @Key(SPARK_PERSISTENT_VOLUME_CLAIM)
-    @DefaultValue("pvc-gor-nfs")
+    @DefaultValue("pvc-gor-nfs-v2")
     String getSparkPersistentVolumeClaim();
 
     String SPARK_MOUNT_PATH = "GOR_SPARK_KUBERNETES_MOUNT_PATH";
