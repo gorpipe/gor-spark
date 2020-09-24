@@ -30,13 +30,7 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
   }
 
   def getSparkSession: SparkSession = {
-    if(sparkSession == null) sparkSession = GorSparkUtilities.getSparkSession(null,null)
-    sparkSession
-  }
-
-  def getSparkSession(gorroot: String, hostMount: String, profile: String): SparkSession = {
-    if(profile != null) return GorSparkUtilities.getSparkSession(gorroot, hostMount, profile)
-    if(sparkSession == null) sparkSession = GorSparkUtilities.getSparkSession(gorroot, hostMount, profile)
+    if(sparkSession == null) sparkSession = GorSparkUtilities.getSparkSession()
     sparkSession
   }
 

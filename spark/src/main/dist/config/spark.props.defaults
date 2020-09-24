@@ -1,4 +1,1 @@
 # Spark Gor defaults property file.
-
-GOR_SPARK_REDIS_URL
-GOR_SPARK_MASTER    local[*]

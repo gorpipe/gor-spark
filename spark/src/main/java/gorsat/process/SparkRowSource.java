@@ -71,7 +71,7 @@ public class SparkRowSource extends ProcessSource {
         this.gorSparkSession = gpSession;
         this.nor = nor;
         if (parquet != null && Files.exists(Paths.get(parquet))) {
-            dataset = SparkRowUtilities.getSparkSession(gpSession,fileroot,profile).read().parquet(parquet);
+            dataset = gpSession.getSparkSession().read().parquet(parquet);
         } else {
             this.type = type;
             commands = new ArrayList<>();
@@ -136,7 +136,7 @@ public class SparkRowSource extends ProcessSource {
                     if (gorSparkSession.getSystemContext().getServer()) ProjectContext.validateServerFileName(fn, true);
                     SparkRowUtilities.registerFile(new String[]{fn}, profile,null, gpSession, standalone, fileroot, cachepath, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp, tag);
                 }
-                dataset = SparkRowUtilities.getSparkSession(gpSession,fileroot,profile).sql(sql);
+                dataset = gorSparkSession.getSparkSession().sql(sql);
             } else {
                 fileNames = headercommands.toArray(new String[0]);
                 dataset = SparkRowUtilities.registerFile(fileNames, null, profile, gpSession, standalone, fileroot, cachepath, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp, tag);
@@ -149,7 +149,7 @@ public class SparkRowSource extends ProcessSource {
                     dataset = ((Dataset<org.apache.spark.sql.Row>) dataset).filter((FilterFunction<org.apache.spark.sql.Row>) row -> chr.equals(row.getString(0)) && row.getInt(1) >= pos);
                 }
             }
-            SparkRowUtilities.getSparkSession(gpSession,fileroot,profile).sparkContext().setJobGroup("a|b|gorsql|c", sql, true);
+            gorSparkSession.getSparkSession().sparkContext().setJobGroup("a|b|gorsql|c", sql, true);
         }
         setHeader((nor ? "chrNOR\tposNOR\t" : "") + correctHeader(dataset.columns()));
     }
@@ -200,7 +200,7 @@ public class SparkRowSource extends ProcessSource {
         RDD rdd = dataset.rdd();
         ExpressionEncoder encoder = dataset.exprEnc();
         GorpipeRDD<org.apache.spark.sql.Row> gorpipeRDD = new GorpipeRDD<org.apache.spark.sql.Row>(rdd, pipeStep, encoder, getHeader(), gor, rdd.elementClassTag());
-        dataset = SparkRowUtilities.getSparkSession(gorSparkSession,fileroot,null).createDataset(gorpipeRDD, encoder);
+        dataset = gorSparkSession.getSparkSession().createDataset(gorpipeRDD, encoder);
         setHeader(correctHeader(dataset.columns()));
     }
 
