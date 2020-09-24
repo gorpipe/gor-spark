@@ -782,10 +782,10 @@ public class SparkRowSource extends ProcessSource {
                     options.put(psplit[0], psplit[1].substring(1, psplit[1].length() - 1));
                 else options.put(psplit[0], psplit[1]);
             }
-            //ret = Glow.transform("pipe", dataset, options);
+            ret = Glow.transform("pipe", dataset, options);
         } else if (gor.startsWith("split_multiallelics")) {
             Map<String, String> options = new HashMap<>();
-            //ret = Glow.transform("split_multiallelics", dataset, options);
+            ret = Glow.transform("split_multiallelics", dataset, options);
         } else if (gor.startsWith("block_variants_and_samples")) {
             Map<String, String> options = new HashMap<>();
             String cmd = gor.substring("block_variants_and_samples".length()).trim();
@@ -796,10 +796,10 @@ public class SparkRowSource extends ProcessSource {
                     options.put(psplit[0], psplit[1].substring(1, psplit[1].length() - 1));
                 else options.put(psplit[0], psplit[1]);
             }
-            //ret = Glow.transform("block_variants_and_samples", dataset, options);
+            ret = Glow.transform("block_variants_and_samples", dataset, options);
         } else if (gor.startsWith("make_sample_blocks")) {
             int sampleCount = Integer.parseInt(gor.substring("make_sample_blocks".length()).trim());
-            //ret = VariantSampleBlockMaker.makeSampleBlocks(dataset, sampleCount);
+            ret = VariantSampleBlockMaker.makeSampleBlocks(dataset, sampleCount);
         }
         return ret;
     }
