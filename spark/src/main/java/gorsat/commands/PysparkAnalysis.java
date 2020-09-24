@@ -12,7 +12,7 @@ import java.util.Map;
 
 public class PysparkAnalysis extends Analysis {
     public static Dataset<Row> pyspark(Dataset<? extends Row> ds, String cmd) throws IOException, InterruptedException {
-        SparkSession spark = GorSparkUtilities.getSparkSession(null,null);
+        SparkSession spark = GorSparkUtilities.getSparkSession();
         Py4JServer py4JServer = GorSparkUtilities.getPyServer();
         
         ProcessBuilder pb = new ProcessBuilder("python3", cmd.trim());

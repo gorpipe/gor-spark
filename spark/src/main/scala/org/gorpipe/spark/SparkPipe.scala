@@ -23,7 +23,6 @@ object SparkPipe extends GorPipeFirstOrderCommands {
 
   val brsConfig: BatchedReadSourceConfig = ConfigManager.createPrefixConfig("gor", classOf[BatchedReadSourceConfig])
   val gorConfig: GorConfig = ConfigManager.createPrefixConfig("gor", classOf[GorConfig])
-  val sparkConfig: GorSparkConfig = ConfigManager.createPrefixConfig("spark", classOf[GorSparkConfig])
 
   /**
    * Main definition accepts an argument string and ensures database sources are initialized.
@@ -56,7 +55,14 @@ object SparkPipe extends GorPipeFirstOrderCommands {
     var exitCode = 0
     //todo find a better way to construct
 
-    val sparkGorRedisUri = sparkConfig.sparkRedisUrl()
+    val sparkRedisHost = System.getProperty("spark.redis.host")
+    val sparkRedisPort = System.getProperty("spark.redis.port")
+    val sparkRedisDb = System.getProperty("spark.redis.db")
+    val sparkGorRedisUri = if(sparkRedisHost != null && sparkRedisHost.length() > 0) {
+      val ret = sparkRedisHost + ":" + (if(sparkRedisPort != null && sparkRedisPort.length() > 0) sparkRedisPort else "6379")
+      if(sparkRedisDb!=null && sparkRedisDb.length()>0) ret + "/" + sparkRedisDb;
+      else ret
+    } else "";
     val sparkMonitor = new SparkGorMonitor(sparkGorRedisUri,"-1")
     val executionEngine = new SparkGorExecutionEngine(commandlineOptions.query, commandlineOptions.gorRoot, commandlineOptions.cacheDir, null, sparkMonitor)
 

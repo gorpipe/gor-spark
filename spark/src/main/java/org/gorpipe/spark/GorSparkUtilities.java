@@ -30,7 +30,6 @@ public class GorSparkUtilities {
     private static Py4JServer py4jServer;
 
     private GorSparkUtilities() {}
-
     public static Py4JServer getPyServer() {
         return py4jServer;
     }
@@ -43,188 +42,14 @@ public class GorSparkUtilities {
         return py4jServer != null ? py4jServer.secret() : "";
     }
 
-    public static SparkSession getSparkSession(String gorroot, String hostMount) {
-        return getSparkSession(gorroot, hostMount, null);
-    }
-
-    public static String getSparkMaster() {
-        return spark.conf().get("spark.master");
-    }
-
-    public static String getSparkAppName() {
-        return spark.conf().get("spark.app.name");
-    }
-
-    public static SparkSession newSparkSession(String gorroot, String hostMount, String profile) {
-        GorSparkConfig config = ConfigManager.createPrefixConfig("spark", GorSparkConfig.class);
-        log.debug("SparkSession from config");
-        log.info("SparkMaster from config " + config.sparkMaster());
-
-        if (gorroot != null && hostMount == null) {
-            hostMount = System.getenv("GORPROJECT_PATH");
-            if (hostMount == null) {
-                Path p = Paths.get("/gorproject/zeppelin-server.yaml");
-                if (Files.exists(p)) {
-                    //String pathline = Files.lines(p).dropWhile(k -> !k.contains("GORPROJECT_PATH")).dropWhile(k -> k.contains("GORPROJECT_PATH")).findFirst().get();
-                    //hostMount = pathline.trim().split(":")[1].trim();
-                }
-            }
-        }
-
+    public static SparkSession newSparkSession() {
         SparkConf sparkConf = new SparkConf();
-        String master = config.sparkMaster();
-        //activateEventLogIfSet(config, sparkConf);
-        //SparkContext.getOrCreate();
-        SparkSession.Builder ssb = SparkSession
-                .builder()
-                .appName("GorSpark " + UUID.randomUUID())
-                .master(master)
-                //.config("spark.ui.enabled", config.sparkUiEnabled())
-                //.config("spark.jars", config.sparkJars())
-                .config("spark.driver.memory", config.sparkDriverMemory())
-                .config("spark.executor.memory", config.sparkExecutorMemory())
-                .config("spark.executor.cores", config.sparkExecutorCores())
-                .config("spark.executor.instances", config.sparkExecutorInstances())
-                .config("spark.submit.deployMode", config.sparkDeployMode())
-                .config("spark.kubernetes.namespace", config.getSparkKuberneteseNamespace())
-
-                //.config("spark.ui.proxyBase","/spark")
-                //.config("spark.ui.reverseProxy","true")
-                //.config("spark.ui.reverseProxyUrl","https://platform.wuxinextcodedev.com/")
-
-                //.config("spark.executor.extraClassPath","/Users/sigmar/gor-services/server/build/install/gor-scripts/lib/*")
-                //.config("spark.executor.extraJavaOptions","-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005")
-                //.config("spark.kubernetes.allocation.batch.delay","30s")
-                .config("spark.dynamicAllocation.enabled", "true")
-                //.config("spark.shuffle.service.enabled","true")
-                .config("spark.dynamicAllocation.shuffleTracking.enabled", "true")
-                .config("spark.dynamicAllocation.minExecutors", config.getSparkMinExecutors())
-                .config("spark.dynamicAllocation.maxExecutors", config.getSparkMaxExecutors())
-                .config("spark.dynamicAllocation.initialExecutors", config.getSparkInitialExecutors())
-                .config("spark.dynamicAllocation.executorIdleTimeout", config.getSparkExecutorTimeout());
-
-                String sparkRedisUrl = config.sparkRedisUrl();
-                if(sparkRedisUrl!=null&&sparkRedisUrl.length()>0) {
-                    String[] redisSplit = sparkRedisUrl.split(":");
-                    String redisHost = redisSplit[0];
-                    String redisPortDb = redisSplit[1];
-                    String[] splitPortDb = redisPortDb.split("/");
-                    String redisPort = splitPortDb[0];
-                    ssb = ssb.config("spark.redis.host", redisHost)
-                            .config("spark.redis.port", redisPort);
-                    if(splitPortDb.length>1) {
-                        String redisDb = splitPortDb[1];
-                        ssb = ssb.config("spark.redis.db", redisDb);
-                    }
-                }
-
-        if (master.startsWith("k8s://")) {
-            String image = profile == null ? config.getSparkImage() : profile;
-            //String path = profile == null ? config.getSparkMountPath() : "";
-            ssb = ssb
-                    .config("spark.kubernetes.container.image", image)
-                    .config("spark.kubernetes.executor.container.image", image)
-
-                    //.config("spark.submit.deployMode","cluster")
-
-                    //.config("spark.driver.host","noauthgorserver")
-                    //.config("spark.driver.port","4099")
-                    //.config("spark.kubernetes.authenticate.driver.serviceAccountName", "spark-autoscaler")
-
-                    /*.config("spark.kubernetes.executor.volumes.hostPath.userhome.mount.path", hostMount)
-                    .config("spark.kubernetes.executor.volumes.hostPath.userhome.mount.readOnly", "false")
-                    .config("spark.kubernetes.executor.volumes.hostPath.userhome.options.path", gorroot)
-                    .config("spark.kubernetes.driver.volumes.hostPath.userhome.mount.path", hostMount)
-                    .config("spark.kubernetes.driver.volumes.hostPath.userhome.mount.readOnly", "false")
-                    .config("spark.kubernetes.driver.volumes.hostPath.userhome.options.path", gorroot);*/
-
-                    //addon
-                    //.config("spark.kubernetes.driver.volumes.persistentVolumeClaim.mntcsa.options.claimName", config.getSparkPersistentVolumeClaim())
-
-                    .config("spark.kubernetes.executor.volumes.persistentVolumeClaim.mntcsa.options.claimName", config.getSparkPersistentVolumeClaim())
-                    .config("spark.kubernetes.executor.volumes.persistentVolumeClaim.mntcsa.mount.readOnly", profile != null)
-
-                    .config("spark.kubernetes.container.image.pullSecrets", "dockerhub-nextcode-download-credentials")
-                    .config("spark.kubernetes.container.image.pullPolicy", "Always")
-                    .config("spark.kubernetes.executor.deleteOnTermination", "false")
-                    .config("spark.kubernetes.authenticate.driver.serviceAccountName", "spark-autoscaler");
-
-            if(profile!=null) {
-                ssb = ssb
-                    .config("spark.kubernetes.executor.volumes.persistentVolumeClaim.mntcsa.mount.path",gorroot)
-                    .config("spark.kubernetes.executor.volumes.persistentVolumeClaim.mntcsa.mount.subPath",gorroot);
-            } else {
-                ssb = ssb.config("spark.kubernetes.executor.volumes.persistentVolumeClaim.mntcsa.mount.path", config.getSparkMountPath());
-
-                //addon
-                /*ssb = ssb.config("spark.kubernetes.executor.volumes.persistentVolumeClaim.mntcsa.mount.path", "/Users/sigmar/testproject")
-                        .config("spark.kubernetes.executor.volumes.persistentVolumeClaim.mntcsa.mount.subPath", "env/dev/orgs/internal_org/projects/ukbb_hg38")
-                        .config("spark.kubernetes.driver.volumes.persistentVolumeClaim.mntcsa.mount.path", "/Users/sigmar/testproject")
-                        .config("spark.kubernetes.driver.volumes.persistentVolumeClaim.mntcsa.mount.subPath", "env/dev/orgs/internal_org/projects/ukbb_hg38");*/
-            }
-        } else if (master.startsWith("local")) {
-            ssb = ssb.config("spark.driver.bindAddress", "127.0.0.1");
-        }
-            /*if( gorroot != null && hostMount != null ) {
-                ssb =   ssb.config("spark.submit.deployMode","client")
-                        //.config("spark.kubernetes.container.image","nextcode/spark:3.0.0-SNAPSHOT")
-                        //.config("spark.kubernetes.executor.container.image","nextcode/spark:3.0.0-SNAPSHOT")
-
-                        //.config("spark.kubernetes.executor.volumes.persistentVolumeClaim.gorproject.options.claimName", "pvc-sparkgorproject-nfs")
-                        //.config("spark.kubernetes.executor.volumes.persistentVolumeClaim.gorproject.mount.path", "/gorproject")
-                        //.config("spark.kubernetes.executor.volumes.persistentVolumeClaim.mntcsa.options.claimName", "pvc-sparkgor-nfs")
-                        //.config("spark.kubernetes.executor.volumes.persistentVolumeClaim.mntcsa.mount.path", "/mnt/csa")
-
-                        //.config("spark.kubernetes.container.image.pullSecrets", "dockerhub-nextcode-download-credentials")
-                        //.config("spark.kubernetes.container.image.pullPolicy", "Always")
-
-                        //.config("spark.kubernetes.driver.volumes.persistentVolumeClaim.gorproject.options.claimName", "pvc-sparkgorproject-nfs")
-                        //.config("spark.kubernetes.driver.volumes.persistentVolumeClaim.gorproject.mount.path", "/gorproject")
-                        //.config("spark.kubernetes.driver.volumes.persistentVolumeClaim.mntcsa.options.claimName", "pvc-sparkgor-nfs")
-                        //.config("spark.kubernetes.driver.volumes.persistentVolumeClaim.mntcsa.mount.path", "/mnt/csa");
-
-
-                        .config("spark.kubernetes.namespace","spark")
-                        .config("spark.kubernetes.file.upload.path","/mnt/csa/tmp")
-
-                        .config("spark.kubernetes.executor.podTemplateFile","/gorproject/template_sparkpod.yml")
-                        .config("spark.kubernetes.executor.deleteOnTermination","false")
-
-                        .config("spark.kubernetes.executor.volumes.hostPath.userhome.mount.path",hostMount)
-                        .config("spark.kubernetes.executor.volumes.hostPath.userhome.mount.readOnly","false")
-                        .config("spark.kubernetes.executor.volumes.hostPath.userhome.options.path",gorroot)
-                        .config("spark.kubernetes.driver.volumes.hostPath.userhome.mount.path",hostMount)
-                        .config("spark.kubernetes.driver.volumes.hostPath.userhome.mount.readOnly","false")
-                        .config("spark.kubernetes.driver.volumes.hostPath.userhome.options.path",gorroot);
-            }*/
-
+        SparkSession.Builder ssb = SparkSession.builder();
         SparkSession spark = ssb.config(sparkConf).getOrCreate();
 
-        String sparkMaster = System.getProperty("spark.master");
-        if(sparkMaster==null || sparkMaster.length()==0) {
-            sparkMaster = spark.conf().get("spark.master");
-            System.setProperty("spark.master",sparkMaster);
-        }
-
-        String sparkAppName = System.getProperty("spark.app.name");
-        if(sparkAppName==null || sparkAppName.length()==0) {
-            sparkAppName = spark.conf().get("spark.app.name");
-            if(sparkAppName==null||sparkAppName.length()==0) {
-                sparkAppName = "dummy";
-            }
-            System.setProperty("spark.app.name",sparkAppName);
-        }
-
         String pyspark = System.getenv("PYSPARK_PIN_THREAD");
-        if(pyspark!=null&&pyspark.toLowerCase().equals("true")) {
-            System.err.println("spark.master is "+ System.getProperty("spark.master"));
-            System.err.println("spark.app.name is " + System.getProperty("spark.app.name"));
-
-            //if(py4jServer!=null) py4jServer.
+        if(py4jServer!=null&&pyspark!=null&&pyspark.length()>0) {
             py4jServer = new Py4JServer(spark.sparkContext().conf());
-            System.err.println("Py4jServer");
-            System.err.println(py4jServer.secret());
-            System.err.println(py4jServer.getListeningPort());
             py4jServer.start();
         }
 
@@ -239,37 +64,14 @@ public class GorSparkUtilities {
         return spark;
     }
 
-    public static SparkSession getSparkSession(String gorroot, String hostMount, String profile) {
-        if(profile!=null) {
-            if(sessionProfiles.containsKey(profile)) {
-                return sessionProfiles.get(profile);
-            } else {
-                SparkSession spark = newSparkSession(gorroot, hostMount, profile);
-                sessionProfiles.put(profile,spark);
-                return spark;
-            }
-        } else if (spark == null) {
-            if (!SparkSession.getDefaultSession().isEmpty()) {
-                log.debug("SparkSession from default");
-                spark = SparkSession.getDefaultSession().get();
-            } else {
-                spark = newSparkSession(gorroot, hostMount, profile);
-            }
-            //spark.udf().register("md5", s -> StringUtilities.createMD5((String) s), DataTypes.StringType);
+    public static SparkSession getSparkSession() {
+        if (!SparkSession.getDefaultSession().isEmpty()) {
+            log.debug("SparkSession from default");
+            spark = SparkSession.getDefaultSession().get();
+        } else {
+            spark = newSparkSession();
         }
         return spark;
-    }
-
-    private static void activateEventLogIfSet(GorSparkConfig sparkGorConfig, SparkConf sparkConf) {
-        if(!sparkGorConfig.eventLogDir().isEmpty()){
-            String pathname = sparkGorConfig.eventLogDir();
-            File eventFolder = new File(pathname);
-            if(eventFolder.mkdirs()) {
-                log.info("Spark event log folder created {}",  eventFolder.getAbsolutePath());
-            }
-            sparkConf.set("spark.eventLog.enabled", "true");
-            sparkConf.set("spark.eventLog.dir",eventFolder.getAbsolutePath());
-        }
     }
 
     public static List<org.apache.spark.sql.Row> stream2SparkRowList(Stream<Row> str, StructType schema) {
