@@ -125,7 +125,7 @@ public class GorSparkUtilities {
                     .config("spark.kubernetes.container.image", image)
                     .config("spark.kubernetes.executor.container.image", image)
 
-                    .config("spark.submit.deployMode","cluster")
+                    //.config("spark.submit.deployMode","cluster")
 
                     //.config("spark.driver.host","noauthgorserver")
                     //.config("spark.driver.port","4099")
@@ -139,7 +139,7 @@ public class GorSparkUtilities {
                     .config("spark.kubernetes.driver.volumes.hostPath.userhome.options.path", gorroot);*/
 
                     //addon
-                    .config("spark.kubernetes.driver.volumes.persistentVolumeClaim.mntcsa.options.claimName", config.getSparkPersistentVolumeClaim())
+                    //.config("spark.kubernetes.driver.volumes.persistentVolumeClaim.mntcsa.options.claimName", config.getSparkPersistentVolumeClaim())
 
                     .config("spark.kubernetes.executor.volumes.persistentVolumeClaim.mntcsa.options.claimName", config.getSparkPersistentVolumeClaim())
                     .config("spark.kubernetes.executor.volumes.persistentVolumeClaim.mntcsa.mount.readOnly", profile != null)
@@ -154,13 +154,13 @@ public class GorSparkUtilities {
                     .config("spark.kubernetes.executor.volumes.persistentVolumeClaim.mntcsa.mount.path",gorroot)
                     .config("spark.kubernetes.executor.volumes.persistentVolumeClaim.mntcsa.mount.subPath",gorroot);
             } else {
-                //ssb = ssb.config("spark.kubernetes.executor.volumes.persistentVolumeClaim.mntcsa.mount.path", config.getSparkMountPath());
+                ssb = ssb.config("spark.kubernetes.executor.volumes.persistentVolumeClaim.mntcsa.mount.path", config.getSparkMountPath());
 
                 //addon
-                ssb = ssb.config("spark.kubernetes.executor.volumes.persistentVolumeClaim.mntcsa.mount.path", "/Users/sigmar/testproject")
-                        .config("spark.kubernetes.executor.volumes.persistentVolumeClaim.mntcsa.mount.subPath", "env/dev/projects/ukbb_hg38")
+                /*ssb = ssb.config("spark.kubernetes.executor.volumes.persistentVolumeClaim.mntcsa.mount.path", "/Users/sigmar/testproject")
+                        .config("spark.kubernetes.executor.volumes.persistentVolumeClaim.mntcsa.mount.subPath", "env/dev/orgs/internal_org/projects/ukbb_hg38")
                         .config("spark.kubernetes.driver.volumes.persistentVolumeClaim.mntcsa.mount.path", "/Users/sigmar/testproject")
-                        .config("spark.kubernetes.driver.volumes.persistentVolumeClaim.mntcsa.mount.subPath", "env/dev/projects/ukbb_hg38");
+                        .config("spark.kubernetes.driver.volumes.persistentVolumeClaim.mntcsa.mount.subPath", "env/dev/orgs/internal_org/projects/ukbb_hg38");*/
             }
         } else if (master.startsWith("local")) {
             ssb = ssb.config("spark.driver.bindAddress", "127.0.0.1");
@@ -200,8 +200,26 @@ public class GorSparkUtilities {
 
         SparkSession spark = ssb.config(sparkConf).getOrCreate();
 
+        String sparkMaster = System.getProperty("spark.master");
+        if(sparkMaster==null || sparkMaster.length()==0) {
+            sparkMaster = spark.conf().get("spark.master");
+            System.setProperty("spark.master",sparkMaster);
+        }
+
+        String sparkAppName = System.getProperty("spark.app.name");
+        if(sparkAppName==null || sparkAppName.length()==0) {
+            sparkAppName = spark.conf().get("spark.app.name");
+            if(sparkAppName==null||sparkAppName.length()==0) {
+                sparkAppName = "dummy";
+            }
+            System.setProperty("spark.app.name",sparkAppName);
+        }
+
         String pyspark = System.getenv("PYSPARK_PIN_THREAD");
-        if(pyspark!=null&&pyspark.length()>0) {
+        if(pyspark!=null&&pyspark.toLowerCase().equals("true")) {
+            System.err.println("spark.master is "+ System.getProperty("spark.master"));
+            System.err.println("spark.app.name is " + System.getProperty("spark.app.name"));
+
             //if(py4jServer!=null) py4jServer.
             py4jServer = new Py4JServer(spark.sparkContext().conf());
             System.err.println("Py4jServer");
