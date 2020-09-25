@@ -32,7 +32,6 @@ import java.util.stream.Stream;
 public class GorSparkUtilities {
     private static final Logger log = LoggerFactory.getLogger(GorSparkUtilities.class);
     private static SparkSession spark;
-    private static Map<String,SparkSession> sessionProfiles = new HashMap<>();
     private static Py4JServer py4jServer;
     private static Optional<Process> jupyterProcess;
     private static Optional<String> jupyterPath;
