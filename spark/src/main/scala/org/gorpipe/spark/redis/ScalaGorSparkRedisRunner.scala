@@ -16,7 +16,7 @@ object ScalaGorSparkRedisRunner {
 
 class ScalaGorSparkRedisRunner() extends Callable[String] {
   ScalaGorSparkRedisRunner.instance = this
-  var sparkSession = GorSparkUtilities.getSparkSession(null, null)
+  var sparkSession = GorSparkUtilities.getSparkSession()
 
   @throws[Exception]
   override def call: String = {
