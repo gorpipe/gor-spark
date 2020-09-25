@@ -55,14 +55,7 @@ object SparkPipe extends GorPipeFirstOrderCommands {
     var exitCode = 0
     //todo find a better way to construct
 
-    val sparkRedisHost = System.getProperty("spark.redis.host")
-    val sparkRedisPort = System.getProperty("spark.redis.port")
-    val sparkRedisDb = System.getProperty("spark.redis.db")
-    val sparkGorRedisUri = if(sparkRedisHost != null && sparkRedisHost.length() > 0) {
-      val ret = sparkRedisHost + ":" + (if(sparkRedisPort != null && sparkRedisPort.length() > 0) sparkRedisPort else "6379")
-      if(sparkRedisDb!=null && sparkRedisDb.length()>0) ret + "/" + sparkRedisDb;
-      else ret
-    } else "";
+    val sparkGorRedisUri = GorSparkUtilities.getSparkGorRedisUri()
     val sparkMonitor = new SparkGorMonitor(sparkGorRedisUri,"-1")
     val executionEngine = new SparkGorExecutionEngine(commandlineOptions.query, commandlineOptions.gorRoot, commandlineOptions.cacheDir, null, sparkMonitor)
 

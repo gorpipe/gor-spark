@@ -15,6 +15,8 @@ import org.gorpipe.spark.udfs.CommaToIntArray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.projectglow.GlowBase;
+
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -40,6 +42,18 @@ public class GorSparkUtilities {
 
     public static String getPyServerSecret() {
         return py4jServer != null ? py4jServer.secret() : "";
+    }
+
+    private static String constructRedisUri(String sparkRedisHost) {
+        final String sparkRedisPort = System.getProperty("spark.redis.port");
+        final String sparkRedisDb = System.getProperty("spark.redis.db");
+        String ret = sparkRedisHost + ":" + (sparkRedisPort != null && sparkRedisPort.length() > 0 ? sparkRedisPort : "6379");
+        return sparkRedisDb!=null && sparkRedisDb.length()>0 ? ret + "/" + sparkRedisDb : ret;
+    }
+
+    public static String getSparkGorRedisUri() {
+        final String sparkRedisHost = System.getProperty("spark.redis.host");
+        return sparkRedisHost != null && sparkRedisHost.length() > 0 ? constructRedisUri(sparkRedisHost) : "";
     }
 
     public static SparkSession newSparkSession() {

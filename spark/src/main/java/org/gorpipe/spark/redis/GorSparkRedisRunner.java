@@ -18,7 +18,7 @@ public class GorSparkRedisRunner implements Callable<String> {
 
     public GorSparkRedisRunner() {
         instance = this;
-        this.sparkSession = GorSparkUtilities.getSparkSession(null,null);
+        this.sparkSession = GorSparkUtilities.getSparkSession();
     }
 
     @Override
