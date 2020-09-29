@@ -12,203 +12,139 @@ import org.gorpipe.spark.udfs.CharToDoubleArray;
 import org.gorpipe.spark.udfs.CommaToDoubleArray;
 import org.gorpipe.spark.udfs.CommaToDoubleMatrix;
 import org.gorpipe.spark.udfs.CommaToIntArray;
+import org.gorpipe.util.standalone.GorStandalone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
+import io.projectglow.GlowBase;
+
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class GorSparkUtilities {
     private static final Logger log = LoggerFactory.getLogger(GorSparkUtilities.class);
     private static SparkSession spark;
-    private static Map<String,SparkSession> sessionProfiles = new HashMap<>();
     private static Py4JServer py4jServer;
+    private static Optional<Process> jupyterProcess;
+    private static Optional<String> jupyterPath;
+    private static ExecutorService es;
 
     private GorSparkUtilities() {}
-
     public static Py4JServer getPyServer() {
         return py4jServer;
     }
 
-    public static SparkSession  getSparkSession(String gorroot, String hostMount) {
-        return getSparkSession(gorroot, hostMount, null);
+    public static int getPyServerPort() {
+        return py4jServer != null ? py4jServer.getListeningPort() : 0;
     }
 
-    public static SparkSession newSparkSession(String gorroot, String hostMount, String profile) {
-        GorSparkConfig config = ConfigManager.createPrefixConfig("spark", GorSparkConfig.class);
-        log.debug("SparkSession from config");
-        log.info("SparkMaster from config " + config.sparkMaster());
+    public static String getPyServerSecret() {
+        return py4jServer != null ? py4jServer.secret() : "";
+    }
 
-        if (gorroot != null && hostMount == null) {
-            hostMount = System.getenv("GORPROJECT_PATH");
-            if (hostMount == null) {
-                Path p = Paths.get("/gorproject/zeppelin-server.yaml");
-                if (Files.exists(p)) {
-                    //String pathline = Files.lines(p).dropWhile(k -> !k.contains("GORPROJECT_PATH")).dropWhile(k -> k.contains("GORPROJECT_PATH")).findFirst().get();
-                    //hostMount = pathline.trim().split(":")[1].trim();
-                }
-            }
-        }
+    public static Optional<String> getJupyterPath() {
+        return jupyterPath;
+    }
 
-        SparkConf sparkConf = new SparkConf();
-        String master = config.sparkMaster();
-        //activateEventLogIfSet(config, sparkConf);
-        //SparkContext.getOrCreate();
-        SparkSession.Builder ssb = SparkSession
-                .builder()
-                .appName("GorSpark " + UUID.randomUUID())
-                .master(master)
-                //.config("spark.ui.enabled", config.sparkUiEnabled())
-                //.config("spark.jars", config.sparkJars())
-                .config("spark.driver.memory", config.sparkDriverMemory())
-                .config("spark.executor.memory", config.sparkExecutorMemory())
-                .config("spark.executor.cores", config.sparkExecutorCores())
-                .config("spark.executor.instances", config.sparkExecutorInstances())
-                .config("spark.submit.deployMode", config.sparkDeployMode())
-                .config("spark.kubernetes.namespace", config.getSparkKuberneteseNamespace())
-                //.config("spark.ui.proxyBase","/spark")
-                //.config("spark.ui.reverseProxy","true")
-                //.config("spark.ui.reverseProxyUrl","https://platform.wuxinextcodedev.com/")
+    public static void closePySpark() {
+        if(py4jServer!=null) py4jServer.shutdown();
+        jupyterProcess.ifPresent(Process::destroy);
+        if(es!=null) es.shutdown();
+    }
 
-                //.config("spark.executor.extraClassPath","/Users/sigmar/gor-services/server/build/install/gor-scripts/lib/*")
-                //.config("spark.executor.extraJavaOptions","-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005")
-                //.config("spark.kubernetes.allocation.batch.delay","30s")
-                .config("spark.dynamicAllocation.enabled", "true")
-                //.config("spark.shuffle.service.enabled","true")
-                .config("spark.dynamicAllocation.shuffleTracking.enabled", "true")
-                .config("spark.dynamicAllocation.minExecutors", config.getSparkMinExecutors())
-                .config("spark.dynamicAllocation.maxExecutors", config.getSparkMaxExecutors())
-                .config("spark.dynamicAllocation.initialExecutors", config.getSparkInitialExecutors())
-                .config("spark.dynamicAllocation.executorIdleTimeout", config.getSparkExecutorTimeout());
-
-        if (master.startsWith("k8s://")) {
-            String image = profile == null ? config.getSparkImage() : profile;
-            //String path = profile == null ? config.getSparkMountPath() : "";
-            ssb = ssb
-                    .config("spark.kubernetes.container.image", image)
-                    .config("spark.kubernetes.executor.container.image", image)
-
-                    //.config("spark.driver.host","noauthgorserver")
-                    //.config("spark.driver.port","4099")
-                    //.config("spark.kubernetes.authenticate.driver.serviceAccountName", "spark-autoscaler")
-
-                    /*.config("spark.kubernetes.executor.volumes.hostPath.userhome.mount.path", hostMount)
-                    .config("spark.kubernetes.executor.volumes.hostPath.userhome.mount.readOnly", "false")
-                    .config("spark.kubernetes.executor.volumes.hostPath.userhome.options.path", gorroot)
-                    .config("spark.kubernetes.driver.volumes.hostPath.userhome.mount.path", hostMount)
-                    .config("spark.kubernetes.driver.volumes.hostPath.userhome.mount.readOnly", "false")
-                    .config("spark.kubernetes.driver.volumes.hostPath.userhome.options.path", gorroot);*/
-
-                    .config("spark.kubernetes.executor.volumes.persistentVolumeClaim.mntcsa.options.claimName", config.getSparkPersistentVolumeClaim())
-                    .config("spark.kubernetes.executor.volumes.persistentVolumeClaim.mntcsa.mount.readOnly", profile != null)
-
-                    .config("spark.kubernetes.container.image.pullSecrets", "dockerhub-nextcode-download-credentials")
-                    .config("spark.kubernetes.container.image.pullPolicy", "Always")
-                    .config("spark.kubernetes.executor.deleteOnTermination", "false")
-                    .config("spark.kubernetes.authenticate.driver.serviceAccountName", "spark-autoscaler");
-
-            if(profile!=null) {
-                ssb = ssb
-                    .config("spark.kubernetes.executor.volumes.persistentVolumeClaim.mntcsa.mount.path",gorroot)
-                    .config("spark.kubernetes.executor.volumes.persistentVolumeClaim.mntcsa.mount.subPath",gorroot);
-            } else {
-                ssb = ssb.config("spark.kubernetes.executor.volumes.persistentVolumeClaim.mntcsa.mount.path", config.getSparkMountPath());
-            }
-        } else if (master.startsWith("local")) {
-            ssb = ssb.config("spark.driver.bindAddress", "127.0.0.1");
-        }
-            /*if( gorroot != null && hostMount != null ) {
-                ssb =   ssb.config("spark.submit.deployMode","client")
-                        //.config("spark.kubernetes.container.image","nextcode/spark:3.0.0-SNAPSHOT")
-                        //.config("spark.kubernetes.executor.container.image","nextcode/spark:3.0.0-SNAPSHOT")
-
-                        //.config("spark.kubernetes.executor.volumes.persistentVolumeClaim.gorproject.options.claimName", "pvc-sparkgorproject-nfs")
-                        //.config("spark.kubernetes.executor.volumes.persistentVolumeClaim.gorproject.mount.path", "/gorproject")
-                        //.config("spark.kubernetes.executor.volumes.persistentVolumeClaim.mntcsa.options.claimName", "pvc-sparkgor-nfs")
-                        //.config("spark.kubernetes.executor.volumes.persistentVolumeClaim.mntcsa.mount.path", "/mnt/csa")
-
-                        //.config("spark.kubernetes.container.image.pullSecrets", "dockerhub-nextcode-download-credentials")
-                        //.config("spark.kubernetes.container.image.pullPolicy", "Always")
-
-                        //.config("spark.kubernetes.driver.volumes.persistentVolumeClaim.gorproject.options.claimName", "pvc-sparkgorproject-nfs")
-                        //.config("spark.kubernetes.driver.volumes.persistentVolumeClaim.gorproject.mount.path", "/gorproject")
-                        //.config("spark.kubernetes.driver.volumes.persistentVolumeClaim.mntcsa.options.claimName", "pvc-sparkgor-nfs")
-                        //.config("spark.kubernetes.driver.volumes.persistentVolumeClaim.mntcsa.mount.path", "/mnt/csa");
-
-
-                        .config("spark.kubernetes.namespace","spark")
-                        .config("spark.kubernetes.file.upload.path","/mnt/csa/tmp")
-
-                        .config("spark.kubernetes.executor.podTemplateFile","/gorproject/template_sparkpod.yml")
-                        .config("spark.kubernetes.executor.deleteOnTermination","false")
-
-                        .config("spark.kubernetes.executor.volumes.hostPath.userhome.mount.path",hostMount)
-                        .config("spark.kubernetes.executor.volumes.hostPath.userhome.mount.readOnly","false")
-                        .config("spark.kubernetes.executor.volumes.hostPath.userhome.options.path",gorroot)
-                        .config("spark.kubernetes.driver.volumes.hostPath.userhome.mount.path",hostMount)
-                        .config("spark.kubernetes.driver.volumes.hostPath.userhome.mount.readOnly","false")
-                        .config("spark.kubernetes.driver.volumes.hostPath.userhome.options.path",gorroot);
-            }*/
-
-        SparkSession spark = ssb.config(sparkConf).getOrCreate();
-
+    public static void initPySpark(Optional<String> standaloneRoot) {
         String pyspark = System.getenv("PYSPARK_PIN_THREAD");
-        if(pyspark!=null&&pyspark.length()>0) {
-            //if(py4jServer!=null) py4jServer.
+        if(py4jServer==null&&pyspark!=null&&pyspark.length()>0) {
             py4jServer = new Py4JServer(spark.sparkContext().conf());
-            System.err.println("Py4jServer");
-            System.err.println(py4jServer.secret());
-            System.err.println(py4jServer.getListeningPort());
             py4jServer.start();
+
+            GorSparkUtilities.getSparkSession();
+
+            ProcessBuilder pb = new ProcessBuilder("/usr/local/bin/jupyter","notebook","--NotebookApp.allow_origin='https://colab.research.google.com'","--port=8888","--NotebookApp.port_retries=0");
+            standaloneRoot.ifPresent(sroot -> pb.directory(Paths.get(sroot).toFile()));
+            Map<String,String> env = pb.environment();
+            env.put("PYSPARK_GATEWAY_PORT",Integer.toString(GorSparkUtilities.getPyServerPort()));
+            env.put("PYSPARK_GATEWAY_SECRET",GorSparkUtilities.getPyServerSecret());
+            env.put("PYSPARK_PIN_THREAD","true");
+            try {
+                Process p = pb.start();
+                jupyterProcess = Optional.of(p);
+
+                es = Executors.newFixedThreadPool(2);
+                Future<String> resin = es.submit(() -> {
+                    try (InputStream is = p.getInputStream()) {
+                        InputStreamReader isr = new InputStreamReader(is);
+                        BufferedReader br = new BufferedReader(isr);
+                        jupyterPath = br.lines().map(String::trim).filter(s -> s.startsWith("http://localhost:8888/?token=")).findFirst();
+                    }
+                    return null;
+                });
+                Future<String> reserr = es.submit(() -> {
+                    try (InputStream is = p.getErrorStream()) {
+                        InputStreamReader isr = new InputStreamReader(is);
+                        BufferedReader br = new BufferedReader(isr);
+                        jupyterPath = br.lines().peek(System.err::println).map(String::trim).filter(s -> s.startsWith("http://localhost:8888/?token=")).findFirst();
+                    }
+                    return null;
+                });
+            } catch(IOException ie) {
+                log.info(ie.getMessage());
+                jupyterProcess = Optional.empty();
+            }
         }
+    }
+
+    private static String constructRedisUri(String sparkRedisHost) {
+        final String sparkRedisPort = System.getProperty("spark.redis.port");
+        final String sparkRedisDb = System.getProperty("spark.redis.db");
+        String ret = sparkRedisHost + ":" + (sparkRedisPort != null && sparkRedisPort.length() > 0 ? sparkRedisPort : "6379");
+        return sparkRedisDb!=null && sparkRedisDb.length()>0 ? ret + "/" + sparkRedisDb : ret;
+    }
+
+    public static String getSparkGorRedisUri() {
+        final String sparkRedisHost = System.getProperty("spark.redis.host");
+        return sparkRedisHost != null && sparkRedisHost.length() > 0 ? constructRedisUri(sparkRedisHost) : "";
+    }
+
+    private static SparkSession newSparkSession() {
+        SparkConf sparkConf = new SparkConf();
+        SparkSession.Builder ssb = SparkSession.builder();
+        if(!sparkConf.contains("spark.master")) {
+            ssb = ssb.master("local[*]");
+        }
+        SparkSession spark = ssb.config(sparkConf).getOrCreate();
 
         spark.udf().register("chartodoublearray", new CharToDoubleArray(), DataTypes.createArrayType(DataTypes.DoubleType));
         spark.udf().register("todoublearray", new CommaToDoubleArray(), DataTypes.createArrayType(DataTypes.DoubleType));
         spark.udf().register("todoublematrix", new CommaToDoubleMatrix(), SQLDataTypes.MatrixType());
         spark.udf().register("tointarray", new CommaToIntArray(), DataTypes.createArrayType(DataTypes.IntegerType));
 
-        //GlowBase gb = new GlowBase();
-        //gb.register(spark);
+        GlowBase gb = new GlowBase();
+        gb.register(spark);
 
         return spark;
     }
 
-    public static SparkSession getSparkSession(String gorroot, String hostMount, String profile) {
-        if(profile!=null) {
-            if(sessionProfiles.containsKey(profile)) {
-                return sessionProfiles.get(profile);
-            } else {
-                SparkSession spark = newSparkSession(gorroot, hostMount, profile);
-                sessionProfiles.put(profile,spark);
-                return spark;
-            }
-        } else if (spark == null) {
+    public static SparkSession getSparkSession() {
+        if(spark==null) {
             if (!SparkSession.getDefaultSession().isEmpty()) {
                 log.debug("SparkSession from default");
                 spark = SparkSession.getDefaultSession().get();
             } else {
-                spark = newSparkSession(gorroot, hostMount, profile);
+                spark = newSparkSession();
             }
-            //spark.udf().register("md5", s -> StringUtilities.createMD5((String) s), DataTypes.StringType);
+            Optional<String> standaloneRoot = GorStandalone.isStandalone() ? Optional.of(GorStandalone.getStandaloneRoot()) : Optional.empty();
+            initPySpark(standaloneRoot);
         }
         return spark;
-    }
-
-    private static void activateEventLogIfSet(GorSparkConfig sparkGorConfig, SparkConf sparkConf) {
-        if(!sparkGorConfig.eventLogDir().isEmpty()){
-            String pathname = sparkGorConfig.eventLogDir();
-            File eventFolder = new File(pathname);
-            if(eventFolder.mkdirs()) {
-                log.info("Spark event log folder created {}",  eventFolder.getAbsolutePath());
-            }
-            sparkConf.set("spark.eventLog.enabled", "true");
-            sparkConf.set("spark.eventLog.dir",eventFolder.getAbsolutePath());
-        }
     }
 
     public static List<org.apache.spark.sql.Row> stream2SparkRowList(Stream<Row> str, StructType schema) {

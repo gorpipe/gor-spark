@@ -29,7 +29,7 @@ public class SparkSessionFactory extends GorSessionFactory {
     private GorParallelQueryHandler queryHandler;
 
     public SparkSessionFactory(String root, String cacheDir, SparkGorMonitor sparkMonitor) {
-       this(GorSparkUtilities.getSparkSession(root,""), root, cacheDir, sparkMonitor);
+       this(GorSparkUtilities.getSparkSession(), root, cacheDir, sparkMonitor);
     }
 
     public SparkSessionFactory(SparkSession sparkSession, String root, String cacheDir, GorMonitor sparkMonitor) {
