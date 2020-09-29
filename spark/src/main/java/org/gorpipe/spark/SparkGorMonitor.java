@@ -23,8 +23,7 @@ public class SparkGorMonitor extends GorMonitor implements Serializable {
     boolean working = true;
 
     public SparkGorMonitor(String uri, String jobId) {
-        this.uri = uri;
-        this.jobId = jobId;
+        JedisPool jedisPool = null;
         if (uri != null && uri.length() > 0) {
             try {
                 jedisPool = SharedRedisPools.getJedisPool(JedisURIHelper.create(uri));
@@ -32,6 +31,17 @@ public class SparkGorMonitor extends GorMonitor implements Serializable {
                 working = false;
             }
         } else working = false;
+        init(uri, jobId, jedisPool);
+    }
+
+    public SparkGorMonitor(String uri, String jobId, JedisPool jedisPool) {
+        init(uri, jobId, jedisPool);
+    }
+
+    public void init(String uri, String jobId, JedisPool jedisPool) {
+        this.uri = uri;
+        this.jobId = jobId;
+        this.jedisPool = jedisPool;
     }
 
     public String getRedisUri() {
