@@ -142,8 +142,8 @@ public class GorSparkRedisRunner implements Callable<String> {
         StructField[] fields = {StructField.apply("_id", DataTypes.StringType, true, Metadata.empty()),StructField.apply("job", DataTypes.StringType, true, Metadata.empty()),StructField.apply("field", DataTypes.StringType, true, Metadata.empty()),StructField.apply("value", DataTypes.StringType, true, Metadata.empty())};
         StructType schema = new StructType(fields);
         StreamingQuery query = sparkSession.readStream().format("redis")
-                .option("stream.read.batch.size",1)
-                .option("stream.read.block", 1000)
+                //.option("stream.read.batch.size",1)
+                //.option("stream.read.block", 1000)
                 .option("stream.keys", "resque")
                 .schema(schema)
                 .load().writeStream().outputMode("update")
@@ -161,11 +161,10 @@ public class GorSparkRedisRunner implements Callable<String> {
                             String projectRoot = map.get("projectRoot");
                             String requestId = map.get("request-id");
                             String gorquery = new String(Base64.decode(gorquerybase));
-                            String cachefile;
+                            String cachefile = "result_cache/" + fingerprint + CommandParseUtilities.getExtensionForQuery(gorquery, false);
                             if(map.containsKey("cachefile")) {
-                                cachefile = map.get("cachefile");
-                            } else {
-                                cachefile = "result_cache/" + fingerprint + CommandParseUtilities.getExtensionForQuery(gorquery, false);
+                                String tmpcacheFile = map.get("cachefile");
+                                if(tmpcacheFile!=null) cachefile = tmpcacheFile;
                             }
                             return new String[] {gorquery, fingerprint, projectRoot, requestId, jobid, cachefile};
                         } catch (IOException e) {
@@ -179,11 +178,7 @@ public class GorSparkRedisRunner implements Callable<String> {
                         String projectDirStr = projectDir.get();
                         String[] queries = lstr.stream().map(l -> l[0]).toArray(String[]::new);
                         String[] fingerprints = lstr.stream().map(l -> l[1]).toArray(String[]::new);
-                        String[] cachefiles = lstr.stream().map(l -> {
-                            String gorquery = l[0];
-                            String fingerprint = l[1];
-                            return "result_cache/" + fingerprint + CommandParseUtilities.getExtensionForQuery(gorquery, false);
-                        }).toArray(String[]::new);
+                        String[] cachefiles = lstr.stream().map(l -> l[5]).toArray(String[]::new);
                         String[] jobIds = lstr.stream().map(l -> l[4]).toArray(String[]::new);
                         String jobIdStr = lstr.stream().map(l -> l[4]).collect(Collectors.joining(","));
 
