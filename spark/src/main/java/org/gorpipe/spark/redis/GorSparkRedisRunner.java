@@ -160,8 +160,15 @@ public class GorSparkRedisRunner implements Callable<String> {
                             String fingerprint = map.get("fingerprint");
                             String projectRoot = map.get("projectRoot");
                             String requestId = map.get("request-id");
+                            String cachefile;
+                            if(map.containsKey("cachefile")) {
+                                cachefile = map.get("cachefile");
+                            } else {
+                                cachefile = "result_cache/" + fingerprint + CommandParseUtilities.getExtensionForQuery(gorquerybase, false);
+                            }
+
                             String gorquery = new String(Base64.decode(gorquerybase));
-                            return new String[] {gorquery, fingerprint, projectRoot, requestId, jobid};
+                            return new String[] {gorquery, fingerprint, projectRoot, requestId, jobid, cachefile};
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
