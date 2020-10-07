@@ -16,7 +16,7 @@ class UTestGorSparkSDK {
         val project = Paths.get("../tests/data")
         genesPath = project.resolve("gor/genes.gor").toAbsolutePath.normalize().toString
         val sparkSession = SparkSession.builder().master("local[1]").getOrCreate()
-        sparkGorSession = SparkGOR.createSession(sparkSession, project.toAbsolutePath.normalize().toString, System.getProperty("java.io.tmpdir"), 0)
+        sparkGorSession = SparkGOR.createSession(sparkSession, project.toAbsolutePath.normalize().toString, System.getProperty("java.io.tmpdir"))
     }
 
     @Test

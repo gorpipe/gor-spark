@@ -599,7 +599,7 @@ object SparkGOR {
     new GorSpark(null, false, null, q, null)
   }
 
-  def createSession(sparkSession: SparkSession, root: String, cache: String, operator: Int): GorSparkSession = {
+  def createSession(sparkSession: SparkSession, root: String, cache: String): GorSparkSession = {
     val standalone = System.getProperty("sm.standalone")
     if (standalone == null || standalone.length == 0) System.setProperty("sm.standalone", root)
     val sessionFactory = new SparkSessionFactory(sparkSession, root, cache, null)
@@ -608,14 +608,10 @@ object SparkGOR {
   }
 
   def createSession(sparkSession: SparkSession): GorSparkSession = {
-    createSession(sparkSession, "/gorproject", "result_cache", 0)
-  }
-
-  def createSession(sparkSession: SparkSession, operator: Int): GorSparkSession = {
-    createSession(sparkSession, "/gorproject", "result_cache", operator)
+    createSession(sparkSession, Paths.get("").toAbsolutePath.toString, Paths.get(System.getProperty("java.io.tmpdir")).toString)
   }
 
   def createSession(sparkSession: SparkSession, gorconfig: String): GorSparkSession = {
-    createSession(sparkSession, "/gorproject", "result_cache", 0)
+    createSession(sparkSession, "/gorproject", "result_cache")
   }
 }
