@@ -1,16 +1,14 @@
 package org.gorpipe.spark;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.gorpipe.gor.model.GorParallelQueryHandler;
@@ -63,9 +61,9 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
         final Set<Integer> sparkJobs = new TreeSet<>();
         final Set<Integer> gorJobs = new TreeSet<>();
 
+        Path root = Paths.get(projectDir);
         IntStream.range(0, commandsToExecute.length).forEach(i -> {
             Path cachePath = Paths.get(cacheFiles[i]);
-            Path root = Paths.get(projectDir);
 
             if(!Files.exists(root.resolve(cachePath))) {
                 String commandUpper = commandsToExecute[i].toUpperCase();
@@ -77,23 +75,52 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
             }
         });
 
-        Callable<String[]> sparkRes = () -> sparkJobs.parallelStream().map(i -> {
-            String cmd = commandsToExecute[i];
-            String jobId = jobIds[i];
-            int firstSpace = cmd.indexOf(' ');
-            cmd = cmd.substring(0, firstSpace + 1) + "-j " + jobId + cmd.substring(firstSpace);
-            String[] args = new String[]{cmd, "-queryhandler", "spark"};
-            PipeOptions options = new PipeOptions();
-            options.parseOptions(args);
-            PipeInstance pi = new PipeInstance(session.getGorContext());
+        Callable<String[]> sparkRes = () -> {
+            List<Object> ret = sparkJobs.parallelStream().map(i -> {
+                String cmd = commandsToExecute[i];
+                String jobId = jobIds[i];
+                int firstSpace = cmd.indexOf(' ');
+                cmd = cmd.substring(0, firstSpace + 1) + "-j " + jobId + cmd.substring(firstSpace);
+                String[] args = new String[]{cmd, "-queryhandler", "spark"};
+                PipeOptions options = new PipeOptions();
+                options.parseOptions(args);
+                PipeInstance pi = new PipeInstance(session.getGorContext());
 
-            String cacheFile = cacheFiles[i];
-            pi.subProcessArguments(options);
-            pi.theInputSource().pushdownWrite(cacheFile);
-            GorRunner runner = session.getSystemContext().getRunnerFactory().create();
-            runner.run(pi.getIterator(), pi.getPipeStep());
-            return cacheFile;
-        }).toArray(String[]::new);
+                String cacheFile = cacheFiles[i];
+                Path cachePath = Paths.get(cacheFile);
+                if (!cachePath.isAbsolute()) cachePath = root.resolve(cacheFile);
+                Path tmpCachePath = cachePath.getParent().resolve("tmp_" + cachePath.getFileName());
+                String tmpCacheFile = tmpCachePath.toString();
+
+                pi.subProcessArguments(options);
+                pi.theInputSource().pushdownWrite(tmpCacheFile);
+                GorRunner runner = session.getSystemContext().getRunnerFactory().create();
+                try {
+                    runner.run(pi.getIterator(), pi.getPipeStep());
+                    Files.move(tmpCachePath, cachePath);
+                } catch (Exception e) {
+                    try {
+                        if (Files.exists(tmpCachePath))
+                            Files.walk(tmpCachePath).sorted(Comparator.reverseOrder()).forEach(path -> {
+                                try {
+                                    Files.delete(path);
+                                } catch (IOException ioException) {
+                                    // Ignore
+                                }
+                            });
+                    } catch (IOException ioException) {
+                        // Ignore
+                    }
+                    return e;
+                }
+                return cacheFile;
+            }).collect(Collectors.toList());
+
+            Optional<Exception> oe = ret.stream().filter(o -> o instanceof Exception).map(o -> (Exception)o).findFirst();
+            if(oe.isPresent()) throw oe.get();
+
+            return ret.stream().map(s -> (String)s).toArray(String[]::new);
+        };
 
         Callable<String[]> otherRes = () -> {
             String[] newCommands = new String[gorJobs.size()];
