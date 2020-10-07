@@ -4,10 +4,7 @@ import gorsat.process.PipeInstance;
 import gorsat.process.PipeOptions;
 import org.apache.spark.sql.SparkSession;
 import org.gorpipe.gor.session.GorSession;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -161,6 +158,7 @@ public class UTestGorSparkQuery {
     }
 
     @Test
+    @Ignore("Test freeze")
     public void testExternalCommand() throws IOException {
         String pycode = "#!/usr/bin/env python\n" +
                 "import sys\n" +
