@@ -222,7 +222,7 @@ public class SparkPCA {
     }
 
     private static void pca(SparkSession spark, String projectRoot, String freeze, String pnlist, String variants, int partsize, int pcacomponents, Path pnpath, Path varpath, Path freezepath, int varcount, Path outpath, boolean sparse) throws IOException {
-        GorSparkSession gorSparkSession = SparkGOR.createSession(spark, projectRoot, "result_cache", 0);
+        GorSparkSession gorSparkSession = SparkGOR.createSession(spark, projectRoot, "result_cache", null, null);
 
         System.err.println("parameters: " + projectRoot + " " + freeze + " " + pnlist + " " + variants + " " + partsize + " " + pcacomponents + " " + outpath);
         System.err.println("varcount: " + varcount);
