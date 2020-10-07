@@ -224,9 +224,6 @@ public class SparkPCA {
     private static void pca(SparkSession spark, String projectRoot, String freeze, String pnlist, String variants, int partsize, int pcacomponents, Path pnpath, Path varpath, Path freezepath, int varcount, Path outpath, boolean sparse) throws IOException {
         GorSparkSession gorSparkSession = SparkGOR.createSession(spark, projectRoot, "result_cache", null, null);
 
-        System.err.println("parameters: " + projectRoot + " " + freeze + " " + pnlist + " " + variants + " " + partsize + " " + pcacomponents + " " + outpath);
-        System.err.println("varcount: " + varcount);
-
         String freezevariants = freezepath.resolve("variants.gord").toString();
 
         Dataset<Row> pnidx = (Dataset<Row>)gorSparkSession.spark("spark <(partgor -ff "+pnpath.toString()+" -partsize "+partsize+" -dict "+freezevariants+" <(gorrow 1,1 | calc pn '#{tags}' | split pn))",null);
