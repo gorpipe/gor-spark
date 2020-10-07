@@ -1,13 +1,10 @@
 package org.gorpipe.spark;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -63,9 +60,9 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
         final Set<Integer> sparkJobs = new TreeSet<>();
         final Set<Integer> gorJobs = new TreeSet<>();
 
+        Path root = Paths.get(projectDir);
         IntStream.range(0, commandsToExecute.length).forEach(i -> {
             Path cachePath = Paths.get(cacheFiles[i]);
-            Path root = Paths.get(projectDir);
 
             if(!Files.exists(root.resolve(cachePath))) {
                 String commandUpper = commandsToExecute[i].toUpperCase();
@@ -88,10 +85,30 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
             PipeInstance pi = new PipeInstance(session.getGorContext());
 
             String cacheFile = cacheFiles[i];
+            Path cachePath = Paths.get(cacheFile);
+            if (!cachePath.isAbsolute()) cachePath = root.resolve(cacheFile);
+            Path tmpCachePath = cachePath.getParent().resolve("tmp_" + cachePath.getFileName());
+            String tmpCacheFile = tmpCachePath.toString();
+
             pi.subProcessArguments(options);
-            pi.theInputSource().pushdownWrite(cacheFile);
+            pi.theInputSource().pushdownWrite(tmpCacheFile);
             GorRunner runner = session.getSystemContext().getRunnerFactory().create();
-            runner.run(pi.getIterator(), pi.getPipeStep());
+            try {
+                runner.run(pi.getIterator(), pi.getPipeStep());
+                Files.move(tmpCachePath, cachePath);
+            } catch (Exception e) {
+                try {
+                    if(Files.exists(tmpCachePath)) Files.walk(tmpCachePath).sorted(Comparator.reverseOrder()).forEach(path -> {
+                        try {
+                            Files.delete(path);
+                        } catch (IOException ioException) {
+                            // Ignore
+                        }
+                    });
+                } catch (IOException ioException) {
+                    // Ignore
+                }
+            }
             return cacheFile;
         }).toArray(String[]::new);
 
