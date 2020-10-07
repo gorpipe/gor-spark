@@ -174,6 +174,7 @@ project(':spark') {
             exclude group: 'com.google.guava', module: 'guava'
         }
         compile 'org.apache.hadoop:hadoop-hdfs-client:3.3.0'
+        compile 'org.apache.hadoop:hadoop-aws:3.3.0'
 
         implementation("redis.clients:jedis:3.1.0")
 

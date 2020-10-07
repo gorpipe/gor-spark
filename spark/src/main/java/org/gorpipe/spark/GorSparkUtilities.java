@@ -34,7 +34,7 @@ public class GorSparkUtilities {
     private static SparkSession spark;
     private static Py4JServer py4jServer;
     private static Optional<Process> jupyterProcess;
-    private static Optional<String> jupyterPath;
+    private static Optional<String> jupyterPath = Optional.empty();
     private static ExecutorService es;
 
     private GorSparkUtilities() {}

@@ -292,7 +292,11 @@ public class SparkRowUtilities {
                     gor = gorSparkSession.getSparkSession().read().format(bgenDataSource).load(fileName);
                     dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
                 } else if (fileName.toLowerCase().endsWith(".gor") || fileName.toLowerCase().endsWith(".nor") || fileName.toLowerCase().endsWith(".tsv") || fileName.toLowerCase().endsWith(".csv")) {
-                    DataFrameReader dfr = gorSparkSession.getSparkSession().read().format("csv").option("header",true).option("inferSchema",true);
+                    DataFrameReader dfr = gorSparkSession.getSparkSession().read();
+                    //if(fileName.toLowerCase().startsWith("s3")) dfr = dfr.format("s3selectCSV");
+                    //else
+                        dfr = dfr.format("csv");
+                    dfr = dfr.option("header",true).option("inferSchema",true);
                     if(!fileName.toLowerCase().endsWith(".csv")) dfr = dfr.option("delimiter","\t");
                     gor = dfr.load(fileName);
                     dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);

@@ -109,6 +109,27 @@ class UTestGorSparkSDK {
         Assert.assertEquals("Wrong result","[chr1,10179,N,NC,InDel,rs367896724,NA]",res)
     }
 
+    @Test
+    def testPaperQuery3() {
+        import org.gorpipe.spark.GorDatasetFunctions._
+        val spark = sparkGorSession.sparkSession
+        implicit val sgs = sparkGorSession
+
+        val dbsnpGorz = spark.read.format("gorsat.spark.GorDataSource").load("/Users/sigmar/testproject/ref/dbsnp/dbsnp.gorz").limit(1000)
+        dbsnpGorz.write.save("dbsnp.parquet")
+        dbsnpGorz.show()
+
+        // Example 9
+        val dbsnpDf = spark.read.load("dbsnp.parquet")
+        sgs.setCreate("#myexons#", "gor /Users/sigmar/testproject/ref/genes.gorz")
+
+        val myVars = dbsnpDf.gor("calc type = if(len(reference)=len(allele),'Snp','InDel')")
+        myVars.createOrReplaceTempView("myVars")
+        sgs.setDef("#VEP#","/Users/sigmar/testproject/ref/dbsnp/dbsnp.gorz")
+        val myVarsAnno = sgs.dataframe("select * from myVars order by chrom,pos").gor("varnorm -left reference allele | group 1 -gc reference,allele,type -set -sc rsIDs | rename set_rsIDs rsIDs | varjoin -r -l -e 'NA' <(gor #VEP# | top 1000 | select 1-allele,rsIDs)")
+        myVarsAnno.show()
+    }
+
     @After
     def close() {
         sparkGorSession.close()
