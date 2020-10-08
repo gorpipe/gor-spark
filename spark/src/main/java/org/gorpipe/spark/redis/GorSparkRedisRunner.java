@@ -233,7 +233,9 @@ public class GorSparkRedisRunner implements Callable<String> {
                                 newCacheFiles[k] = cachefiles[i];
                                 k++;
                             }
-                            GorQueryRDD gorQueryRDD = new GorQueryRDD(sparkSession, newCommands, newFingerprints, newCacheFiles, projectDirStr, "result_cache", newJobIds, redisUri);
+                            String configFile = gss.getProjectContext() != null ? gss.getProjectContext().getGorConfigFile();
+                            String aliasFile = gss.getProjectContext() != null ? gss.getProjectContext().getGorAliasFile();
+                            GorQueryRDD gorQueryRDD = new GorQueryRDD(sparkSession, newCommands, newFingerprints, newCacheFiles, projectDirStr, "result_cache", configFile, aliasFile, newJobIds, redisUri);
                             Future<List<String>> fut = gorQueryRDD.toJavaRDD().collectAsync();
                             futureActionSet.put(jobIdStr, fut);
                         }
