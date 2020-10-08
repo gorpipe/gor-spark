@@ -11,7 +11,7 @@ import org.gorpipe.gor.monitor.GorMonitor
 import scala.collection.mutable.ListBuffer
 
 //Todo handle GORDICT and GORDICTPART
-class GorQueryRDD(sparkSession: SparkSession, commandsToExecute: Array[String], commandSignatures: Array[String], cacheFiles: Array[String], projectDirectory: String, cacheDirectory: String, jobIds: Array[String], redisUri: String) extends RDD[String](sparkSession.sparkContext, Nil) {
+class GorQueryRDD(sparkSession: SparkSession, commandsToExecute: Array[String], commandSignatures: Array[String], cacheFiles: Array[String], projectDirectory: String, cacheDirectory: String, configFile: String, aliasFile: String, jobIds: Array[String], redisUri: String) extends RDD[String](sparkSession.sparkContext, Nil) {
   require(cacheDirectory!=null)
   require(projectDirectory!=null)
   require(commandsToExecute!=null)
@@ -45,7 +45,7 @@ class GorQueryRDD(sparkSession: SparkSession, commandsToExecute: Array[String], 
       val tempFile_absolutepath = temp_cacheFile.toAbsolutePath.normalize().toString
       try {
         val sparkGorMonitor : GorMonitor = if(SparkGorMonitor.localProgressMonitor!=null) SparkGorMonitor.localProgressMonitor else new SparkGorMonitor(redisUri, jobId)
-        val engine = new SparkGorExecutionEngine(commandToExecute, projectDirectory, cacheDirectory, tempFile_absolutepath, sparkGorMonitor)
+        val engine = new SparkGorExecutionEngine(commandToExecute, projectDirectory, cacheDirectory, configFile, aliasFile, tempFile_absolutepath, sparkGorMonitor)
         engine.execute()
         Files.move(temp_cacheFile, cacheFilePath)
       } catch {
