@@ -58,6 +58,8 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
     boolean tag;
     String projectRoot;
     String cacheDir;
+    String configFile;
+    String aliasFile;
 
     public GorBatchTable(String query, boolean tag, String path, String filter, String filterFile, String filterColumn, String splitFile, String seek, String redisUri, String jobId, String cacheFile, String useCpp) {
         init(query,tag,path,filter,filterFile,filterColumn,splitFile,seek,redisUri,jobId,cacheFile,useCpp);
@@ -74,6 +76,14 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
 
     public void setCacheDir(String cacheDir) {
         this.cacheDir = cacheDir;
+    }
+
+    public void setConfigFile(String configFile) {
+        this.configFile = configFile;
+    }
+
+    public void setAliasFile(String aliasFile) {
+        this.aliasFile = aliasFile;
     }
 
     void checkSeek(String seek) {
@@ -112,7 +122,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
         if(query!=null) {
             if(query.toLowerCase().startsWith("pgor") || query.toLowerCase().startsWith("partgor") || query.toLowerCase().startsWith("parallel")) {
                 ReceiveQueryHandler receiveQueryHandler = new ReceiveQueryHandler();
-                SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectRoot, cacheDir, null, receiveQueryHandler);
+                SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectRoot, cacheDir, configFile, aliasFile, null, receiveQueryHandler);
                 GorSparkSession gorPipeSession = (GorSparkSession) sessionFactory.create();
                 ScriptExecutionEngine see = ScriptEngineFactory.create(gorPipeSession.getGorContext());
                 see.execute(new String[]{query}, false);
@@ -135,7 +145,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
         } else if(commands!=null) {
             String query = commands[0];
             boolean nor = query.toLowerCase().startsWith("nor ");
-            SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectRoot, cacheDir, null);
+            SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectRoot, cacheDir, configFile, aliasFile, null);
             GorSparkSession gorPipeSession = (GorSparkSession) sessionFactory.create();
             GorDataType gdt = SparkRowUtilities.gorCmdSchema(query,gorPipeSession, nor);
 
@@ -196,7 +206,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
     @Override
     public ScanBuilder newScanBuilder(CaseInsensitiveStringMap caseInsensitiveStringMap) {
         if(schema==null) inferSchema();
-        return new GorScanBuilder(schema, redisUri, jobId, cacheFile, projectRoot, cacheDir, useCpp) {
+        return new GorScanBuilder(schema, redisUri, jobId, cacheFile, projectRoot, cacheDir, configFile, aliasFile, useCpp) {
             Filter[] pushedFilters = new Filter[0];
             String filterChrom = fchrom;
             int start = fstart;
@@ -306,7 +316,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
 
                     if (partitions == null) {
                         Map<String,Integer> buildSizeGeneric = ReferenceBuildDefaults.buildSizeGeneric();
-                        partitions = buildSizeGeneric.entrySet().stream().map(e -> new GorRangeInputPartition(path, filter, filterFile, filterColumn,e.getKey(), 0, e.getValue(), e.getKey())).toArray(InputPartition[]::new);
+                        partitions = buildSizeGeneric.entrySet().stream().sorted(Comparator.comparing(Map.Entry::getKey)).map(e -> new GorRangeInputPartition(path, filter, filterFile, filterColumn,e.getKey(), 0, e.getValue(), e.getKey())).toArray(InputPartition[]::new);
                     }
                 }
                 return partitions;

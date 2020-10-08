@@ -3,13 +3,12 @@ package gorsat.spark;
 import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.types.StructType;
-import org.gorpipe.model.gor.RowObj;
 
 public class GorStringPartitionReader extends GorPartitionReader {
     String stringRow;
 
-    public GorStringPartitionReader(StructType schema, GorRangeInputPartition gorRangeInputPartition, String redisUri, String jobId, String projectRoot, String cacheDir, String useCpp) {
-        super(schema,gorRangeInputPartition,redisUri,jobId,projectRoot,cacheDir,useCpp);
+    public GorStringPartitionReader(StructType schema, GorRangeInputPartition gorRangeInputPartition, String redisUri, String jobId, String projectRoot, String cacheDir, String configFile, String aliasFile, String useCpp) {
+        super(schema,gorRangeInputPartition,redisUri,jobId,projectRoot,cacheDir,configFile,aliasFile,useCpp);
     }
 
     @Override

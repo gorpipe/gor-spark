@@ -23,7 +23,7 @@ public class UTestGorSparkQuery {
     public void init() {
         SparkSession sparkSession = SparkSession.builder().master("local[1]").getOrCreate();
         Glow.register(sparkSession);
-        SparkSessionFactory sparkSessionFactory = new SparkSessionFactory(sparkSession, Paths.get(".").toAbsolutePath().normalize().toString(), System.getProperty("java.io.tmpdir"), null);
+        SparkSessionFactory sparkSessionFactory = new SparkSessionFactory(sparkSession, Paths.get(".").toAbsolutePath().normalize().toString(), System.getProperty("java.io.tmpdir"), null, null, null);
         GorSession session = sparkSessionFactory.create();
         pi = new PipeInstance(session.getGorContext());
     }
@@ -189,11 +189,6 @@ public class UTestGorSparkQuery {
     @Test
     public void testGorzSparkQueryWithGorpipe() {
         testSparkQuery("spark ../tests/data/gor/genes.gorz | top 5 | group chrom -count", "chr1\t0\t250000000\t5");
-    }
-
-    @Test
-    public void testNorQuery() {
-        testSparkQuery("create xxx = select * from /Users/sigmar/part-00000-9dcd53a5-865c-4be2-88ae-eb333b8a0e10-c000.snappy.parquet limit 10; create mmm = nor [xxx]; create uuu = select * from [mmm]; nor [uuu]", "chr1\t0\t250000000\t5");
     }
 
     @Test

@@ -345,6 +345,8 @@ public class SparkRowUtilities {
                             if (dictFile != null) {
                                 DataFrameReader dfr = gorSparkSession.getSparkSession().read().format(gordatasourceClassname);
                                 if (fileroot != null) dfr.option("projectroot", fileroot.toString());
+                                dfr.option("aliasfile", gorSparkSession.getProjectContext().getGorAliasFile());
+                                dfr.option("configfile", gorSparkSession.getProjectContext().getGorConfigFile());
                                 if (filter != null) dfr = dfr.option("f", filter);
                                 if (filterFile != null) dfr = dfr.option("ff", filterFile);
                                 if (splitFile != null) dfr = dfr.option("split", splitFile);
