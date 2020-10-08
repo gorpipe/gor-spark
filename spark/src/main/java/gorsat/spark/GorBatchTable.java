@@ -58,6 +58,8 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
     boolean tag;
     String projectRoot;
     String cacheDir;
+    String configFile;
+    String aliasFile;
 
     public GorBatchTable(String query, boolean tag, String path, String filter, String filterFile, String filterColumn, String splitFile, String seek, String redisUri, String jobId, String cacheFile, String useCpp) {
         init(query,tag,path,filter,filterFile,filterColumn,splitFile,seek,redisUri,jobId,cacheFile,useCpp);
@@ -74,6 +76,14 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
 
     public void setCacheDir(String cacheDir) {
         this.cacheDir = cacheDir;
+    }
+
+    public void setConfigFile(String configFile) {
+        this.configFile = configFile;
+    }
+
+    public void setAliasFile(String aliasFile) {
+        this.aliasFile = aliasFile;
     }
 
     void checkSeek(String seek) {
