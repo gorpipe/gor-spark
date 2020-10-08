@@ -122,7 +122,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
         if(query!=null) {
             if(query.toLowerCase().startsWith("pgor") || query.toLowerCase().startsWith("partgor") || query.toLowerCase().startsWith("parallel")) {
                 ReceiveQueryHandler receiveQueryHandler = new ReceiveQueryHandler();
-                SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectRoot, cacheDir, null, receiveQueryHandler);
+                SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectRoot, cacheDir, configFile, aliasFile, null, receiveQueryHandler);
                 GorSparkSession gorPipeSession = (GorSparkSession) sessionFactory.create();
                 ScriptExecutionEngine see = ScriptEngineFactory.create(gorPipeSession.getGorContext());
                 see.execute(new String[]{query}, false);
@@ -145,7 +145,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
         } else if(commands!=null) {
             String query = commands[0];
             boolean nor = query.toLowerCase().startsWith("nor ");
-            SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectRoot, cacheDir, null);
+            SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectRoot, cacheDir, configFile, aliasFile, null);
             GorSparkSession gorPipeSession = (GorSparkSession) sessionFactory.create();
             GorDataType gdt = SparkRowUtilities.gorCmdSchema(query,gorPipeSession, nor);
 
@@ -206,7 +206,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
     @Override
     public ScanBuilder newScanBuilder(CaseInsensitiveStringMap caseInsensitiveStringMap) {
         if(schema==null) inferSchema();
-        return new GorScanBuilder(schema, redisUri, jobId, cacheFile, projectRoot, cacheDir, useCpp) {
+        return new GorScanBuilder(schema, redisUri, jobId, cacheFile, projectRoot, cacheDir, configFile, aliasFile, useCpp) {
             Filter[] pushedFilters = new Filter[0];
             String filterChrom = fchrom;
             int start = fstart;
