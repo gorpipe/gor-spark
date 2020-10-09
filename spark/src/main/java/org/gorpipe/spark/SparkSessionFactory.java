@@ -44,12 +44,12 @@ public class SparkSessionFactory extends GorSessionFactory {
             Path configPath = Paths.get(configFile);
             if(!configPath.isAbsolute()) configPath = rootPath.resolve(configPath);
             this.configFile = Files.exists(configPath) ? Optional.of(configPath.toAbsolutePath().toString()) : Optional.empty();
-        }
+        } else this.configFile = Optional.empty();
         if(aliasFile != null && aliasFile.length() > 0) {
             Path aliasPath = Paths.get(aliasFile);
             if(!aliasPath.isAbsolute()) aliasPath = rootPath.resolve(aliasPath);
             this.aliasFile = Files.exists(aliasPath) ? Optional.of(aliasPath.toAbsolutePath().toString()) : Optional.empty();
-        }
+        } else this.aliasFile = Optional.empty();
         this.sparkSession = sparkSession;
         this.sparkGorMonitor = sparkMonitor;
     }
