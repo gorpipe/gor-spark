@@ -16,14 +16,14 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 public class UTestGorSparkQuery {
-
+    SparkSession spark;
     PipeInstance pi;
 
     @Before
     public void init() {
-        SparkSession sparkSession = SparkSession.builder().master("local[1]").getOrCreate();
-        Glow.register(sparkSession);
-        SparkSessionFactory sparkSessionFactory = new SparkSessionFactory(sparkSession, Paths.get(".").toAbsolutePath().normalize().toString(), System.getProperty("java.io.tmpdir"), null, null, null);
+        spark = SparkSession.builder().master("local[2]").getOrCreate();
+        Glow.register(spark);
+        SparkSessionFactory sparkSessionFactory = new SparkSessionFactory(spark, Paths.get(".").toAbsolutePath().normalize().toString(), System.getProperty("java.io.tmpdir"), null, null, null);
         GorSession session = sparkSessionFactory.create();
         pi = new PipeInstance(session.getGorContext());
     }
@@ -34,6 +34,17 @@ public class UTestGorSparkQuery {
         pi.subProcessArguments(pipeOptions);
         String result = StreamSupport.stream(Spliterators.spliteratorUnknownSize(pi.theInputSource(), 0), false).map(Object::toString).collect(Collectors.joining("\n"));
         Assert.assertEquals("Wrong results from spark query: " + query, expectedResult, result);
+    }
+
+    @Test
+    public void testClinvalQuery() {
+        var df = spark.read().format("vcf").option("flattenInfoFields", true).load("/Users/sigmar/testproject/clinvar.vcf.gz").limit(5);
+        df.createOrReplaceTempView("clinvar2");
+        testSparkQuery("create data = select * from clinvar2; nor [data] | top 5", "chr1\t11868\t14412\tDDX11L1\n" +
+                "chr1\t14362\t29806\tWASH7P\n" +
+                "chr1\t34553\t36081\tFAM138A\n" +
+                "chr1\t53048\t54936\tAL627309.1\n" +
+                "chr1\t62947\t63887\tOR4G11P");
     }
 
     @Test
