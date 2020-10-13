@@ -172,6 +172,20 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
     defMap.remove(name)
   }
 
+  def clearDefs(): Unit = {
+    defMap.clear()
+  }
+
+  def clearCreates(): Unit = {
+    createMap.clear()
+  }
+
+  def clearAll(): Unit = {
+    clearDefs()
+    clearCreates()
+    creates = ""
+  }
+
   def create(name: String, cmd: String): String = {
     createMap.put(name, cmd)
   }
