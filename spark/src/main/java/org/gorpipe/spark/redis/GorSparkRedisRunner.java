@@ -2,7 +2,6 @@ package org.gorpipe.spark.redis;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gorsat.Commands.CommandParseUtilities;
-import gorsat.Commands.Processor;
 import gorsat.process.*;
 import org.apache.spark.api.java.function.VoidFunction2;
 import org.apache.spark.sql.*;
@@ -12,7 +11,6 @@ import org.gorpipe.exceptions.ExceptionUtilities;
 import org.gorpipe.gor.session.GorContext;
 import org.gorpipe.gor.session.ProjectContext;
 import org.gorpipe.gor.session.SystemContext;
-import org.gorpipe.model.gor.iterators.RowSource;
 import org.gorpipe.spark.GorQueryRDD;
 import org.gorpipe.spark.GorSparkSession;
 import org.gorpipe.spark.GorSparkUtilities;
@@ -105,20 +103,24 @@ public class GorSparkRedisRunner implements Callable<String> {
 
     class SparkGorQuery implements Callable<List<String>> {
         GenericGorRunner genericGorRunner;
-        RowSource iterator;
-        Processor processor;
+        String cmd;
         String cachefile;
+        GorContext context;
 
-        public SparkGorQuery(RowSource iterator, Processor processor, String cachefile) {
+        public SparkGorQuery(GorContext ctx, String cmd, String cachefile) {
             genericGorRunner = new GenericGorRunner();
-            this.iterator = iterator;
-            this.processor = processor;
+            this.context = ctx;
+            this.cmd = cmd;
             this.cachefile = cachefile;
         }
 
         @Override
         public List<String> call() throws Exception {
-            genericGorRunner.run(iterator,processor);
+            PipeInstance pi = new PipeInstance(context);
+            pi.init(cmd, false, "");
+            pi.theInputSource().pushdownWrite(cachefile);
+
+            genericGorRunner.run(pi.getIterator(), pi.getPipeStep());
             return Collections.singletonList("a\tb\t"+cachefile);
         }
     }
@@ -206,12 +208,9 @@ public class GorSparkRedisRunner implements Callable<String> {
                                         .build();
                                 gss.init(prjctx, sysctx, null);
                                 GorContext context = new GorContext(gss);
-                                PipeInstance pi = new PipeInstance(context);
-
                                 String cacheFile = cachefiles[i];
-                                pi.init(cmd, false, "");
-                                pi.theInputSource().pushdownWrite(cacheFile);
-                                SparkGorQuery sgq = new SparkGorQuery(pi.getIterator(), pi.getPipeStep(), cacheFile);
+
+                                SparkGorQuery sgq = new SparkGorQuery(context, cmd, cacheFile);
                                 Future<List<String>> fut = es.submit(sgq);
                                 futureActionSet.put(jobId, fut);
                             } else {
