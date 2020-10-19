@@ -9,8 +9,8 @@ import org.apache.spark.sql.connector.write.LogicalWriteInfo;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.StructField;
+import org.gorpipe.gor.reference.ReferenceBuildDefaults;
 import org.gorpipe.spark.GorSparkSession;
-import gorsat.process.SparkRowSource;
 import org.apache.spark.sql.connector.catalog.SupportsRead;
 import org.apache.spark.sql.connector.catalog.SupportsWrite;
 import org.apache.spark.sql.connector.catalog.Table;
@@ -58,6 +58,8 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
     boolean tag;
     String projectRoot;
     String cacheDir;
+    String configFile;
+    String aliasFile;
 
     public GorBatchTable(String query, boolean tag, String path, String filter, String filterFile, String filterColumn, String splitFile, String seek, String redisUri, String jobId, String cacheFile, String useCpp) {
         init(query,tag,path,filter,filterFile,filterColumn,splitFile,seek,redisUri,jobId,cacheFile,useCpp);
@@ -74,6 +76,14 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
 
     public void setCacheDir(String cacheDir) {
         this.cacheDir = cacheDir;
+    }
+
+    public void setConfigFile(String configFile) {
+        this.configFile = configFile;
+    }
+
+    public void setAliasFile(String aliasFile) {
+        this.aliasFile = aliasFile;
     }
 
     void checkSeek(String seek) {
@@ -112,7 +122,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
         if(query!=null) {
             if(query.toLowerCase().startsWith("pgor") || query.toLowerCase().startsWith("partgor") || query.toLowerCase().startsWith("parallel")) {
                 ReceiveQueryHandler receiveQueryHandler = new ReceiveQueryHandler();
-                SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectRoot, cacheDir, null, receiveQueryHandler);
+                SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectRoot, cacheDir, configFile, aliasFile, null, receiveQueryHandler);
                 GorSparkSession gorPipeSession = (GorSparkSession) sessionFactory.create();
                 ScriptExecutionEngine see = ScriptEngineFactory.create(gorPipeSession.getGorContext());
                 see.execute(new String[]{query}, false);
@@ -135,7 +145,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
         } else if(commands!=null) {
             String query = commands[0];
             boolean nor = query.toLowerCase().startsWith("nor ");
-            SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectRoot, cacheDir, null);
+            SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectRoot, cacheDir, configFile, aliasFile, null);
             GorSparkSession gorPipeSession = (GorSparkSession) sessionFactory.create();
             GorDataType gdt = SparkRowUtilities.gorCmdSchema(query,gorPipeSession, nor);
 
@@ -196,7 +206,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
     @Override
     public ScanBuilder newScanBuilder(CaseInsensitiveStringMap caseInsensitiveStringMap) {
         if(schema==null) inferSchema();
-        return new GorScanBuilder(schema, redisUri, jobId, cacheFile, projectRoot, cacheDir, useCpp) {
+        return new GorScanBuilder(schema, redisUri, jobId, cacheFile, projectRoot, cacheDir, configFile, aliasFile, useCpp) {
             Filter[] pushedFilters = new Filter[0];
             String filterChrom = fchrom;
             int start = fstart;
@@ -305,31 +315,8 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
                     }
 
                     if (partitions == null) {
-                        partitions = new InputPartition[24];
-                        partitions[0] = new GorRangeInputPartition(path, filter, filterFile, filterColumn,"chr1", 0, 249250621, "chr1");
-                        partitions[1] = new GorRangeInputPartition(path, filter, filterFile, filterColumn, "chr10", 0, 135534747, "chr10");
-                        partitions[2] = new GorRangeInputPartition(path, filter, filterFile, filterColumn, "chr11", 0, 135006516, "chr11");
-                        partitions[3] = new GorRangeInputPartition(path, filter, filterFile, filterColumn, "chr12", 0, 133851895, "chr12");
-                        partitions[4] = new GorRangeInputPartition(path, filter, filterFile, filterColumn, "chr13", 0, 115169878, "chr13");
-                        partitions[5] = new GorRangeInputPartition(path, filter, filterFile, filterColumn, "chr14", 0, 107349540, "chr14");
-                        partitions[6] = new GorRangeInputPartition(path, filter, filterFile, filterColumn, "chr15", 0, 102531392, "chr15");
-                        partitions[7] = new GorRangeInputPartition(path, filter, filterFile, filterColumn, "chr16", 0, 90354753, "chr16");
-                        partitions[8] = new GorRangeInputPartition(path, filter, filterFile, filterColumn, "chr17", 0, 81195210, "chr17");
-                        partitions[9] = new GorRangeInputPartition(path, filter, filterFile, filterColumn, "chr18", 0, 78077248, "chr18");
-                        partitions[10] = new GorRangeInputPartition(path, filter, filterFile, filterColumn, "chr19", 0, 59128983, "chr19");
-                        partitions[11] = new GorRangeInputPartition(path, filter, filterFile, filterColumn, "chr2", 0, 243199373, "chr2");
-                        partitions[12] = new GorRangeInputPartition(path, filter, filterFile, filterColumn, "chr20", 0, 63025520, "chr20");
-                        partitions[13] = new GorRangeInputPartition(path, filter, filterFile, filterColumn, "chr21", 0, 48129895, "chr21");
-                        partitions[14] = new GorRangeInputPartition(path, filter, filterFile, filterColumn, "chr22", 0, 51304566, "chr22");
-                        partitions[15] = new GorRangeInputPartition(path, filter, filterFile, filterColumn, "chr3", 0, 198022430, "chr3");
-                        partitions[16] = new GorRangeInputPartition(path, filter, filterFile, filterColumn, "chr4", 0, 191154276, "chr4");
-                        partitions[17] = new GorRangeInputPartition(path, filter, filterFile, filterColumn, "chr5", 0, 180915260, "chr5");
-                        partitions[18] = new GorRangeInputPartition(path, filter, filterFile, filterColumn, "chr6", 0, 171115067, "chr6");
-                        partitions[19] = new GorRangeInputPartition(path, filter, filterFile, filterColumn, "chr7", 0, 159138663, "chr7");
-                        partitions[20] = new GorRangeInputPartition(path, filter, filterFile, filterColumn, "chr8", 0, 146364022, "chr8");
-                        partitions[21] = new GorRangeInputPartition(path, filter, filterFile, filterColumn, "chr9", 0, 141213431, "chr9");
-                        partitions[22] = new GorRangeInputPartition(path, filter, filterFile, filterColumn, "chrX", 0, 155270560, "chrX");
-                        partitions[23] = new GorRangeInputPartition(path, filter, filterFile, filterColumn, "chrY", 0, 59373566, "chrY");
+                        Map<String,Integer> buildSizeGeneric = ReferenceBuildDefaults.buildSizeGeneric();
+                        partitions = buildSizeGeneric.entrySet().stream().sorted(Comparator.comparing(Map.Entry::getKey)).map(e -> new GorRangeInputPartition(path, filter, filterFile, filterColumn,e.getKey(), 0, e.getValue(), e.getKey())).toArray(InputPartition[]::new);
                     }
                 }
                 return partitions;

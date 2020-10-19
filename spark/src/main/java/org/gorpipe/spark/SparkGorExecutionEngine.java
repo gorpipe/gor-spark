@@ -23,12 +23,16 @@ public class SparkGorExecutionEngine extends GorExecutionEngine {
     private String projectDirectory;
     private String cacheDirectory;
     private String outfile;
+    private String configFile;
+    private String aliasFile;
     private GorMonitor sparkMonitor;
 
-    public SparkGorExecutionEngine(String query, String projectDirectory, String cacheDirectory, String outfile, GorMonitor sparkMonitor) {
+    public SparkGorExecutionEngine(String query, String projectDirectory, String cacheDirectory, String configFile, String aliasFile, String outfile, GorMonitor sparkMonitor) {
         this.query = query;
         this.projectDirectory = projectDirectory;
         this.cacheDirectory = cacheDirectory;
+        this.configFile = configFile;
+        this.aliasFile = aliasFile;
         this.outfile = outfile;
         this.sparkMonitor = sparkMonitor;
     }
@@ -61,7 +65,7 @@ public class SparkGorExecutionEngine extends GorExecutionEngine {
 
     @Override
     public GorSession createSession() {
-        SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectDirectory, cacheDirectory, sparkMonitor);
+        SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectDirectory, cacheDirectory, configFile, aliasFile, sparkMonitor);
         return sessionFactory.create();
     }
 

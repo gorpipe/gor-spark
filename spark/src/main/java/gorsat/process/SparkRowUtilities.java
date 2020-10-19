@@ -125,10 +125,6 @@ public class SparkRowUtilities {
         return gdt;
     }
 
-    static SparkSession getSparkSession(GorSparkSession gorSparkSession, Path fileroot, String profile) {
-        return gorSparkSession.getSparkSession(fileroot != null ? fileroot.toString() : null, null, profile);
-    }
-
     public static Dataset<? extends org.apache.spark.sql.Row> registerFile(String[] fns, String name, String profile, GorSparkSession gorSparkSession, String standalone, Path fileroot, Path cacheDir, boolean usestreaming, String filter, String filterFile, String filterColumn, String splitFile, final boolean nor, final String chr, final int pos, final int end, final String jobid, String cacheFile, boolean cpp, boolean tag) throws IOException, DataFormatException {
         String fn = fns[0];
         boolean curlyQuery = fn.startsWith("{");
@@ -146,7 +142,7 @@ public class SparkRowUtilities {
         Map<Integer, DataType> dataTypeMap;
         DataType[] dataTypes;
         Dataset<? extends org.apache.spark.sql.Row> gor;
-        String[] tableNames = getSparkSession(gorSparkSession, fileroot, profile).sqlContext().tableNames();
+        String[] tableNames = gorSparkSession.getSparkSession().sqlContext().tableNames();
         if (gorSparkSession.datasetMap().containsKey(tempViewName) && Arrays.asList(tableNames).contains(tempViewName)) {
             RowDataType rdt = gorSparkSession.datasetMap().get(tempViewName);
             gor = rdt.dataset;
@@ -219,7 +215,7 @@ public class SparkRowUtilities {
                     fNames = null;
                 }
 
-                JavaRDD<Row> rdd = new RowGorRDD(getSparkSession(gorSparkSession, fileroot, profile), gorcmd, "", !hasFilter && fNames != null ? String.join(",", fNames.values()) : null, chr, pos, end, true).toJavaRDD();
+                JavaRDD<Row> rdd = new RowGorRDD(gorSparkSession.getSparkSession(), gorcmd, "", !hasFilter && fNames != null ? String.join(",", fNames.values()) : null, chr, pos, end, true).toJavaRDD();
 
                 Function<Row, org.apache.spark.sql.Row> rfunc = (Function<Row, org.apache.spark.sql.Row>) a -> {
                     Object[] o = new Object[a.numCols()];
@@ -233,7 +229,7 @@ public class SparkRowUtilities {
                     return RowFactory.create(o);
                 };
                 JavaRDD nrdd = rdd.map(rfunc);
-                gor = getSparkSession(gorSparkSession,fileroot,profile).createDataset(nrdd.rdd(), encoder);
+                gor = gorSparkSession.getSparkSession().createDataset(nrdd.rdd(), encoder);
             } else {
                 boolean isGord = fileName.toLowerCase().endsWith(".gord");
                 Map<Path, String> fNames;
@@ -275,7 +271,7 @@ public class SparkRowUtilities {
                     dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
                     //gor = registerFile();
                 } else if (fileName.startsWith("pgor ") || fileName.startsWith("partgor ") || fileName.startsWith("parallel ") || fileName.startsWith("gor ") || fileName.startsWith("nor ")) {
-                    DataFrameReader dfr = getSparkSession(gorSparkSession,fileroot,profile).read().format(gordatasourceClassname);
+                    DataFrameReader dfr = gorSparkSession.getSparkSession().read().format(gordatasourceClassname);
                     dfr.option("query", fileName);
                     if (tag) dfr.option("tag", true);
                     dfr.option("projectroot", fileroot.toString());
@@ -283,20 +279,20 @@ public class SparkRowUtilities {
                     gor = dfr.load();
                     dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
                 } else if (fileName.toLowerCase().endsWith(".parquet")) {
-                    gor = getSparkSession(gorSparkSession,fileroot, profile).read().format("org.apache.spark.sql.execution.datasources.v2.parquet.ParquetDataSourceV2").load(fileName);
+                    gor = gorSparkSession.getSparkSession().read().format("org.apache.spark.sql.execution.datasources.v2.parquet.ParquetDataSourceV2").load(fileName);
                     dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
                 } else if (fileName.toLowerCase().endsWith(".vcf") || fileName.toLowerCase().endsWith(".vcf.gz") || fileName.toLowerCase().endsWith(".vcf.bgz")) {
                     //io.projectglow.vcf.VCFFileFormat f;
                     String vcfDataSource = "io.projectglow.vcf.VCFFileFormat"; //vcf
-                    gor = getSparkSession(gorSparkSession,fileroot,profile).read().format(vcfDataSource).load(fileName);
+                    gor = gorSparkSession.getSparkSession().read().format(vcfDataSource).load(fileName);
                     dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
                 } else if (fileName.toLowerCase().endsWith(".bgen")) {
                     //io.projectglow.vcf.VCFFileFormat f;
                     String bgenDataSource = "io.projectglow.bgen.BgenFileFormat"; //vcf
-                    gor = getSparkSession(gorSparkSession,fileroot,profile).read().format(bgenDataSource).load(fileName);
+                    gor = gorSparkSession.getSparkSession().read().format(bgenDataSource).load(fileName);
                     dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
                 } else if (fileName.toLowerCase().endsWith(".gor") || fileName.toLowerCase().endsWith(".nor") || fileName.toLowerCase().endsWith(".tsv") || fileName.toLowerCase().endsWith(".csv")) {
-                    DataFrameReader dfr = getSparkSession(gorSparkSession,fileroot,profile).read().format("csv").option("header",true).option("inferSchema",true);
+                    DataFrameReader dfr = gorSparkSession.getSparkSession().read().format("csv").option("header",true).option("inferSchema",true);
                     if(!fileName.toLowerCase().endsWith(".csv")) dfr = dfr.option("delimiter","\t");
                     gor = dfr.load(fileName);
                     dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
@@ -343,8 +339,10 @@ public class SparkRowUtilities {
                         if (uNames != null) {
                             // hey SparkGorUtilities.getSparkSession(GorSparkSession).udf().register("get_pn", (UDF1<String, String>) uNames::get, DataTypes.StringType);
                             if (dictFile != null) {
-                                DataFrameReader dfr = getSparkSession(gorSparkSession,fileroot,profile).read().format(gordatasourceClassname);
+                                DataFrameReader dfr = gorSparkSession.getSparkSession().read().format(gordatasourceClassname);
                                 if (fileroot != null) dfr.option("projectroot", fileroot.toString());
+                                dfr.option("aliasfile", gorSparkSession.getProjectContext().getGorAliasFile());
+                                dfr.option("configfile", gorSparkSession.getProjectContext().getGorConfigFile());
                                 if (filter != null) dfr = dfr.option("f", filter);
                                 if (filterFile != null) dfr = dfr.option("ff", filterFile);
                                 if (splitFile != null) dfr = dfr.option("split", splitFile);
@@ -360,23 +358,23 @@ public class SparkRowUtilities {
                                 gor = dfr.schema(schema).load(dictFile.toAbsolutePath().normalize().toString());
                                 isGorz = false;
                             } else {
-                                gor = getSparkSession(gorSparkSession,fileroot,profile).read().format(csvDataSource).option("header", "true").option("delimiter", "\t").schema(schema).load(fNames.entrySet().stream().filter(e -> pns.contains(e.getValue())).map(Map.Entry::getKey).map(Path::toString).toArray(String[]::new));//.selectExpr("*","get_pn(input_file_name()) as PN");
+                                gor = gorSparkSession.getSparkSession().read().format(csvDataSource).option("header", "true").option("delimiter", "\t").schema(schema).load(fNames.entrySet().stream().filter(e -> pns.contains(e.getValue())).map(Map.Entry::getKey).map(Path::toString).toArray(String[]::new));//.selectExpr("*","get_pn(input_file_name()) as PN");
                             }
                         } else {
-                            gor = getSparkSession(gorSparkSession,fileroot,profile).read().format(csvDataSource).option("header", "true").option("delimiter", "\t").schema(schema).load(fileName); //.replace("s3://","s3n://"));
+                            gor = gorSparkSession.getSparkSession().read().format(csvDataSource).option("header", "true").option("delimiter", "\t").schema(schema).load(fileName); //.replace("s3://","s3n://"));
                         }
                     } else {
                         fields = IntStream.range(0, headerArray.length).mapToObj(i -> new StructField(headerArray[i], dataTypes[i], true, Metadata.empty())).toArray(StructField[]::new);
                         schema = new StructType(fields);
                         if (uNames != null && !gorDataType.base128) {
-                            gor = getSparkSession(gorSparkSession,fileroot,profile).read().format(csvDataSource).option("header", "true").option("delimiter", "\t").schema(schema).load(fNames.entrySet().stream().filter(e -> pns.contains(e.getValue())).map(Map.Entry::getKey).map(Path::toString).toArray(String[]::new));
+                            gor = gorSparkSession.getSparkSession().read().format(csvDataSource).option("header", "true").option("delimiter", "\t").schema(schema).load(fNames.entrySet().stream().filter(e -> pns.contains(e.getValue())).map(Map.Entry::getKey).map(Path::toString).toArray(String[]::new));
                             if (filter != null && filter.length() > 0) {
                                 // hey SparkGorUtilities.getSparkSession(GorSparkSession).udf().register("get_pn", (UDF1<String, String>) uNames::get, DataTypes.StringType);
                                 gor = gor.selectExpr("*", "get_pn(input_file_name()) as PN");
                             }
                         } else {
                             if (isGorgz || gorDataType.base128) {
-                                DataFrameReader dfr = getSparkSession(gorSparkSession,fileroot, profile).read().format(gordatasourceClassname).schema(schema);
+                                DataFrameReader dfr = gorSparkSession.getSparkSession().read().format(gordatasourceClassname).schema(schema);
                                 if (gorSparkSession.getRedisUri() != null && gorSparkSession.getRedisUri().length() > 0) {
                                     dfr = dfr.option("redis", gorSparkSession.getRedisUri()).option("jobid", jobid).option("cachefile", cacheFile).option("native", Boolean.toString(cpp));
                                 }
@@ -390,7 +388,7 @@ public class SparkRowUtilities {
                                 }
                                 gor = dfr.load(fileName);
                             } else {
-                                Dataset<org.apache.spark.sql.Row> sgor = getSparkSession(gorSparkSession,fileroot,profile).read().format(csvDataSource).option("header", "true").option("delimiter", "\t").schema(schema).load(fileName);
+                                Dataset<org.apache.spark.sql.Row> sgor = gorSparkSession.getSparkSession().read().format(csvDataSource).option("header", "true").option("delimiter", "\t").schema(schema).load(fileName);
                                 if (filter != null && filter.length() > 0) {
                                     int filterColumnIndex = headerArray.length - 1;
                                     if (filterColumn != null) {

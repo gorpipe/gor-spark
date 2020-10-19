@@ -4,10 +4,7 @@ import gorsat.process.PipeInstance;
 import gorsat.process.PipeOptions;
 import org.apache.spark.sql.SparkSession;
 import org.gorpipe.gor.session.GorSession;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -25,7 +22,7 @@ public class UTestGorSparkQuery {
     public void init() {
         SparkSession sparkSession = SparkSession.builder().master("local[1]").getOrCreate();
         //Glow.register(sparkSession);
-        SparkSessionFactory sparkSessionFactory = new SparkSessionFactory(sparkSession, Paths.get(".").toAbsolutePath().normalize().toString(), "/tmp", null);
+        SparkSessionFactory sparkSessionFactory = new SparkSessionFactory(sparkSession, Paths.get(".").toAbsolutePath().normalize().toString(), System.getProperty("java.io.tmpdir"), null, null, null);
         GorSession session = sparkSessionFactory.create();
         pi = new PipeInstance(session.getGorContext());
     }
@@ -74,6 +71,17 @@ public class UTestGorSparkQuery {
     public void testSparkSQLWithNestedNor() {
         testSparkQuery("spark select gene_symbol from <(nor ../tests/data/gor/genes.gor | grep 'BRCA' | select gene_symbol)",
                 "BRCA2\nBRCA1");
+    }
+
+    @Test
+    public void testSparkSQLCreateWithError() {
+        try {
+            testSparkQuery("create xxx = select * from ../tests/data/gor/genes.gor | throwif posof(gene_symbol,'BRCA')=0; nor [xxx] | top 2",
+                    "chrN\t0\tBRCA2\nchrN\t0\tBRCA1");
+            Assert.fail("Sould have failed");
+        } catch(Exception e) {
+            Assert.assertEquals("Wrong exception message", "Gor throw on: posof(gene_symbol,'BRCA')=0", e.getCause().getCause().getCause().getCause().getCause().getMessage());
+        }
     }
 
     @Test
@@ -161,6 +169,7 @@ public class UTestGorSparkQuery {
     }
 
     @Test
+    @Ignore("Test freeze")
     public void testExternalCommand() throws IOException {
         String pycode = "#!/usr/bin/env python\n" +
                 "import sys\n" +

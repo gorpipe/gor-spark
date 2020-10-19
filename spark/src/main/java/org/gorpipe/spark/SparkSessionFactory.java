@@ -13,8 +13,10 @@ import org.gorpipe.gor.session.ProjectContext;
 import org.gorpipe.gor.session.SystemContext;
 
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -24,23 +26,36 @@ public class SparkSessionFactory extends GorSessionFactory {
 
     private String root;
     private String cacheDir;
+    private Optional<String> configFile;
+    private Optional<String> aliasFile;
     private SparkSession sparkSession;
     private GorMonitor sparkGorMonitor;
     private GorParallelQueryHandler queryHandler;
 
-    public SparkSessionFactory(String root, String cacheDir, SparkGorMonitor sparkMonitor) {
-       this(GorSparkUtilities.getSparkSession(root,""), root, cacheDir, sparkMonitor);
+    public SparkSessionFactory(String root, String cacheDir, String configFile, String aliasFile, SparkGorMonitor sparkMonitor) {
+       this(GorSparkUtilities.getSparkSession(), root, cacheDir, configFile, aliasFile, sparkMonitor);
     }
 
-    public SparkSessionFactory(SparkSession sparkSession, String root, String cacheDir, GorMonitor sparkMonitor) {
+    public SparkSessionFactory(SparkSession sparkSession, String root, String cacheDir, String configFile, String aliasFile, GorMonitor sparkMonitor) {
         this.root = root;
         this.cacheDir = cacheDir;
+        Path rootPath = Paths.get(root);
+        if(configFile != null && configFile.length() > 0) {
+            Path configPath = Paths.get(configFile);
+            if(!configPath.isAbsolute()) configPath = rootPath.resolve(configPath);
+            this.configFile = Files.exists(configPath) ? Optional.of(configPath.toAbsolutePath().toString()) : Optional.empty();
+        } else this.configFile = Optional.empty();
+        if(aliasFile != null && aliasFile.length() > 0) {
+            Path aliasPath = Paths.get(aliasFile);
+            if(!aliasPath.isAbsolute()) aliasPath = rootPath.resolve(aliasPath);
+            this.aliasFile = Files.exists(aliasPath) ? Optional.of(aliasPath.toAbsolutePath().toString()) : Optional.empty();
+        } else this.aliasFile = Optional.empty();
         this.sparkSession = sparkSession;
         this.sparkGorMonitor = sparkMonitor;
     }
 
-    public SparkSessionFactory(SparkSession sparkSession, String root, String cacheDir, GorMonitor sparkMonitor, GorParallelQueryHandler queryHandler) {
-        this(sparkSession, root, cacheDir, sparkMonitor);
+    public SparkSessionFactory(SparkSession sparkSession, String root, String cacheDir, String configFile, String aliasFile, GorMonitor sparkMonitor, GorParallelQueryHandler queryHandler) {
+        this(sparkSession, root, cacheDir, configFile, aliasFile, sparkMonitor);
         this.queryHandler = queryHandler;
     }
 
@@ -59,6 +74,8 @@ public class SparkSessionFactory extends GorSessionFactory {
 
         GorParallelQueryHandler sparkQueryHandler = queryHandler != null ? queryHandler : new GeneralSparkQueryHandler(null, sparkRedisUri);
         ProjectContext.Builder projectContextBuilder = new ProjectContext.Builder();
+        if(configFile.isPresent()) projectContextBuilder = projectContextBuilder.setConfigFile(configFile.get());
+        if(aliasFile.isPresent()) projectContextBuilder = projectContextBuilder.setConfigFile(aliasFile.get());
         projectContextBuilder
             .setRoot(root)
             .setCacheDir(cacheDir)
