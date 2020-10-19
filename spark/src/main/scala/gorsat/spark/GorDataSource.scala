@@ -24,6 +24,8 @@ class GorDataSource extends FileDataSourceV2 with RelationProvider with SchemaRe
       if (projectroot != null) batchTable.setProjectRoot(projectroot)
       val cachedir = options.get("cachedir")
       if (cachedir != null) batchTable.setCacheDir(cachedir)
+      batchTable.setConfigFile(options.get("configfile"))
+      batchTable.setAliasFile(options.get("aliasfile"))
       return batchTable
     } catch {
       case e@(_: IOException | _: DataFormatException) =>
@@ -38,6 +40,8 @@ class GorDataSource extends FileDataSourceV2 with RelationProvider with SchemaRe
     if (projectroot != null) batchTable.setProjectRoot(projectroot)
     val cachedir = options.get("cachedir")
     if (cachedir != null) batchTable.setCacheDir(cachedir)
+    batchTable.setConfigFile(options.get("configfile"))
+    batchTable.setAliasFile(options.get("aliasfile"))
     batchTable
   }
 

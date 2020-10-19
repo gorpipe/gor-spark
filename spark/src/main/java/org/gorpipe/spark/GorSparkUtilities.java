@@ -6,7 +6,6 @@ import org.apache.spark.ml.linalg.SQLDataTypes;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
-import org.gorpipe.base.config.ConfigManager;
 import org.gorpipe.gor.model.Row;
 import org.gorpipe.spark.udfs.CharToDoubleArray;
 import org.gorpipe.spark.udfs.CommaToDoubleArray;
@@ -19,8 +18,6 @@ import org.slf4j.LoggerFactory;
 import io.projectglow.GlowBase;
 
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -34,7 +31,7 @@ public class GorSparkUtilities {
     private static SparkSession spark;
     private static Py4JServer py4jServer;
     private static Optional<Process> jupyterProcess;
-    private static Optional<String> jupyterPath;
+    private static Optional<String> jupyterPath = Optional.empty();
     private static ExecutorService es;
 
     private GorSparkUtilities() {}

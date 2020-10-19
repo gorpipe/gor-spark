@@ -22,7 +22,7 @@ public class UTestGorSparkQuery {
     public void init() {
         SparkSession sparkSession = SparkSession.builder().master("local[1]").getOrCreate();
         //Glow.register(sparkSession);
-        SparkSessionFactory sparkSessionFactory = new SparkSessionFactory(sparkSession, Paths.get(".").toAbsolutePath().normalize().toString(), System.getProperty("java.io.tmpdir"), null);
+        SparkSessionFactory sparkSessionFactory = new SparkSessionFactory(sparkSession, Paths.get(".").toAbsolutePath().normalize().toString(), System.getProperty("java.io.tmpdir"), null, null, null);
         GorSession session = sparkSessionFactory.create();
         pi = new PipeInstance(session.getGorContext());
     }

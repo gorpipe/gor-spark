@@ -15,8 +15,10 @@ public class GorReaderFactory implements PartitionReaderFactory {
     String useCpp;
     String projectRoot;
     String cacheDir;
+    String configFile;
+    String aliasFile;
 
-    public GorReaderFactory(StructType schema, String redisUri, String jobId, String cacheFile, String projectRoot, String cacheDir, String useCpp) {
+    public GorReaderFactory(StructType schema, String redisUri, String jobId, String cacheFile, String projectRoot, String cacheDir, String configFile, String aliasFile, String useCpp) {
         this.schema = schema;
         this.redisUri = redisUri;
         this.jobId = jobId;
@@ -24,6 +26,8 @@ public class GorReaderFactory implements PartitionReaderFactory {
         this.useCpp = useCpp;
         this.projectRoot = projectRoot;
         this.cacheDir = cacheDir;
+        this.configFile = configFile;
+        this.aliasFile = aliasFile;
     }
 
     @Override
@@ -34,9 +38,9 @@ public class GorReaderFactory implements PartitionReaderFactory {
         if(useCpp != null && useCpp.equalsIgnoreCase("blue")) {
             partitionReader = new NativePartitionReader(fields,p);
         } else if(fields.length>1) {
-            partitionReader = new GorPartitionReader(schema,p,redisUri,jobId,projectRoot,cacheDir,useCpp);
+            partitionReader = new GorPartitionReader(schema,p,redisUri,jobId,projectRoot,cacheDir,configFile,aliasFile,useCpp);
         } else {
-            partitionReader = new GorStringPartitionReader(schema,p,redisUri,jobId,projectRoot,cacheDir,useCpp);
+            partitionReader = new GorStringPartitionReader(schema,p,redisUri,jobId,projectRoot,cacheDir,configFile,aliasFile,useCpp);
         }
         return partitionReader;
     }
