@@ -50,6 +50,8 @@ project(':spark') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
         }
 
+        compile group: 'com.redislabs', name: 'spark-redis_2.12', version: '2.5.0'
+
         compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.11.0'
         compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.0'
         compile group: 'com.fasterxml.jackson.module', name: 'jackson-module-scala_2.12', version: '2.11.0'

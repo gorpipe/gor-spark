@@ -89,19 +89,16 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
                 String cacheFile = cacheFiles[i];
                 Path cachePath = Paths.get(cacheFile);
                 if (!cachePath.isAbsolute()) cachePath = root.resolve(cacheFile);
-                Path tmpCachePath = cachePath.getParent().resolve("tmp_" + cachePath.getFileName());
-                String tmpCacheFile = tmpCachePath.toString();
 
                 pi.subProcessArguments(options);
-                pi.theInputSource().pushdownWrite(tmpCacheFile);
+                pi.theInputSource().pushdownWrite(cacheFile);
                 GorRunner runner = session.getSystemContext().getRunnerFactory().create();
                 try {
                     runner.run(pi.getIterator(), pi.getPipeStep());
-                    Files.move(tmpCachePath, cachePath);
                 } catch (Exception e) {
                     try {
-                        if (Files.exists(tmpCachePath))
-                            Files.walk(tmpCachePath).sorted(Comparator.reverseOrder()).forEach(path -> {
+                        if (Files.exists(cachePath))
+                            Files.walk(cachePath).sorted(Comparator.reverseOrder()).forEach(path -> {
                                 try {
                                     Files.delete(path);
                                 } catch (IOException ioException) {
