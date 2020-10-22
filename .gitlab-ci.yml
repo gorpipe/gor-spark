@@ -1,44 +1,32 @@
 #
-# Gitlab build file for GOR.
+# Gitlab build file for GOR-spark.
 #
 
 variables:
+  RELEASABLE_BRANCH: master
+  AUTO_DEPLOY_BRANCH: master
+  DOCKER_HUB_REPO: nextcode/spark
+  AUTO_DEVOPS_BUILD_IMAGE_EXTRA_ARGS: "--build-arg ORG_GRADLE_PROJECT_artifactory_password --build-arg ORG_GRADLE_PROJECT_artifactory_user --build-arg ORG_GRADLE_PROJECT_gitlab_gor_maven_packages_token"
+  DOCKER_BUILDKIT: "1"
   JAVA_BUILDER_IMAGE: nextcode/builderimg-java:openjdk14
   GIT_SUBMODULE_STRATEGY: none
   GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
   GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.caching=true"
-  RELEASABLE_BRANCH: master                                         # Optional (master is the default).  If this matches the current branch, the built image will be releasable with a semver tag.
 
-
-.on-branches:
-  rules:
-    - if: '$CI_COMMIT_BRANCH'
-
-.on-releasable-branch-only:
-  rules:
-    - if: $CI_COMMIT_REF_NAME == $RELEASABLE_BRANCH
-
-.on-releasable-or-release-branch-only:
-  rules:
-    - if: $CI_COMMIT_REF_NAME == $RELEASABLE_BRANCH
-    - if: $CI_COMMIT_REF_NAME =~ /^release\/v(0|[1-9]\d*)\.(0|[1-9]\d*)$/
-
-.on-releasable-or-semver-tag-only:
-  rules:
-    - if: $CI_COMMIT_REF_NAME == $RELEASABLE_BRANCH
-    - if: $CI_COMMIT_TAG =~ /^v?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-([1-9]\d*|[\da-z-]*[a-z-][\da-z-]*)(\.([1-9]\d*|[\da-z-]*[a-z-][\da-z-]*))*)?(\+[\da-z-]+(\.[\da-z-]+)*)?$/
-
-.on-semver-tag-only:
-  rules:
-    - if: $CI_COMMIT_TAG =~ /^v?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-([1-9]\d*|[\da-z-]*[a-z-][\da-z-]*)(\.([1-9]\d*|[\da-z-]*[a-z-][\da-z-]*))*)?(\+[\da-z-]+(\.[\da-z-]+)*)?$/
-
+  # Vars for build resources
+  KUBERNETES_CPU_REQUEST: 4
+  KUBERNETES_CPU_LIMIT: 6
+  KUBERNETES_MEMORY_REQUEST: 2Gi
+  KUBERNETES_MEMORY_LIMIT: 4Gi
 
 stages:
   - build
   - test
   - publish
   - trigger-cross-projects
-
+  - promote
+  - release
+  - deploy
 
 before_script:
   - export GRADLE_USER_HOME=`pwd`/.gradle
@@ -103,7 +91,7 @@ integrationtest:
 # This codequality block is needed to work around https://gitlab.com/gitlab-org/gitlab/issues/12274
 code_quality:
   extends:
-    - .on-releasable-or-release-branch-only
+    - .on-releasable-branch
   stage: test
   tags:
     - gitlab-build-01
@@ -117,7 +105,7 @@ code_quality:
 license_management:
   extends:
     - .build_cache
-    - .on-releasable-or-release-branch-only
+    - .on-releasable-branch
   stage: test
   variables:
     # There is no need to run tests or generate sphinx documentation for license management
@@ -138,25 +126,18 @@ dependency_scanning:
   artifacts:
     paths: [gl-dependency-scanning-report.json]
 
-
 publish:
   extends:
     - .build_cache
-    - .on-releasable-or-semver-tag-only
+    - .on-releasable-branch
   stage: publish
   script: ./gradlew publish -x test -x slowTest -x integrationTest
 
-
-# TODO:  The trigger starts the gor-services with wrong variables.  Needs some tuning.
-#gor-services:
-#  extends: .on-releasable-branch-only
-#  stage: trigger-cross-projects
-#  trigger:
-#    project:  wuxi-nextcode/wxnc-gor/gor-services
-#    branch:   develop
-
-
 include:
-  - template: Code-Quality.gitlab-ci.yml
+  - project: wuxi-nextcode/sdev/gitlab-ci-scripts
+    file: /auto-ci-workflow.yml
+  - template: Jobs/Code-Quality.gitlab-ci.yml
+  - template: Security/Container-Scanning.gitlab-ci.yml
   - template: License-Scanning.gitlab-ci.yml
+  - template: SAST.gitlab-ci.yml
   - template: Dependency-Scanning.gitlab-ci.yml
