@@ -12,6 +12,8 @@ import org.gorpipe.gor.session.ProjectContext;
 import org.gorpipe.gor.session.SystemContext;
 import org.gorpipe.spark.GorQueryRDD;
 import org.gorpipe.spark.GorSparkSession;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import py4j.Base64;
 
 import java.io.IOException;
@@ -21,13 +23,17 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
-public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long> {
+public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long>, AutoCloseable {
+    private static final Logger log = LoggerFactory.getLogger(RedisBatchConsumer.class);
+
     GorSparkSession gss;
     SystemContext sysctx;
     MonitorThread mont;
     ExecutorService es;
 
     public RedisBatchConsumer(SparkSession sparkSession, String redisUri) {
+        log.info("Starting RedisBatchConsumer on redisUri "+ redisUri);
+
         gss = new GorSparkSession("");
         gss.setSparkSession(sparkSession);
         gss.redisUri_$eq(redisUri);
@@ -39,11 +45,16 @@ public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long> {
                 .build();
 
         es = Executors.newWorkStealingPool(4);
+        log.info("Starting monitorthread");
         mont = new MonitorThread(redisUri);
         es.submit(mont);
+        log.info("Monitorthread submitted");
     }
 
+    @Override
     public void close() {
+        log.info("Closing RedisBatchConsumer");
+
         mont.stopRunning();
         es.shutdown();
     }
@@ -72,6 +83,7 @@ public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long> {
     }
 
     public void runSparkJob(String projectDirStr,String cmd,String jobId,String cacheFile) {
+        log.info("Running spark job "+jobId+": " + cmd);
         String shortJobId = jobId.substring(jobId.lastIndexOf(':')+1);
 
         int firstSpace = cmd.indexOf(' ');
@@ -97,32 +109,33 @@ public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long> {
     @Override
     public void call(Dataset<Row> v1, Long v2) {
         List<Row> rr = v1.collectAsList();
+        log.info("Received batch of " + rr.size());
         List<String[]> lstr = rr.stream().filter(r -> r.getString(2).equals("payload")).map(r -> {
             String jobid = r.getString(1);
             String value = r.getString(3);
             ObjectMapper om = new ObjectMapper();
             try {
-                String mvalue = value.substring(1,value.length()-1);
-                Map<String,String> map = om.readValue(mvalue, Map.class);
+                String mvalue = value.substring(1, value.length() - 1);
+                Map<String, String> map = om.readValue(mvalue, Map.class);
                 String gorquerybase = map.get("query");
                 String fingerprint = map.get("fingerprint");
                 String projectRoot = map.get("projectRoot");
                 String requestId = map.get("request-id");
                 String gorquery = new String(Base64.decode(gorquerybase));
                 String cachefile = "result_cache/" + fingerprint + CommandParseUtilities.getExtensionForQuery(gorquery, false);
-                if(map.containsKey("cachefile")) {
+                if (map.containsKey("cachefile")) {
                     String tmpcacheFile = map.get("cachefile");
-                    if(tmpcacheFile!=null) cachefile = tmpcacheFile;
+                    if (tmpcacheFile != null) cachefile = tmpcacheFile;
                 }
-                return new String[] {gorquery, fingerprint, projectRoot, requestId, jobid, cachefile};
+                return new String[]{gorquery, fingerprint, projectRoot, requestId, jobid, cachefile};
             } catch (IOException e) {
-                e.printStackTrace();
+                log.error("Error when parsing redis json", e);
             }
             return new String[0];
         }).collect(Collectors.toList());
 
         Optional<String> projectDir = lstr.stream().map(l -> l[2]).findFirst();
-        if(projectDir.isPresent()) {
+        if (projectDir.isPresent()) {
             String projectDirStr = projectDir.get();
             String[] queries = lstr.stream().map(l -> l[0]).toArray(String[]::new);
             String[] fingerprints = lstr.stream().map(l -> l[1]).toArray(String[]::new);
@@ -132,17 +145,17 @@ public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long> {
             mont.setValue(jobIds, "status", "RUNNING");
 
             final Set<Integer> gorJobs = new TreeSet<>();
-            for(int i = 0; i < queries.length; i++) {
+            for (int i = 0; i < queries.length; i++) {
                 String cmd = queries[i];
                 String commandUpper = cmd.toUpperCase();
                 if (commandUpper.startsWith("SELECT ") || commandUpper.startsWith("SPARK ") || commandUpper.startsWith("GORSPARK ") || commandUpper.startsWith("NORSPARK ")) {
-                    runSparkJob(projectDirStr,cmd,jobIds[i],cachefiles[i]);
+                    runSparkJob(projectDirStr, cmd, jobIds[i], cachefiles[i]);
                 } else {
                     gorJobs.add(i);
                 }
             }
 
-            if(gorJobs.size()>0) runGorJobs(projectDirStr, gorJobs, queries, fingerprints, jobIds, cachefiles);
+            if (gorJobs.size() > 0) runGorJobs(projectDirStr, gorJobs, queries, fingerprints, jobIds, cachefiles);
         }
     }
 }

@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
 
-class MonitorThread implements Runnable {
+class MonitorThread implements Callable<String> {
     boolean running = true;
     private JedisPool jedisPool;
     private Map<String,Future<List<String>>> futureActionSet;
@@ -29,7 +29,32 @@ class MonitorThread implements Runnable {
         futureActionSet.put(jobId, fut);
     }
 
-    public void run() {
+    private Duration getJobExpiration() {
+        return Duration.ofMinutes(20);
+    }
+
+    public void setValue(String[] jobIds, String field, String value) {
+        try (Jedis jedis = jedisPool.getResource()) {
+            for(String jobId : jobIds) {
+                jedis.hset(jobId, field, value);
+                jedis.expire(jobId, (int) getJobExpiration().getSeconds());
+            }
+        }
+    }
+
+    public void setValues(String[] jobIds, String field, String[] values) {
+        try (Jedis jedis = jedisPool.getResource()) {
+            for(int i = 0; i < jobIds.length; i++) {
+                String jobId = jobIds[i];
+                String value = values[i];
+                jedis.hset(jobId, field, value);
+                jedis.expire(jobId, (int) getJobExpiration().getSeconds());
+            }
+        }
+    }
+
+    @Override
+    public String call() throws Exception {
         try {
             String reskey = null;
 
@@ -61,34 +86,9 @@ class MonitorThread implements Runnable {
 
                 if(futureActionSet.isEmpty()) Thread.sleep(500);
             }
-        } catch (InterruptedException e) {
-            e.printStackTrace();
         } finally {
             jedisPool.close();
         }
-    }
-
-    private Duration getJobExpiration() {
-        return Duration.ofMinutes(20);
-    }
-
-    public void setValue(String[] jobIds, String field, String value) {
-        try (Jedis jedis = jedisPool.getResource()) {
-            for(String jobId : jobIds) {
-                jedis.hset(jobId, field, value);
-                jedis.expire(jobId, (int) getJobExpiration().getSeconds());
-            }
-        }
-    }
-
-    public void setValues(String[] jobIds, String field, String[] values) {
-        try (Jedis jedis = jedisPool.getResource()) {
-            for(int i = 0; i < jobIds.length; i++) {
-                String jobId = jobIds[i];
-                String value = values[i];
-                jedis.hset(jobId, field, value);
-                jedis.expire(jobId, (int) getJobExpiration().getSeconds());
-            }
-        }
+        return "";
     }
 }
