@@ -113,6 +113,8 @@ public class GorSparkUtilities {
 
     private static SparkSession newSparkSession() {
         SparkConf sparkConf = new SparkConf();
+        sparkConf.set("spark.streaming.stopGracefullyOnShutdown","true");
+        sparkConf.set("spark.kubernetes.appKillPodDeletionGracePeriod","20");
         SparkSession.Builder ssb = SparkSession.builder();
         if(!sparkConf.contains("spark.master")) {
             ssb = ssb.master("local[*]");
@@ -133,9 +135,10 @@ public class GorSparkUtilities {
     public static SparkSession getSparkSession() {
         if(spark==null) {
             if (!SparkSession.getDefaultSession().isEmpty()) {
-                log.debug("SparkSession from default");
+                log.info("SparkSession from default");
                 spark = SparkSession.getDefaultSession().get();
             } else {
+                log.info("Starting a new SparkSession");
                 spark = newSparkSession();
             }
             Optional<String> standaloneRoot = GorStandalone.isStandalone() ? Optional.of(GorStandalone.getStandaloneRoot()) : Optional.empty();
