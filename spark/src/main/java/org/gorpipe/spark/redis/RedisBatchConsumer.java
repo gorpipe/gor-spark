@@ -109,59 +109,54 @@ public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long>, Au
 
     @Override
     public void call(Dataset<Row> v1, Long v2) {
-        try {
-            List<Row> rr = v1.collectAsList();
-            log.info("Received batch of " + rr.size());
-            List<String[]> lstr = rr.stream().filter(r -> r.getString(2).equals("payload")).map(r -> {
-                String jobid = r.getString(1);
-                String value = r.getString(3);
-                ObjectMapper om = new ObjectMapper();
-                try {
-                    String mvalue = value.substring(1, value.length() - 1);
-                    Map<String, String> map = om.readValue(mvalue, Map.class);
-                    String gorquerybase = map.get("query");
-                    String fingerprint = map.get("fingerprint");
-                    String projectRoot = map.get("projectRoot");
-                    String requestId = map.get("request-id");
-                    String gorquery = new String(Base64.decode(gorquerybase));
-                    String cachefile = "result_cache/" + fingerprint + CommandParseUtilities.getExtensionForQuery(gorquery, false);
-                    if (map.containsKey("cachefile")) {
-                        String tmpcacheFile = map.get("cachefile");
-                        if (tmpcacheFile != null) cachefile = tmpcacheFile;
-                    }
-                    return new String[]{gorquery, fingerprint, projectRoot, requestId, jobid, cachefile};
-                } catch (IOException e) {
-                    log.error("Error when parsing redis json", e);
+        List<Row> rr = v1.collectAsList();
+        log.info("Received batch of " + rr.size());
+        List<String[]> lstr = rr.stream().filter(r -> r.getString(2).equals("payload")).map(r -> {
+            String jobid = r.getString(1);
+            String value = r.getString(3);
+            ObjectMapper om = new ObjectMapper();
+            try {
+                String mvalue = value.substring(1, value.length() - 1);
+                Map<String, String> map = om.readValue(mvalue, Map.class);
+                String gorquerybase = map.get("query");
+                String fingerprint = map.get("fingerprint");
+                String projectRoot = map.get("projectRoot");
+                String requestId = map.get("request-id");
+                String gorquery = new String(Base64.decode(gorquerybase));
+                String cachefile = "result_cache/" + fingerprint + CommandParseUtilities.getExtensionForQuery(gorquery, false);
+                if (map.containsKey("cachefile")) {
+                    String tmpcacheFile = map.get("cachefile");
+                    if (tmpcacheFile != null) cachefile = tmpcacheFile;
                 }
-                return new String[0];
-            }).collect(Collectors.toList());
+                return new String[]{gorquery, fingerprint, projectRoot, requestId, jobid, cachefile};
+            } catch (IOException e) {
+                log.error("Error when parsing redis json", e);
+            }
+            return new String[0];
+        }).collect(Collectors.toList());
 
-            Optional<String> projectDir = lstr.stream().map(l -> l[2]).findFirst();
-            if (projectDir.isPresent()) {
-                String projectDirStr = projectDir.get();
-                String[] queries = lstr.stream().map(l -> l[0]).toArray(String[]::new);
-                String[] fingerprints = lstr.stream().map(l -> l[1]).toArray(String[]::new);
-                String[] cachefiles = lstr.stream().map(l -> l[5]).toArray(String[]::new);
-                String[] jobIds = lstr.stream().map(l -> l[4]).toArray(String[]::new);
+        Optional<String> projectDir = lstr.stream().map(l -> l[2]).findFirst();
+        if (projectDir.isPresent()) {
+            String projectDirStr = projectDir.get();
+            String[] queries = lstr.stream().map(l -> l[0]).toArray(String[]::new);
+            String[] fingerprints = lstr.stream().map(l -> l[1]).toArray(String[]::new);
+            String[] cachefiles = lstr.stream().map(l -> l[5]).toArray(String[]::new);
+            String[] jobIds = lstr.stream().map(l -> l[4]).toArray(String[]::new);
 
                 mont.setValue(jobIds, "status", "RUNNING");
 
-                final Set<Integer> gorJobs = new TreeSet<>();
-                for (int i = 0; i < queries.length; i++) {
-                    String cmd = queries[i];
-                    String commandUpper = cmd.toUpperCase();
-                    if (commandUpper.startsWith("SELECT ") || commandUpper.startsWith("SPARK ") || commandUpper.startsWith("GORSPARK ") || commandUpper.startsWith("NORSPARK ")) {
-                        runSparkJob(projectDirStr, cmd, jobIds[i], cachefiles[i]);
-                    } else {
-                        gorJobs.add(i);
-                    }
+            final Set<Integer> gorJobs = new TreeSet<>();
+            for (int i = 0; i < queries.length; i++) {
+                String cmd = queries[i];
+                String commandUpper = cmd.toUpperCase();
+                if (commandUpper.startsWith("SELECT ") || commandUpper.startsWith("SPARK ") || commandUpper.startsWith("GORSPARK ") || commandUpper.startsWith("NORSPARK ")) {
+                    runSparkJob(projectDirStr, cmd, jobIds[i], cachefiles[i]);
+                } else {
+                    gorJobs.add(i);
                 }
-
-                if (gorJobs.size() > 0) runGorJobs(projectDirStr, gorJobs, queries, fingerprints, jobIds, cachefiles);
             }
-        } catch(Exception e) {
-            log.error("Error handling stream batch", e);
-            throw e;
+
+            if (gorJobs.size() > 0) runGorJobs(projectDirStr, gorJobs, queries, fingerprints, jobIds, cachefiles);
         }
     }
 }
