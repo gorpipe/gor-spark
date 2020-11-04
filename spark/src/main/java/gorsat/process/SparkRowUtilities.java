@@ -1,5 +1,6 @@
 package gorsat.process;
 
+import gorsat.Commands.CommandParseUtilities;
 import gorsat.DynIterator;
 import org.apache.parquet.schema.PrimitiveType;
 import org.apache.spark.api.java.JavaRDD;
@@ -9,7 +10,6 @@ import org.apache.spark.api.java.function.Function;
 import org.apache.spark.sql.DataFrameReader;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.RowFactory;
-import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.types.*;
@@ -48,6 +48,17 @@ public class SparkRowUtilities {
         String mcreates = createMap.size() > 0 ? createMap.entrySet().stream().map(e -> "create "+e.getKey()+" = "+e.getValue()).collect(Collectors.joining("; ","",";")) : "";
         String mdefs = defMap.size() > 0 ? defMap.entrySet().stream().map(e -> "def "+e.getKey()+" = "+e.getValue()).collect(Collectors.joining("; ","",";")) : "";
         return mdefs + mcreates + creates;
+    }
+
+    public static List<String> createMapList(Map<String,String> createMap, Map<String,String> defMap, String creates) {
+        List<String> lcreates = createMap.entrySet().stream().map(e -> "create "+e.getKey()+" = "+e.getValue()).collect(Collectors.toList());
+        List<String> ldefs = defMap.entrySet().stream().map(e -> "def "+e.getKey()+" = "+e.getValue()).collect(Collectors.toList());
+        List<String> lall = Arrays.asList(CommandParseUtilities.quoteSafeSplitAndTrim(creates, ';'));
+        List<String> alist = new ArrayList<>();
+        alist.addAll(ldefs);
+        alist.addAll(lcreates);
+        alist.addAll(lall);
+        return alist;
     }
     
     public static String generateTempViewName(String fileName, boolean usegorpipe, String filter, String chr, int pos, int end) {
@@ -122,6 +133,24 @@ public class SparkRowUtilities {
         Stream<String> linestream = StreamSupport.stream(Spliterators.spliteratorUnknownSize(drs, Spliterator.ORDERED), false).map(Object::toString).onClose(drs::close);
         GorDataType gdt = typeFromStream(linestream, false, ha, nor);
         gdt.setUsedFiles(JavaConverters.seqAsJavaList(drs.usedFiles()));
+        return gdt;
+    }
+
+    public static GorDataType gorCmdSchema(String[] gorcmds, GorSparkSession gorSparkSession) {
+        Stream<DynIterator.DynamicRowSource> sdrs = Arrays.stream(gorcmds).map(d -> new DynIterator.DynamicRowSource(d, gorSparkSession.getGorContext(), false));
+        Stream<Stream<String>> lstr = sdrs.map(drs -> StreamSupport.stream(Spliterators.spliteratorUnknownSize(drs, Spliterator.ORDERED), false).map(Object::toString).onClose(drs::close));
+
+        String query = gorcmds[0];
+        boolean nor = query.toLowerCase().startsWith("nor ") || query.toLowerCase().startsWith("norrows ");
+        DynIterator.DynamicRowSource drs = new DynIterator.DynamicRowSource(query, gorSparkSession.getGorContext(), false);
+        String header = drs.getHeader();
+        List<String> usedFiles = JavaConverters.seqAsJavaList(drs.usedFiles());
+        drs.close();
+        String[] ha = header.split("\t");
+
+        Stream<String> linestream = lstr.reduce(Stream::concat).get();
+        GorDataType gdt = typeFromStream(linestream, false, ha, nor);
+        gdt.setUsedFiles(usedFiles);
         return gdt;
     }
 
@@ -270,12 +299,14 @@ public class SparkRowUtilities {
                     gor = sparkRowSource.getDataset();
                     dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
                     //gor = registerFile();
-                } else if (fileName.startsWith("pgor ") || fileName.startsWith("partgor ") || fileName.startsWith("parallel ") || fileName.startsWith("gor ") || fileName.startsWith("nor ")) {
+                } else if (fileName.startsWith("pgor ") || fileName.startsWith("partgor ") || fileName.startsWith("parallel ") || fileName.startsWith("gor ") || fileName.startsWith("nor ") || fileName.startsWith("gorrows ") || fileName.startsWith("norrows ")) {
                     DataFrameReader dfr = gorSparkSession.getSparkSession().read().format(gordatasourceClassname);
                     dfr.option("query", fileName);
                     if (tag) dfr.option("tag", true);
                     dfr.option("projectroot", fileroot.toString());
                     dfr.option("cachedir", cacheDir.toString());
+                    dfr.option("aliasfile", gorSparkSession.getProjectContext().getGorAliasFile());
+                    dfr.option("configfile", gorSparkSession.getProjectContext().getGorConfigFile());
                     gor = dfr.load();
                     dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
                 } else if (fileName.toLowerCase().endsWith(".parquet")) {

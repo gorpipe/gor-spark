@@ -4,6 +4,7 @@ import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.connector.read.InputPartition;
 import org.apache.spark.sql.connector.read.PartitionReader;
 import org.apache.spark.sql.connector.read.PartitionReaderFactory;
+import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
@@ -39,6 +40,12 @@ public class GorReaderFactory implements PartitionReaderFactory {
             partitionReader = new NativePartitionReader(fields,p);
         } else if(fields.length>1) {
             partitionReader = new GorPartitionReader(schema,p,redisUri,jobId,projectRoot,cacheDir,configFile,aliasFile,useCpp);
+        } else if(fields[0].dataType().equals(DataTypes.IntegerType)) {
+            partitionReader = new GorIntegerPartitionReader(schema,p,redisUri,jobId,projectRoot,cacheDir,configFile,aliasFile,useCpp);
+        } else if(fields[0].dataType().equals(DataTypes.LongType)) {
+            partitionReader = new GorLongPartitionReader(schema,p,redisUri,jobId,projectRoot,cacheDir,configFile,aliasFile,useCpp);
+        } else if(fields[0].dataType().equals(DataTypes.DoubleType)) {
+            partitionReader = new GorDoublePartitionReader(schema,p,redisUri,jobId,projectRoot,cacheDir,configFile,aliasFile,useCpp);
         } else {
             partitionReader = new GorStringPartitionReader(schema,p,redisUri,jobId,projectRoot,cacheDir,configFile,aliasFile,useCpp);
         }

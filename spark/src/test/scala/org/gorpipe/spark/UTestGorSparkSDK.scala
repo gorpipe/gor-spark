@@ -1,22 +1,72 @@
 package org.gorpipe.spark
 
-import java.nio.file.Paths
+import java.nio.file.{Files, Path, Paths}
 import java.util.stream.Collectors
 
 import org.apache.spark.sql.{Encoders, SparkSession}
 import org.gorpipe.gor.model.Row
+import org.gorpipe.spark.GorDatasetFunctions.addCustomFunctions
 import org.junit.{After, Assert, Before, Test}
 
 class UTestGorSparkSDK {
     var sparkGorSession : GorSparkSession = _
     var genesPath : String = _
+    var goraliaspath : Path = _
+    var gorconfigpath : Path = _
 
     @Before
     def init() {
         val project = Paths.get("../tests/data")
+        goraliaspath = project.resolve("goralias.txt")
+        gorconfigpath = project.resolve("gorconfig.txt")
         genesPath = project.resolve("gor/genes.gor").toAbsolutePath.normalize().toString
         val sparkSession = SparkSession.builder().master("local[1]").getOrCreate()
-        sparkGorSession = SparkGOR.createSession(sparkSession, project.toAbsolutePath.normalize().toString, System.getProperty("java.io.tmpdir"), null, null)
+        Files writeString(goraliaspath, "#genesalias#\tgor/genes.gorz\n")
+        Files writeString(gorconfigpath, "buildPath\tref_mini/chromSeq\nbuildSizeFile\tref_mini/buildsize.gor\nbuildSplitFile\tref_mini/buildsplit.txt\n")
+        sparkGorSession = SparkGOR.createSession(sparkSession, project.toAbsolutePath.normalize().toString, System.getProperty("java.io.tmpdir"), gorconfigpath.toAbsolutePath.normalize().toString, goraliaspath.toAbsolutePath.normalize().toString)
+    }
+
+    @Test
+    def testSelectNorrows(): Unit = {
+        val res = sparkGorSession.dataframe("select * from <(norrows 2)")
+        val res2 = res.collect().mkString("\n")
+        Assert.assertEquals("Wrong results from select norrows","[0]\n[1]",res2)
+    }
+
+    @Test
+    def testSeq(): Unit = {
+        val res = sparkGorSession.dataframe("gor gor/dbsnp_test.gorz | top 1 | seq")
+        val res2 = res.collect().mkString("\n")
+        Assert.assertEquals("Wrong results from seq","[chr1,10179,C,CC,rs367896724,taaccctaac(c)taaccctaac]",res2)
+    }
+
+    @Test
+    def testCreateSeq(): Unit = {
+        val res = sparkGorSession.dataframe("create xxx = gor gor/dbsnp_test.gorz | top 1 | seq; gor [xxx]")
+        val res2 = res.collect().mkString("\n")
+        Assert.assertEquals("Wrong results from create seq","[chr1,10179,C,CC,rs367896724,taaccctaac(c)taaccctaac]",res2)
+    }
+
+    @Test
+    def testNorrows(): Unit = {
+        val res = sparkGorSession.dataframe("norrows 2")
+        val res2 = res.collect().mkString("\n")
+        Assert.assertEquals("Wrong results from norrows","[0]\n[1]",res2)
+    }
+
+    @Test
+    def testNestedNorrows(): Unit = {
+        val res = sparkGorSession.dataframe("nor <(norrows 2)").gor("calc x 'x'")(sparkGorSession)
+        val res2 = res.collect().mkString("\n")
+        Assert.assertEquals("Wrong results from nested norrows","0\tx\n1\tx",res2)
+    }
+
+    @Test
+    def testGorAlias() {
+        sparkGorSession.setCreate("test","gor #genesalias# | top 1")
+        val res = sparkGorSession.dataframe("gor #genesalias# [test] | top 1").gor("join -segseg #genesalias#")(sparkGorSession)
+        val res2 = res.collect().mkString("\n")
+        Assert.assertEquals("Wrong result from alias query","[chr1,11868,14412,DDX11L1,0,11868,14412,DDX11L1]\n[chr1,11868,14412,DDX11L1,0,14362,29806,WASH7P]",res2)
     }
 
     @Test
@@ -64,6 +114,9 @@ class UTestGorSparkSDK {
         sparkGorSession.setCreateAndDefs("create #mygenes# = select gene from myGenes; def #genes# = gor/genes.gorz; def #exons# = gor/ensgenes_exons.gorz; def #dbsnp# = gor/dbsnp_test.gorz;")
         sparkGorSession.setCreate("#myexons#", "gor #exons# | inset -c gene_symbol [#mygenes#]")
         val exonSnps = sparkGorSession.dataframe("pgor [#myexons#] | join -segsnp -ir #dbsnp# | join -snpseg -r #genes#")
+
+        exonSnps.show()
+
         val snpCount = exonSnps.groupBy("gene_symbol").count().collect().mkString("\n")
         Assert.assertEquals("Wrong result","",snpCount)
 
@@ -116,7 +169,7 @@ class UTestGorSparkSDK {
         implicit val sgs = sparkGorSession
 
         val dbsnpGorz = spark.read.format("gorsat.spark.GorDataSource").load("/Users/sigmar/testproject/ref/dbsnp/dbsnp.gorz").limit(1000)
-        dbsnpGorz.write.save("dbsnp.parquet")
+        dbsnpGorz.write.mode("overwrite").save("dbsnp.parquet")
         dbsnpGorz.show()
 
         // Example 9
@@ -132,6 +185,8 @@ class UTestGorSparkSDK {
 
     @After
     def close() {
+        Files.deleteIfExists(goraliaspath)
+        Files.deleteIfExists(gorconfigpath)
         sparkGorSession.close()
     }
 }

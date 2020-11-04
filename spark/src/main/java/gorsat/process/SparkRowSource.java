@@ -153,7 +153,8 @@ public class SparkRowSource extends ProcessSource {
             }
             gorSparkSession.getSparkSession().sparkContext().setJobGroup("a|b|gorsql|c", sql, true);
         }
-        setHeader((nor ? "chrNOR\tposNOR\t" : "") + correctHeader(dataset.columns()));
+        boolean checknor = checkNor(dataset.schema().fields());
+        setHeader((nor || checknor ? "chrNOR\tposNOR\t" : "") + correctHeader(dataset.columns()));
     }
 
     String errorStr = "";
@@ -847,5 +848,12 @@ public class SparkRowSource extends ProcessSource {
         if (pushdownGorPipe != null) pushdownGor("top " + limit);
         else dataset = dataset.limit(limit);
         return true;
+    }
+
+    public static void main(String[] args) {
+        //SparkPipe sp = new SparkPipe();
+        /*SparkSession sparkSession = SparkSession.builder().master("local[1]").getOrCreate();
+        GorSparkSession sparkGorSession = SparkGOR.createSession(sparkSession);
+        sparkGorSession.dataframe("gor /Users/sigmar/gorproject/genes22.gorz",null).show();*/
     }
 }
