@@ -15,14 +15,14 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 public class UTestGorSparkQuery {
-
+    SparkSession spark;
     PipeInstance pi;
 
     @Before
     public void init() {
-        SparkSession sparkSession = SparkSession.builder().master("local[1]").getOrCreate();
-        //Glow.register(sparkSession);
-        SparkSessionFactory sparkSessionFactory = new SparkSessionFactory(sparkSession, Paths.get(".").toAbsolutePath().normalize().toString(), System.getProperty("java.io.tmpdir"), null, null, null);
+        spark = SparkSession.builder().master("local[1]").getOrCreate();
+        //Glow.register(spark);
+        SparkSessionFactory sparkSessionFactory = new SparkSessionFactory(spark, Paths.get(".").toAbsolutePath().normalize().toString(), System.getProperty("java.io.tmpdir"), null, null, null);
         GorSession session = sparkSessionFactory.create();
         pi = new PipeInstance(session.getGorContext());
     }
@@ -87,7 +87,7 @@ public class UTestGorSparkQuery {
     @Test
     public void testSparkSQLWithNestedNorFile() throws IOException {
         String twocolNor = "#stuff\tgene_symbol\na\tBRCA2\nb\tBRCA1\n";
-        Path tmpfile = Files.createTempFile("test", "tsv");
+        Path tmpfile = Files.createTempFile("test", ".tsv");
         Files.write(tmpfile, twocolNor.getBytes());
         testSparkQuery("spark select gene_symbol from <(nor " + tmpfile.toString() + ")",
                 "BRCA2\n" +

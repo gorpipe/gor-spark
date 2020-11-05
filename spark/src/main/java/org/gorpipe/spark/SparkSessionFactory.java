@@ -75,14 +75,14 @@ public class SparkSessionFactory extends GorSessionFactory {
         GorParallelQueryHandler sparkQueryHandler = queryHandler != null ? queryHandler : new GeneralSparkQueryHandler(null, sparkRedisUri);
         ProjectContext.Builder projectContextBuilder = new ProjectContext.Builder();
         if(configFile.isPresent()) projectContextBuilder = projectContextBuilder.setConfigFile(configFile.get());
-        if(aliasFile.isPresent()) projectContextBuilder = projectContextBuilder.setConfigFile(aliasFile.get());
-        projectContextBuilder
+        if(aliasFile.isPresent()) projectContextBuilder = projectContextBuilder.setAliasFile(aliasFile.get());
+        projectContextBuilder = projectContextBuilder
             .setRoot(root)
             .setCacheDir(cacheDir)
             .setFileReader(new DriverBackedFileReader("", root, null))
             .setFileCache(new LocalFileCacheClient(cachePath.isAbsolute() ? cachePath : Paths.get(root).resolve(cacheDir)))
             .setQueryHandler(sparkQueryHandler)
-            .setQueryEvaluator(new SessionBasedQueryEvaluator(session)).build();
+            .setQueryEvaluator(new SessionBasedQueryEvaluator(session));
 
         SystemContext.Builder systemContextBuilder = new SystemContext.Builder();
         systemContextBuilder

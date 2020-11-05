@@ -3,31 +3,9 @@ Spark enabled GOR
 
 GOR scalable through the Spark engine (https://spark.apache.org)
 
-## Prerequisite
-
-Check out open source GOR 
+# Checkout and build SparkGOR
 ```bash 
-git clone git@github.com:sigmarkarl/gor.git
-```
-
-Checkout SparkGOR in the same parent directory
-```bash 
-git clone git@github.com:sigmarkarl/sparkgor.git
-```
-
-Checkout project glow (for Spark version 3) in the same parent directory
-```bash 
-git clone git@github.com:sigmarkarl/glow.git
-```
-
-### Build Glow project
-```bash
-cd glow
-sbt package
-```
-
-## Build SparkGOR
-```bash
+git clone git@github.com:gorpipe/gor-spark.git
 cd gor-spark
 ./gradlew clean installDist
 ```
@@ -35,6 +13,16 @@ cd gor-spark
 ## Usage
 Now you can use SparkSQL from within GOR
 ```bash
-gorpipe "spark select * from genes.gor limit 10"
-gorpipe "create xxx = spark select * from <(spark selec * from genes.gor) where Gene_Symbol like 'B%'; gor [xxx] | top 10"
+spark/build/install/gor-scripts/bin/gorpipe "select * from genes.gor limit 10"
+spark/build/install/gor-scripts/bin/gorpipe "create xxx = select * from <(select * from genes.gor) where Gene_Symbol like 'B%'; gor [xxx] | top 10"
+```
+
+## SDK usage
+#### Scala demo: [gorspark.scala](https://gitlab.com/wuxi-nextcode/wxnc-gor/gor-spark/-/blob/master/pyspark.scala)
+```bash
+spark-shell --packages org.gorpipe:gor-spark:2.11.10 -I gorspark.scala
+```
+#### Python demo: [gorspark.py](https://gitlab.com/wuxi-nextcode/wxnc-gor/gor-spark/-/blob/master/pyspark.py)
+```bash
+pyspark --packages org.gorpipe:gor-spark:2.11.10 -I gorspark.py
 ```

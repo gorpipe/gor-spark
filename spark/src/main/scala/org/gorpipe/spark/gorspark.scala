@@ -84,10 +84,11 @@ class GorDatasetFunctions[T: ClassTag](ds: Dataset[T])(implicit tag: ClassTag[T]
     ds2.map(gc, enc)
   }
 
-  def gor(ocmd: String, inferschema: Boolean = true)(implicit sgs: GorSparkSession): Dataset[org.gorpipe.gor.model.Row] = {
-    val header = ds.schema.fieldNames.mkString("\t")
-    val cn = tag.runtimeClass.getName
+  def gor(gorcmd: String, inferschema: Boolean = true)(implicit sgs: GorSparkSession): Dataset[org.gorpipe.gor.model.Row] = {
+    val ocmd = sgs.replaceAliases(gorcmd)
     val nor = SparkRowSource.checkNor(ds.schema.fields)
+    val header = if(nor) "ChromNOR\tPosNOR\t"+ds.schema.fieldNames.mkString("\t") else ds.schema.fieldNames.mkString("\t")
+    val cn = tag.runtimeClass.getName
     val dsr = if (cn.equals("org.apache.spark.sql.Row")) {
       if (nor) ds.asInstanceOf[Dataset[Row]].map(row => new SparkRow(row).asInstanceOf[org.gorpipe.gor.model.Row])(SparkGOR.gorrowEncoder)
       else ds.asInstanceOf[Dataset[Row]].map(row => new GorSparkRow(row).asInstanceOf[org.gorpipe.gor.model.Row])(SparkGOR.gorrowEncoder)
@@ -110,13 +111,14 @@ class GorDatasetFunctions[T: ClassTag](ds: Dataset[T])(implicit tag: ClassTag[T]
       val gr = new GorSparkRowInferFunction()
 
       val gsm = new GorSparkMaterialize(header, nor, SparkGOR.gorrowEncoder.schema, cmd, sgs.getProjectContext.getRoot, 100)
-      val mu = ds.asInstanceOf[Dataset[Row]].map(row => new GorSparkRow(row).asInstanceOf[org.gorpipe.gor.model.Row])(SparkGOR.gorrowEncoder)
+      val mu = if(nor) ds.asInstanceOf[Dataset[Row]].map(row => new NorSparkRow(row).asInstanceOf[org.gorpipe.gor.model.Row])(SparkGOR.gorrowEncoder) else ds.asInstanceOf[Dataset[Row]].map(row => new GorSparkRow(row).asInstanceOf[org.gorpipe.gor.model.Row])(SparkGOR.gorrowEncoder)
 
       val row = mu.mapPartitions(gsm, SparkGOR.gorrowEncoder).limit(100).reduce(gr)
       val schema = SparkRowSource.schemaFromRow(gs.query().getHeader().split("\t"), row)
       val encoder = RowEncoder.apply(schema)
       gs.setSchema(schema)
-      mu.mapPartitions(gs, encoder.asInstanceOf[Encoder[org.gorpipe.gor.model.Row]])
+      val rds = mu.mapPartitions(gs, encoder.asInstanceOf[Encoder[org.gorpipe.gor.model.Row]])
+      if(nor) rds.drop("ChromNOR","PosNOR").map(row => new SparkRow(row).asInstanceOf[org.gorpipe.gor.model.Row])(SparkGOR.gorrowEncoder) else rds
     } else {
       val gs = new GorSpark(header, nor, SparkGOR.gorrowEncoder.schema, cmd, sgs.getProjectContext.getRoot)
       dsr.mapPartitions(gs, SparkGOR.gorrowEncoder)

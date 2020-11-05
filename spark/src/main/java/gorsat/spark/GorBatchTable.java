@@ -143,11 +143,9 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
                 throw new RuntimeException("Unable to infer schema from "+ppath.toString(), e);
             }
         } else if(commands!=null) {
-            String query = commands[0];
-            boolean nor = query.toLowerCase().startsWith("nor ");
             SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectRoot, cacheDir, configFile, aliasFile, null);
             GorSparkSession gorPipeSession = (GorSparkSession) sessionFactory.create();
-            GorDataType gdt = SparkRowUtilities.gorCmdSchema(query,gorPipeSession, nor);
+            GorDataType gdt = SparkRowUtilities.gorCmdSchema(commands,gorPipeSession);
 
             String[] headerArray = gdt.header;
             DataType[] dataTypes = new DataType[headerArray.length];

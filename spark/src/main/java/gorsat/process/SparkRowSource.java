@@ -153,7 +153,8 @@ public class SparkRowSource extends ProcessSource {
             }
             gorSparkSession.getSparkSession().sparkContext().setJobGroup("a|b|gorsql|c", sql, true);
         }
-        setHeader((nor ? "chrNOR\tposNOR\t" : "") + correctHeader(dataset.columns()));
+        boolean checknor = checkNor(dataset.schema().fields());
+        setHeader((nor || checknor ? "chrNOR\tposNOR\t" : "") + correctHeader(dataset.columns()));
     }
 
     String errorStr = "";

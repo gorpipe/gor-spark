@@ -29,12 +29,6 @@ object Spark {
       RowListIterator(lRows)
       //val qr = YamlUtils.parseYaml(command.substring(0, e), gpSession)
       //command = qr + command.substring(e)
-    } else if (command.contains(".yml")) {
-      val qr = context.getSession.getSystemContext.getReportBuilder.parse(command)
-      val sparkOperatorRunner = new SparkOperatorRunner()
-      sparkOperatorRunner.run(qr,context.getSession.getProjectContext.getRoot)
-      val lRows = List(RowObj("chr1\t1"))
-      RowListIterator(lRows)
     } else {
       val gpSession = context.getSession
       var projectRoot = gpSession.getProjectContext.getRoot.split("[ \t]+")(0)
