@@ -137,7 +137,9 @@ project(':spark') {
         //compile group: 'javax.jms', name: 'javax.jms-api', version: '2.0.1'
 
 
-        implementation 'io.projectglow:glow-spark3_2.12:0.6.0'
+        implementation('io.projectglow:glow-spark3_2.12:0.6.0') {
+            exclude group: 'org.freemarker'
+        }
         //compile files('/Users/sigmar/glow/core/target/scala-2.12/glow_2.12-0.5.1-SNAPSHOT.jar')
 
         //implementation 'io.projectglow:glow:3.2.1'
@@ -183,7 +185,7 @@ project(':spark') {
 
         testImplementation project(':gortools')
         testImplementation project(':model')
-        //testImplementation project(':test')
+        testImplementation project(':test')
         //testCompile("${gorArtifactGroupId}:gor-test:${gorVersion}")
     }
 
