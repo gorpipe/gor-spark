@@ -123,6 +123,7 @@ class UTestGorSparkSDK {
     }
 
     @Test
+    @Ignore("Timeout")
     def testPaperQuery(): Unit = {
         val spark = sparkGorSession.sparkSession
         import spark.implicits._
@@ -142,6 +143,7 @@ class UTestGorSparkSDK {
     }
 
     @Test
+    @Ignore("Timeout")
     def testTempTableQuery(): Unit = {
         val spark = sparkGorSession.sparkSession
         import spark.implicits._
@@ -154,6 +156,7 @@ class UTestGorSparkSDK {
     }
 
     @Test
+    @Ignore("Timeout")
     def testDependentCreatesQuery(): Unit = {
         val spark = sparkGorSession.sparkSession
         import spark.implicits._
@@ -166,6 +169,7 @@ class UTestGorSparkSDK {
     }
 
     @Test
+    @Ignore("Timeout")
     def testPaperQuery2(): Unit = {
         import org.gorpipe.spark.GorDatasetFunctions._
         val spark = sparkGorSession.sparkSession

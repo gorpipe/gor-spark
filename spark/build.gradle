@@ -126,13 +126,14 @@ project(':spark') {
         compile group: 'org.apache.logging.log4j', name: 'log4j-slf4j-impl', version: '2.13.3'
         compile group: 'org.apache.logging.log4j', name: 'log4j-1.2-api', version: '2.13.3'
 
-        //compile group: 'net.sourceforge.f2j', name: 'arpack_combined_all', version: '0.1'
-        /*compile(group: 'org.apache.hive', name: 'hive-exec', version: '2.3.7') {
-            exclude group: 'org.pentaho', module: 'pentaho-aggdesigner-algorithm'
-        }*/
+        implementation('io.projectglow:glow-spark3_2.12:0.6.0') {
+            exclude group: 'org.freemarker'
+        }
+
         compile group: 'org.apache.avro', name: 'avro-mapred', version: '1.8.2'
 
         implementation group: 'com.google.guava', name: 'guava', version: '29.0-jre'
+
 
         //compile group: 'javax.jms', name: 'javax.jms-api', version: '2.0.1'
 
@@ -179,7 +180,6 @@ project(':spark') {
         compile 'org.apache.hadoop:hadoop-aws:3.3.0'
 
         implementation("redis.clients:jedis:3.1.0")
-
         implementation 'io.kubernetes:client-java:10.0.0'
         //compile group: 'io.fabric8', name: 'kubernetes-client', version: '4.7.1'
 
