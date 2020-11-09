@@ -37,17 +37,18 @@ class GorQueryRDD(sparkSession: SparkSession, commandsToExecute: Array[String], 
     // Do this if we have result cache active or if we are running locally and the local cacheFile does not exist.
     val projectPath = Paths.get(projectDirectory)
     var cacheFilePath = Paths.get(cacheFile)
+    var cacheFileMd5Path = Paths.get(cacheFile+".md5")
     if( !cacheFilePath.isAbsolute ) cacheFilePath = projectPath.resolve(cacheFile)
     if (!Files.exists(cacheFilePath)) {
-      val temp_cacheFileName = AnalysisUtilities.getTempFileName(cacheFile)
-      var temp_cacheFile = Paths.get(temp_cacheFileName)
-      if( !temp_cacheFile.isAbsolute ) temp_cacheFile = projectPath.resolve(temp_cacheFileName)
+      val temp_cacheFile = Files.createTempFile(cacheFilePath.getParent,"tmp",cacheFilePath.getFileName.toString)
+      val temp_cacheMd5File = temp_cacheFile.getParent.resolve(temp_cacheFile.getFileName.toString+".md5")
       val tempFile_absolutepath = temp_cacheFile.toAbsolutePath.normalize().toString
       try {
         val sparkGorMonitor : GorMonitor = if(SparkGorMonitor.localProgressMonitor!=null) SparkGorMonitor.localProgressMonitor else new SparkGorMonitor(redisUri, jobId)
         val engine = new SparkGorExecutionEngine(commandToExecute, projectDirectory, cacheDirectory, configFile, aliasFile, tempFile_absolutepath, sparkGorMonitor)
         engine.execute()
         Files.move(temp_cacheFile, cacheFilePath)
+        if(Files.exists(temp_cacheMd5File)) Files.move(temp_cacheMd5File, cacheFileMd5Path)
       } catch {
         case e: Exception => handleException(e, temp_cacheFile)
       }
