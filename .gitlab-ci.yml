@@ -28,28 +28,16 @@ stages:
   - release
   - deploy
 
+
 before_script:
   - export GRADLE_USER_HOME=`pwd`/.gradle
 
 
-build:
+.build_with_cache:
   extends: .on-branches
-  stage: build
   image: "$JAVA_BUILDER_IMAGE"
-  script: ./gradlew assemble
   tags:
     - gitlab-build-01
-  cache:
-    key: "$CI_COMMIT_REF_NAME"
-    policy: pull-push
-    paths:
-      - "build"
-      - "**/build"
-      - ".gradle"
-
-
-.build_cache:
-  extends: build
   cache:
     key: "$CI_COMMIT_REF_NAME"
     policy: pull
@@ -59,8 +47,25 @@ build:
       - ".gradle"
 
 
+build:
+  image: "$JAVA_BUILDER_IMAGE"
+  stage: build
+  rules:
+    - if: '$CI_COMMIT_BRANCH'
+  tags:
+    - gitlab-build-01
+  script: ./gradlew classes
+  cache:
+    key: "$CI_COMMIT_REF_NAME"
+    policy: pull-push
+    paths:
+      - "build"
+      - "**/build"
+      - ".gradle"
+
+
 .test:
-  extends: .build_cache
+  extends: .build_with_cache
   stage: test
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
@@ -69,8 +74,6 @@ build:
       junit:
         - "*/*/*/*/TEST-*.xml"
         - "*/*/*/*/*/TEST-*.xml"
-        # Seems like ** does not work properly (even though it is used in the Gitlab docutmentation)
-        #- "**/build/test-results/test/**/TEST-*.xml"
 
 
 unittest:
