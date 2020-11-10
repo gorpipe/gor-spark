@@ -64,13 +64,233 @@ plugins {
 
 apply plugin: "com.gitlab.stfs.gradle.dependency-graph-plugin"
 
-ext {
-    // Get the git SHA to use in manifests. Do this on top level to avoid executing many times in subprojects.
-    gitSHA = grgit.head().id
+allprojects {
+    apply plugin: "idea"
+    
+    apply plugin: 'nebula.lint'
+    gradleLint {
+        rules = ['all-dependency']
+        alwaysRun = false
+    }
 }
 
-gradleLint {
-    rules = ['all-dependency', 'duplicate-dependency-class']
-    //criticalRules = ['unused-dependency']
-    alwaysRun = false
+configure(allLeafProjects()) {
+    version = rootProject.version
+
+    apply plugin: "java"
+
+    apply plugin: "com.adarshr.test-logger"
+
+    apply plugin: "jacoco"
+
+    apply plugin: "com.github.hierynomus.license"
+    licenseMain.onlyIf { rootProject.file('LICENSE ').exists() }
+    licenseTest.onlyIf { rootProject.file('LICENSE ').exists() }
+
+    ext {
+        gorArtifactGroupId = 'com.wuxinextcode.gor'
+        gorVersion = new File("${rootDir}/GOR_VERSION").text.trim()
+    }
+
+    dependencyLocking {
+        lockAllConfigurations()
+    }
+
+    // -----------------------------------------------------
+    // Set source dirs, configurations, dependencies and repos
+    // -----------------------------------------------------
+
+    // Common repositories, dependencies and jar.
+    repositories {
+        if (project.hasProperty('useMavenLocal')) {
+            mavenLocal()
+        }
+        jcenter {
+            content {
+                excludeGroupByRegex "com\\.(wuxi)?nextcode.*"
+            }
+        }
+        mavenCentral{
+            content {
+                excludeGroupByRegex "com\\.(wuxi)?nextcode.*"
+            }
+        }
+        maven {
+            name "gitlab-maven"
+            url uri("https://gitlab.com/api/v4/groups/2443025/-/packages/maven")
+            credentials(HttpHeaderCredentials) {
+                name = project.findProperty('gitlab_token') ? "Private-Token" : "Job-Token"
+                value = project.findProperty('gitlab_token') ?: System.getenv("CI_JOB_TOKEN")
+            }
+            authentication {
+                header(HttpHeaderAuthentication)
+            }
+        }
+    }
+
+    jar {
+        manifest manifestTemplate
+        baseName = getProjectFullName()
+    }
+
+    // Copy resources also from the source folder (in addition to the default
+    // resource folder).
+    sourceSets.main.resources {
+        srcDirs = ["src/main/resources", "src/main/scala", "src/main/java"];
+        exclude "**/*.java"
+    }
+
+
+    configurations.all {
+        // cache dynamic versions for 10 minutes
+        resolutionStrategy.cacheDynamicVersionsFor 10 * 60, 'seconds'
+        // don't cache changing modules at all
+        resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+
+        // See http://buransky.com/programming/exclude-log4j-to-use-slf4j-with-logback-in-a-gradle-project/
+        // Need to exclude the slf4j-simple as we are using another bindings.
+        exclude group: 'org.slf4j', module: 'slf4j-simple'
+        exclude group: "org.slf4j", module: "slf4j-log4j12"
+        exclude group: "log4j", module: "log4j"
+        // Exclude commons-logging for allprojects(we'll use the slf4j bridges)
+        exclude module: 'commons-logging'
+    }
+    
+    // Common repositories
+    dependencies {
+        testCompile 'junit:junit:4.12'
+    }
+
+    // -----------------------------------------------------
+    // Common tests setup.
+    // -----------------------------------------------------
+
+    tasks.withType(Test) {
+        // Read properties from config file.
+        Properties props = new Properties()
+        //props.load(new FileInputStream("${project.rootDir}/tests/config/unittest.sysproperties"))
+        systemProperties = props
+
+        // Set logback config file.
+        systemProperty 'logback.configurationFile', new File("${project.rootDir}/tests/config/logback-test.xml").absolutePath
+
+        // Should test failures be ignored?
+        ignoreFailures = false
+
+        // What parameters should be logged out
+        testLogging {
+            events "failed", "passed", "skipped", "standardError", "standardOut"
+            showExceptions = false
+            showCauses = false
+            showStackTraces = false
+            showStandardStreams = false
+
+            debug {
+                events "failed", "passed", "skipped", "standardError", "standardOut"
+                exceptionFormat "full"
+            }
+
+            info.events = debug.events
+            info.exceptionFormat = debug.exceptionFormat
+
+            afterSuite { desc, result ->
+                if (!desc.parent) {
+                    def res = "${result.resultType} " +
+                            "(${result.testCount} tests, " +
+                            "${result.successfulTestCount} successes, " +
+                            "${result.failedTestCount} failures, " +
+                            "${result.skippedTestCount} skipped)"
+                    println(res)
+                }
+            }
+        }
+    }
+
+    test {
+        onlyIf { ! Boolean.getBoolean('skip.tests') }
+
+        useJUnit {
+            excludeCategories 'org.gorpipe.test.IntegrationTests'
+            excludeCategories 'org.gorpipe.test.SlowTests'
+            excludeCategories 'org.gorpipe.test.LoadTests'
+            excludeCategories 'org.gorpipe.test.DbTests'
+        }
+
+        reports {
+            junitXml.enabled = true
+            html.enabled = true
+        }
+    }
+
+    task slowTest(type: Test) {
+        onlyIf { ! Boolean.getBoolean('skip.tests') }
+
+        useJUnit {
+            includeCategories 'org.gorpipe.test.SlowTests'
+        }
+
+        reports.html.setDestination(new File("$buildDir/reports/slowTests"))
+    }
+
+    task dbTest(type: Test) {
+        onlyIf { ! Boolean.getBoolean('skip.tests') }
+
+        useJUnit {
+            includeCategories 'org.gorpipe.test.DbTests'
+        }
+
+        reports.html.setDestination(new File("$buildDir/reports/dbTests"))
+    }
+
+    // See: https://github.com/junit-team/junit/wiki/Categories
+    task integrationTest(type: Test) {
+        onlyIf { ! Boolean.getBoolean('skip.tests') }
+        
+        useJUnit {
+            includeCategories 'org.gorpipe.test.IntegrationTests'
+        }
+
+        reports.html.setDestination(new File("$buildDir/reports/integrationTests"))
+    }
+
+    jacocoTestReport {
+        reports {
+            xml.enabled true
+        }
+    }
+
+    // -----------------------------------------------------
+    // Common additional tasks.
+    // -----------------------------------------------------
+
+    // Helper task to print out dependencies.
+    task allDeps(type: DependencyReportTask) {}
+
+    // Builds sources to be distributed with jars (Maven).
+    task sourcesJar(type: Jar) {
+        baseName = getProjectFullName()
+        classifier = 'sources'
+        from sourceSets.main.allSource
+    }
+
+    // Builds java doc jar to be distributed with jars (Maven).
+    task javadocJar(type: Jar, dependsOn: javadoc) {
+        baseName = getProjectFullName()
+        classifier = 'javadoc'
+        from javadoc.destinationDir
+    }
+
+    tasks.withType(Zip) {
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    }
+
+    tasks.withType(ScalaCompile) {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+        scalaCompileOptions.additionalParameters = ["-Xno-patmat-analysis"]
+    }
+}
+
+if (file("build.deploy.gradle").exists()) {
+    apply from: "build.deploy.gradle"
 }

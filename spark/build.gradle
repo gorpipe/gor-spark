@@ -155,8 +155,8 @@ project(':spark') {
         //implementation files('../hail/hail/build/libs/hail-all-spark.jar')
         //implementation files('../../glow/core/target/scala-2.12/glow_2.12-0.3.1-SNAPSHOT.jar')
 
-        compile group: 'com.typesafe.scala-logging', name: 'scala-logging_2.12', version: '3.9.2'
-        compile group: 'org.jdbi', name: 'jdbi', version: '2.78'
+        //compile group: 'com.typesafe.scala-logging', name: 'scala-logging_2.12', version: '3.9.2'
+        //compile group: 'org.jdbi', name: 'jdbi', version: '2.78'
         /*compile (group: 'org.seqdoop', name: 'hadoop-bam', version: '7.10.0') {
             exclude group: 'com.google.guava', module: 'guava'
         }*/
@@ -216,6 +216,12 @@ project(':spark') {
                                               '-Dgor.querylimits.writequota.mb=0',
                                               '-Dgor.querylimits.timeout.seconds=0',
                                               '-Dlogback.configurationFile=__APP_HOME__/config/logback-console.xml']],
+
+            'gorshell'   : ['className'     : 'org.gorpipe.gorshell.GorShell',
+                            'defaultJvmOpts': ['-Djava.security.egd=file:/dev/./urandom',
+                                               '-Dgor.querylimits.writequota.mb=0',
+                                               '-Dgor.querylimits.timeout.seconds=0',
+                                               '-Dlogback.configurationFile=__APP_HOME__/config/logback.xml']],
 
             'gor'       : ['className'     : 'org.gorpipe.gor.cli.GorCLI',
                            'defaultJvmOpts': ['-Djava.security.egd=file:/dev/./urandom',
