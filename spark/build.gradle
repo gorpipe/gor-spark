@@ -132,7 +132,7 @@ project(':spark') {
         compile group: 'org.apache.logging.log4j', name: 'log4j-slf4j-impl', version: '2.13.3'
         compile group: 'org.apache.logging.log4j', name: 'log4j-1.2-api', version: '2.13.3'
 
-        implementation "org.aeonbits.owner:owner:1.0.+"
+        implementation "org.aeonbits.owner:owner:1.0.12"
 
         implementation('io.projectglow:glow-spark3_2.12:0.6.0') {
             exclude group: 'org.freemarker'
@@ -187,7 +187,7 @@ project(':spark') {
         compile 'org.apache.hadoop:hadoop-hdfs-client:3.3.0'
         compile 'org.apache.hadoop:hadoop-aws:3.3.0'
 
-        implementation("redis.clients:jedis:3.1.0")
+        implementation("redis.clients:jedis:3.3.0")
         implementation 'io.kubernetes:client-java:10.0.0'
         //compile group: 'io.fabric8', name: 'kubernetes-client', version: '4.7.1'
 

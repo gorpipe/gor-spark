@@ -26,6 +26,7 @@ plugins {
     id "gor.java-internal-library"
     id "com.jfrog.artifactory"
     id 'maven-publish'
+    id 'signing'
 }
 
 publishing {
@@ -33,11 +34,45 @@ publishing {
         mavenJavaLibModule(MavenPublication) {
             from components.java
             artifactId = getCustomProjectId()
-            groupId = getCustomGroupId()
+            groupId = 'org.gorpipe'//getCustomGroupId()
+
+            pom {
+                name = 'Gorpipe'
+                description = 'GORpipe allows analysis of large sets of genomic and phenotypic tabular data using a declarative query language in a parallel execution engine'
+                url = 'http://gorpipe.org'
+                licenses {
+                    license {
+                        name = 'GNU Affero General Public License'
+                        url = 'https://www.gnu.org/licenses/agpl-3.0.en.html'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'gisli'
+                        name = 'Gisli Magnusson'
+                        email = 'gisli@genuitysci.com'
+                    }
+                    developer {
+                        id = 'sigmar'
+                        name = 'Sigmar Stefansson'
+                        email = 'sigmar@genuitysci.com'
+                    }
+                    developer {
+                        id = 'vidar'
+                        name = 'Vidar Hrafnkelsson'
+                        email = 'vidar@genuitysci.com'
+                    }
+                }
+                scm {
+                    connection = 'scm:git:git://github.com/gorpipe/gor.git'
+                    developerConnection = 'scm:git:ssh://github.com/gorpipe/gor.git'
+                    url = 'http://docs.gorpipe.org/'
+                }
+            }
         }
     }
     repositories {
-        maven {
+        /*maven {
             name "gitlab-gor-maven"
             url uri("https://gitlab.com/api/v4/projects/17033400/packages/maven")
             credentials(HttpHeaderCredentials) {
@@ -47,8 +82,20 @@ publishing {
             authentication {
                 header(HttpHeaderAuthentication)
             }
+        }*/
+        maven {
+            name = "MavenCentral"
+            url = uri("https://oss.sonatype.org/service/local/staging/deploy/maven2")
+            credentials {
+                username = project.findProperty("nexus_user")
+                password = project.findProperty("nexus_password")
+            }
         }
     }
+}
+
+signing {
+    sign publishing.publications.mavenJavaLibModule
 }
 
 artifactory {
