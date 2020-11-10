@@ -215,19 +215,19 @@ project(':spark') {
                            'defaultJvmOpts': ['-Djava.security.egd=file:/dev/./urandom',
                                               '-Dgor.querylimits.writequota.mb=0',
                                               '-Dgor.querylimits.timeout.seconds=0',
-                                              '-Dlogback.configurationFile=__APP_HOME__/config/logback-console.xml']],
+                                              '-Dlog4j.configurationFile=__APP_HOME__/config/log4j-console.xml']],
 
             'gorshell'   : ['className'     : 'org.gorpipe.gorshell.GorShell',
                             'defaultJvmOpts': ['-Djava.security.egd=file:/dev/./urandom',
                                                '-Dgor.querylimits.writequota.mb=0',
                                                '-Dgor.querylimits.timeout.seconds=0',
-                                               '-Dlogback.configurationFile=__APP_HOME__/config/logback.xml']],
+                                               '-Dlog4j.configurationFile=__APP_HOME__/config/log4j.xml']],
 
             'gor'       : ['className'     : 'org.gorpipe.gor.cli.GorCLI',
                            'defaultJvmOpts': ['-Djava.security.egd=file:/dev/./urandom',
                                               '-Dgor.querylimits.writequota.mb=0',
                                               '-Dgor.querylimits.timeout.seconds=0',
-                                              '-Dlogback.configurationFile=__APP_HOME__/config/logback-console.xml']],
+                                              '-Dlog4j.configurationFile=__APP_HOME__/config/log4j-console.xml']],
 
             'jessica'   : ['override'      : 'startScripts',
                            'className'     : 'org.gorpipe.jessica.Jessica',
@@ -237,10 +237,10 @@ project(':spark') {
                            'defaultJvmOpts': ['-Djava.security.egd=file:/dev/./urandom',
                                               '-Dgor.querylimits.writequota.mb=0',
                                               '-Dgor.querylimits.timeout.seconds=0',
-                                              '-Dlogback.configurationFile=__APP_HOME__/config/logback.xml']],
+                                              '-Dlog4j.configurationFile=__APP_HOME__/config/log4j.xml']],
 
             'gortool'   : ['className'     : 'org.gorpipe.gor.tools.GorToolsCLI',
-                           'defaultJvmOpts': ['-Dlogback.configurationFile=__APP_HOME__/config/logback.xml']]
+                           'defaultJvmOpts': ['-Dlog4j.configurationFile=__APP_HOME__/config/log4j.xml']]
     ]
 
     scripts.each() { scriptName, params ->
