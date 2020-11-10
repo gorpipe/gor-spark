@@ -12,8 +12,6 @@ import org.slf4j.LoggerFactory
 import scala.language.postfixOps
 
 object SparkPipe extends GorPipeFirstOrderCommands {
-
-  private val logger = LoggerFactory.getLogger(this.getClass)
   private val consoleLogger = LoggerFactory.getLogger("console." + this.getClass)
 
   var version: String = getClass.getPackage.getImplementationVersion
