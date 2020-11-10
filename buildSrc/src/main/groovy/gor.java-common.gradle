@@ -41,6 +41,7 @@ plugins {
 
 ext {
     gorArtifactGroupId = 'com.wuxinextcode.gor'
+    gorVersion = new File("${rootDir}/GOR_VERSION").text.trim()
 }
 
 // -----------------------------------------------------

@@ -21,6 +21,10 @@ import org.gorpipe.gradle.GenerateGorToolsHelpTask
  *
  *  END_COPYRIGHT
  */
+plugins {
+    id 'gor.java-library'
+    id "kr.motd.sphinx"
+}
 
 project(':documentation') {
 
@@ -50,11 +54,31 @@ project(':documentation') {
         outputFile = new File(generateText.outputDirectory, "gor_commands_help.txt")
     }
 
+    task generateGorFunctionsToolsHelp( type: GenerateGorToolsHelpTask ){
+        dependsOn generateText
+        onlyIf { ! Boolean.getBoolean('skip.documentation') }
+
+        header = "FUNCTIONS"
+        helpText = "Try HELP FUNCTIONS or HELP followed by some of these functions:"
+        inputDir = new File(generateText.outputDirectory, "functions")
+        // NOTE: the output file must be named gor_help.txt, that name is hard coded into the GorHelp class.
+        outputFile = new File(generateText.outputDirectory, "gor_functions_help.txt")
+    }
+
+    task generateGorFunctionsHelp( type: GenerateGorToolsHelpTask ){
+        dependsOn generateText
+        onlyIf { ! Boolean.getBoolean('skip.documentation') }
+
+        inputDir = new File(generateText.outputDirectory, "functions")
+        outputFile = new File(generateText.outputDirectory, "functions_help.txt")
+    }
+
     jar {
-        dependsOn generateGorCommandsToolsHelp, generateHtml
+        dependsOn generateGorCommandsToolsHelp, generateGorFunctionsToolsHelp, generateHtml
         onlyIf { ! Boolean.getBoolean('skip.documentation') }
 
         from "${generateGorCommandsToolsHelp.outputFile}"
+        from "${generateGorFunctionsToolsHelp.outputFile}"
         into("/documentation") {
             from fileTree("${generateHtml.outputDirectory}") {
                 include '**/*'
@@ -62,3 +86,4 @@ project(':documentation') {
         }
     }
 }
+
