@@ -14,6 +14,7 @@ project(':spark') {
         compile("${gorArtifactGroupId}:gor-base:${gorVersion}")
         compile("${gorArtifactGroupId}:gor-model:${gorVersion}")
         compile("${gorArtifactGroupId}:gor-gortools:${gorVersion}")
+        compile("${gorArtifactGroupId}:gor-util:${gorVersion}")
 
         implementation ('org.apache.spark:spark-core_2.12:3.0.1') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
@@ -77,6 +78,8 @@ project(':spark') {
             exclude group: 'org.freemarker'
         }
 
+        implementation "org.aeonbits.owner:owner:1.0.+"
+
         /*compile group: 'com.typesafe.scala-logging', name: 'scala-logging_2.12', version: '3.9.2'
         compile group: 'org.jdbi', name: 'jdbi', version: '2.78'
         compile group: 'org.seqdoop', name: 'hadoop-bam', version: '7.10.0'
@@ -125,6 +128,12 @@ project(':spark') {
                                               '-Dgor.querylimits.writequota.mb=0',
                                               '-Dgor.querylimits.timeout.seconds=0',
                                               '-Dlogback.configurationFile=__APP_HOME__/config/logback-console.xml']],
+
+            'gorshell'   : ['className'     : 'org.gorpipe.gorshell.GorShell',
+                            'defaultJvmOpts': ['-Djava.security.egd=file:/dev/./urandom',
+                                               '-Dgor.querylimits.writequota.mb=0',
+                                               '-Dgor.querylimits.timeout.seconds=0',
+                                               '-Dlogback.configurationFile=__APP_HOME__/config/logback.xml']],
 
             'gor'       : ['className'     : 'org.gorpipe.gor.cli.GorCLI',
                            'defaultJvmOpts': ['-Djava.security.egd=file:/dev/./urandom',
