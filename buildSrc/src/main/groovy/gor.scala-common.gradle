@@ -21,12 +21,26 @@
  */
 
 plugins {
-    id 'groovy-gradle-plugin'
+    id "gor.common"
+    id "scala"
 }
 
-repositories {
-    mavenCentral()
+// See: https://github.com/gradle/gradle/issues/6854
+configurations.all {
+    if (name.startsWith("incrementalScalaAnalysis")) {
+        extendsFrom = []
+    }
 }
-dependencies {
-    implementation "org.apache.commons:commons-lang3:3.6"
+
+compileScala {options.encoding = "UTF-8"}
+compileTestScala {options.encoding = "UTF-8"}
+
+// To build mixed java scala projects, the scala plugin can handle both java and scala code so
+// we add the java source dir to scala plugin and remove all src dirs from the java plugin.
+sourceSets.main.scala.srcDir "src/main/java"
+sourceSets.main.java.srcDirs = []
+
+tasks.withType(ScalaCompile) {
+    scalaCompileOptions.metaClass.useAnt = false
+    scalaCompileOptions.additionalParameters = ["-Xno-patmat-analysis"]
 }

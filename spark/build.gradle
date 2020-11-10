@@ -1,6 +1,11 @@
-project(':spark') {
-    apply plugin: 'scala'
+plugins {
+    id 'gor.java-library'
+    id 'gor.java-application'
+    id 'antlr'
+    id 'gor.scala-common'
+}
 
+project(':spark') {
     configurations.all {
         if (name.startsWith("incrementalScalaAnalysis")) {
             extendsFrom = []
@@ -110,9 +115,6 @@ project(':spark') {
         manifest.attributes 'Main-Class': "gorsat.process.GorPipe"
     }
 
-    // Distribution
-    apply plugin: 'application'
-
     distributions {
         main {
             baseName "gor-scripts"
@@ -160,7 +162,3 @@ project(':spark') {
         updateScriptTask("GOR", scriptName, params, t, project)
     }
 }
-
-/*if (file("build.deploy.gradle").exists()) {
-    apply from: "build.deploy.gradle"
-}*/
