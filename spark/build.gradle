@@ -1,6 +1,11 @@
-project(':spark') {
-    apply plugin: 'scala'
+plugins {
+    id 'gor.java-library'
+    id 'gor.java-application'
+    id 'antlr'
+    id 'gor.scala-common'
+}
 
+project(':spark') {
     configurations.all {
         if (name.startsWith("incrementalScalaAnalysis")) {
             extendsFrom = []
@@ -12,6 +17,7 @@ project(':spark') {
 
     dependencies {
         implementation project(':gorbase')
+        implementation project(':gorutil')
         implementation project(':model')
         implementation(project(':gortools')) {
             exclude group: 'net.sourceforge.f2j', module: 'arpack_combined_all'
@@ -126,6 +132,8 @@ project(':spark') {
         compile group: 'org.apache.logging.log4j', name: 'log4j-slf4j-impl', version: '2.13.3'
         compile group: 'org.apache.logging.log4j', name: 'log4j-1.2-api', version: '2.13.3'
 
+        implementation "org.aeonbits.owner:owner:1.0.+"
+
         implementation('io.projectglow:glow-spark3_2.12:0.6.0') {
             exclude group: 'org.freemarker'
         }
@@ -193,9 +201,6 @@ project(':spark') {
         manifest.attributes 'Main-Class': "gorsat.process.GorPipe"
     }
 
-    // Distribution
-    apply plugin: 'application'
-
     distributions {
         main {
             baseName "gor-scripts"
@@ -237,7 +242,3 @@ project(':spark') {
         updateScriptTask("GOR", scriptName, params, t, project)
     }
 }
-
-/*if (file("build.deploy.gradle").exists()) {
-    apply from: "build.deploy.gradle"
-}*/

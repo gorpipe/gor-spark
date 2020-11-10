@@ -21,12 +21,28 @@
  */
 
 plugins {
-    id 'groovy-gradle-plugin'
+    id 'gor.java-common'
 }
 
-repositories {
-    mavenCentral()
+jar {
+    manifest manifestTemplate
+    archiveBaseName = getProjectFullName()
 }
-dependencies {
-    implementation "org.apache.commons:commons-lang3:3.6"
+
+// Builds sources to be distributed with jars (Maven).
+task sourcesJar(type: Jar) {
+    archiveBaseName = getProjectFullName()
+    archiveClassifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+// Builds java doc jar to be distributed with jars (Maven).
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    archiveBaseName = getProjectFullName()
+    archiveClassifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+tasks.withType(Zip) {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
