@@ -1,11 +1,8 @@
 package org.gorpipe.spark;
 
-import gorsat.InputSources.Spark;
-import gorsat.process.GorInputSources;
 import gorsat.process.PipeInstance;
 import org.gorpipe.gor.util.ConfigUtil;
 import org.gorpipe.gorshell.GorShell;
-import org.gorpipe.gorshell.QueryRunner;
 import org.gorpipe.logging.GorLogbackUtil;
 
 import java.io.IOException;
@@ -21,8 +18,6 @@ public class GorSparkShell extends GorShell {
 
         ConfigUtil.loadConfig("gor");
         PipeInstance.initialize();
-        GorInputSources.addInfo(new Spark.Spark());
-        GorInputSources.addInfo(new Spark.Select());
 
         GorSparkShell gorShell = new GorSparkShell();
         gorShell.run();
