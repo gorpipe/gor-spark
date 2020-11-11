@@ -84,6 +84,7 @@ project(':spark') {
         }
 
         implementation "org.aeonbits.owner:owner:1.0.+"
+        implementation 'info.picocli:picocli-shell-jline3:4.1.4'
 
         /*compile group: 'com.typesafe.scala-logging', name: 'scala-logging_2.12', version: '3.9.2'
         compile group: 'org.jdbi', name: 'jdbi', version: '2.78'
@@ -131,7 +132,7 @@ project(':spark') {
                                               '-Dgor.querylimits.timeout.seconds=0',
                                               '-Dlog4j.configurationFile=__APP_HOME__/config/log4j-console.xml']],
 
-            'gorshell'   : ['className'     : 'org.gorpipe.gorshell.GorShell',
+            'gorshell'   : ['className'     : 'org.gorpipe.gorshell.GorSparkShell',
                             'defaultJvmOpts': ['-Djava.security.egd=file:/dev/./urandom',
                                                '-Dgor.querylimits.writequota.mb=0',
                                                '-Dgor.querylimits.timeout.seconds=0',
