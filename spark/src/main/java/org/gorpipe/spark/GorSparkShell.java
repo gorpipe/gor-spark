@@ -4,7 +4,6 @@ import gorsat.process.PipeInstance;
 import org.gorpipe.gor.util.ConfigUtil;
 import org.gorpipe.gorshell.GorShell;
 import org.gorpipe.gorshell.GorShellSessionFactory;
-import org.gorpipe.gorshell.QueryRunner;
 import org.gorpipe.logging.GorLogbackUtil;
 
 import java.io.IOException;
@@ -26,12 +25,8 @@ public class GorSparkShell extends GorShell {
     }
 
     @Override
-    protected void runQuery(String script) {
-        resetRunner();
+    protected GorShellSessionFactory getSessionFactory() {
         String cwd = System.getProperty("user.dir");
-        GorShellSessionFactory sessionFactory = new GorSparkShellSessionFactory(cwd);
-        runner = new QueryRunner(sessionFactory, script, lineReader, Thread.currentThread());
-        initQueryRunner();
-        runner.start();
+        return new GorSparkShellSessionFactory(cwd);
     }
 }
