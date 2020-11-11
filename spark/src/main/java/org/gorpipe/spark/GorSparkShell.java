@@ -10,8 +10,8 @@ import java.io.IOException;
 
 public class GorSparkShell extends GorShell {
 
-    public GorSparkShell() throws IOException {
-        super();
+    public GorSparkShell(GorShellSessionFactory gorShellSessionFactory) {
+        super(gorShellSessionFactory);
     }
 
     public static void main(String[] args) throws IOException {
@@ -20,12 +20,12 @@ public class GorSparkShell extends GorShell {
         ConfigUtil.loadConfig("gor");
         PipeInstance.initialize();
 
-        GorSparkShell gorShell = new GorSparkShell();
+        GorShellSessionFactory gorShellSessionFactory = getSessionFactory();
+        GorSparkShell gorShell = new GorSparkShell(gorShellSessionFactory);
         gorShell.run();
     }
 
-    @Override
-    protected GorShellSessionFactory getSessionFactory() {
+    static GorShellSessionFactory getSessionFactory() {
         String cwd = System.getProperty("user.dir");
         return new GorSparkShellSessionFactory(cwd);
     }
