@@ -2,14 +2,21 @@ package org.gorpipe.spark.redis;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gorsat.Commands.CommandParseUtilities;
+import gorsat.process.FreemarkerReportBuilder;
+import gorsat.process.GenericRunnerFactory;
+import gorsat.process.GorSessionCacheManager;
 import gorsat.process.PipeOptions;
 import org.apache.spark.api.java.function.VoidFunction2;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
+import org.gorpipe.gor.clients.LocalFileCacheClient;
+import org.gorpipe.gor.model.DriverBackedFileReader;
 import org.gorpipe.gor.session.GorContext;
+import org.gorpipe.gor.session.GorSessionCache;
 import org.gorpipe.gor.session.ProjectContext;
 import org.gorpipe.gor.session.SystemContext;
+import org.gorpipe.spark.GeneralSparkQueryHandler;
 import org.gorpipe.spark.GeneralSparkCluster;
 import org.gorpipe.spark.GorQueryRDD;
 import org.gorpipe.spark.GorSparkSession;
@@ -18,6 +25,8 @@ import org.slf4j.LoggerFactory;
 import py4j.Base64;
 
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -26,6 +35,7 @@ import java.util.stream.Collectors;
 
 public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long>, AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(RedisBatchConsumer.class);
+    private static final String DEFAULT_CACHE_DIR = "result_cache";
 
     GorSparkSession gss;
     SystemContext sysctx;
@@ -41,6 +51,8 @@ public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long>, Au
 
         SystemContext.Builder systemContextBuilder = new SystemContext.Builder();
         sysctx = systemContextBuilder
+                .setReportBuilder(new FreemarkerReportBuilder(gss))
+                .setRunnerFactory(new GenericRunnerFactory())
                 .setServer(true)
                 .setStartTime(System.currentTimeMillis())
                 .build();
@@ -83,24 +95,41 @@ public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long>, Au
         mont.addJob(jobIdStr, fut);
     }
 
-    public void runSparkJob(String projectDirStr,String cmd,String jobId,String cacheFile) {
+    public void runSparkJob(String projectDirStr,String[] creates,String cmd,String jobId,String cacheFile) {
         log.info("Running spark job "+jobId+": " + cmd);
         String shortJobId = jobId.substring(jobId.lastIndexOf(':')+1);
 
-        int firstSpace = cmd.indexOf(' ');
-        cmd = cmd.substring(0, firstSpace + 1) + "-j " + shortJobId + cmd.substring(firstSpace);
-        String[] args = new String[]{cmd, "-queryhandler", "spark"};
-        PipeOptions options = new PipeOptions();
-        options.parseOptions(args);
+        String cacheDir = DEFAULT_CACHE_DIR;
+        String configFile = System.getProperty("gor.project.config.path","config/gor_config.txt");
+        String aliasFile = System.getProperty("gor.project.alias.path","config/gor_standard_aliases.txt");
+        Path projectPath = Paths.get(projectDirStr);
+        configFile = projectPath.resolve(configFile).toAbsolutePath().normalize().toString();
+        aliasFile = projectPath.resolve(aliasFile).toAbsolutePath().normalize().toString();
+
+        GeneralSparkQueryHandler queryHandler = new GeneralSparkQueryHandler(gss, gss.redisUri());
 
         ProjectContext.Builder projectContextBuilder = new ProjectContext.Builder();
         ProjectContext prjctx = projectContextBuilder
                 .setRoot(projectDirStr)
-                .setCacheDir("result_cache")
-                .setConfigFile(null)
+                .setCacheDir(cacheDir)
+                .setFileReader(new DriverBackedFileReader("", projectDirStr, null))
+                .setConfigFile(configFile)
+                .setAliasFile(aliasFile)
+                .setQueryHandler(queryHandler)
+                .setFileCache(new LocalFileCacheClient(projectPath.resolve(cacheDir)))
                 .build();
-        gss.init(prjctx, sysctx, null);
+
+        GorSessionCache cache = GorSessionCacheManager.getCache(gss.getRequestId());
+        gss.init(prjctx, sysctx, cache);
         GorContext context = new GorContext(gss);
+
+        int firstSpace = cmd.indexOf(' ');
+        cmd = cmd.substring(0, firstSpace + 1) + "-j " + shortJobId + cmd.substring(firstSpace);
+        String query = creates.length > 0 ? String.join(";",creates) + ";" + cmd : cmd;
+        cmd = gss.replaceAliases(query);
+        String[] args = new String[]{cmd, "-queryhandler", "spark"};
+        PipeOptions options = new PipeOptions();
+        options.parseOptions(args);
 
         SparkGorQuery sgq = new SparkGorQuery(context, cmd, cacheFile);
         Future<List<String>> fut = es.submit(sgq);
@@ -148,9 +177,11 @@ public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long>, Au
             final Set<Integer> gorJobs = new TreeSet<>();
             for (int i = 0; i < queries.length; i++) {
                 String cmd = queries[i];
-                String commandUpper = cmd.toUpperCase();
-                if (commandUpper.startsWith("SELECT ") || commandUpper.startsWith("SPARK ") || commandUpper.startsWith("GORSPARK ") || commandUpper.startsWith("NORSPARK ")) {
-                    runSparkJob(projectDirStr, cmd, jobIds[i], cachefiles[i]);
+                String[] cmdSplit = CommandParseUtilities.quoteSafeSplit(cmd,';');
+                String lastCommand = cmdSplit[cmdSplit.length-1].trim();
+                String lastCommandUpper = lastCommand.toUpperCase();
+                if (lastCommandUpper.startsWith("SELECT ") || lastCommandUpper.startsWith("SPARK ") || lastCommandUpper.startsWith("GORSPARK ") || lastCommandUpper.startsWith("NORSPARK ")) {
+                    runSparkJob(projectDirStr, Arrays.copyOfRange(cmdSplit,0,cmdSplit.length-1), lastCommand, jobIds[i], cachefiles[i]);
                 } else {
                     gorJobs.add(i);
                 }

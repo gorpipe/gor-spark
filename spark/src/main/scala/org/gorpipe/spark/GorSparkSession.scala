@@ -112,9 +112,11 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
 
   def replaceAliases(gorcmd: String): String = {
     val qryspl = CommandParseUtilities.quoteSafeSplit(gorcmd, ';')
-    val tmpFileAliasMap = new util.HashMap[String,String](fileAliasMap)
-    AnalysisUtilities.checkAliasNameReplacement(qryspl, tmpFileAliasMap) //needs a test
-    replaceAllAliases(gorcmd, tmpFileAliasMap)
+    if(fileAliasMap!=null) {
+      val tmpFileAliasMap = new util.HashMap[String, String](fileAliasMap)
+      AnalysisUtilities.checkAliasNameReplacement(qryspl, tmpFileAliasMap) //needs a test
+      replaceAllAliases(gorcmd, tmpFileAliasMap)
+    } else gorcmd
   }
 
   def getCreateQueries(increates: String): String = {
