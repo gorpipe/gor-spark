@@ -1,5 +1,7 @@
 package org.gorpipe.spark.redis;
 
+import org.apache.spark.SparkConf;
+import org.apache.spark.SparkContext;
 import org.apache.spark.sql.*;
 import org.apache.spark.sql.streaming.StreamingQuery;
 import org.apache.spark.sql.types.*;
@@ -12,6 +14,8 @@ import java.util.concurrent.*;
 
 public class GorSparkRedisRunner implements Callable<String>, AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(GorSparkRedisRunner.class);
+    private static final String CUSTOM_SPARK_LOGLEVEL_CONFIG = "spark.logLevel";
+    private static final String DEFAULT_LOG_LEVEL = "WARN";
     public static GorSparkRedisRunner instance;
     private SparkSession sparkSession;
     private String redisUri;
@@ -25,9 +29,14 @@ public class GorSparkRedisRunner implements Callable<String>, AutoCloseable {
     }
 
     public void init(SparkSession sparkSession) {
+        SparkContext context = sparkSession.sparkContext();
+        SparkConf conf = context.conf();
+        String logLevel = DEFAULT_LOG_LEVEL;
+        if(conf.contains(CUSTOM_SPARK_LOGLEVEL_CONFIG)) logLevel = conf.get(CUSTOM_SPARK_LOGLEVEL_CONFIG);
+        context.setLogLevel(logLevel);
+
         log.info("Initializing GorSparkRedisRunner");
 
-        //sparkSession.sparkContext().setLogLevel("DEBUG");
         instance = this;
         this.sparkSession = sparkSession;
         redisUri = GorSparkUtilities.getSparkGorRedisUri();
