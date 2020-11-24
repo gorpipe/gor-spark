@@ -2,11 +2,10 @@ package org.gorpipe.spark
 
 import java.nio.file.{Files, Path, Paths}
 import java.util.stream.Collectors
-
 import org.apache.spark.sql.{Encoders, SparkSession}
 import org.gorpipe.gor.model.Row
 import org.gorpipe.spark.GorDatasetFunctions.addCustomFunctions
-import org.junit.{After, Assert, Before, Test}
+import org.junit.{After, Assert, Before, Ignore, Test}
 
 class UTestGorSparkSDK {
     var sparkGorSession : GorSparkSession = _

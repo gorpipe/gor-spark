@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -71,8 +72,6 @@ public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long>, Au
     }
 
     public Future<List<String>> runGorJobs(String projectDirStr, Set<Integer> gorJobs, String[] queries, String[] fingerprints, String[] jobIds, String[] cachefiles) {
-        String jobIdStr = String.join(",", jobIds);
-
         String[] newCommands = new String[gorJobs.size()];
         String[] newFingerprints = new String[gorJobs.size()];
         String[] newCacheFiles = new String[gorJobs.size()];
@@ -132,8 +131,9 @@ public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long>, Au
         return es.submit(sgq);
     }
 
-    public void runJobBatch(List<String[]> lstr) {
+    public Map<String,Future<List<String>>> runJobBatch(List<String[]> lstr) {
         Optional<String> projectDir = lstr.stream().map(l -> l[2]).findFirst();
+        Map<String,Future<List<String>>> futList = new HashMap<>();
         if (projectDir.isPresent()) {
             String projectDirStr = projectDir.get();
             String[] queries = lstr.stream().map(l -> l[0]).toArray(String[]::new);
@@ -146,18 +146,25 @@ public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long>, Au
             final Set<Integer> gorJobs = new TreeSet<>();
             for (int i = 0; i < queries.length; i++) {
                 String cmd = queries[i];
+                String jobId = jobIds[i];
                 String[] cmdSplit = CommandParseUtilities.quoteSafeSplit(cmd,';');
                 String lastCommand = cmdSplit[cmdSplit.length-1].trim();
                 String lastCommandUpper = lastCommand.toUpperCase();
                 if (lastCommandUpper.startsWith("SELECT ") || lastCommandUpper.startsWith("SPARK ") || lastCommandUpper.startsWith("GORSPARK ") || lastCommandUpper.startsWith("NORSPARK ")) {
-                    runSparkJob(projectDirStr, Arrays.copyOfRange(cmdSplit,0,cmdSplit.length-1), lastCommand, jobIds[i], cachefiles[i]);
+                    Future<List<String>> fut = runSparkJob(projectDirStr, Arrays.copyOfRange(cmdSplit,0,cmdSplit.length-1), lastCommand, jobId, cachefiles[i]);
+                    futList.put(jobId,fut);
                 } else {
                     gorJobs.add(i);
                 }
             }
 
-            if (gorJobs.size() > 0) runGorJobs(projectDirStr, gorJobs, queries, fingerprints, jobIds, cachefiles);
+            if (gorJobs.size() > 0) {
+                Future<List<String>> fut = runGorJobs(projectDirStr, gorJobs, queries, fingerprints, jobIds, cachefiles);
+                String jobIdStr = gorJobs.stream().map(i -> jobIds[i]).collect(Collectors.joining(","));
+                futList.put(jobIdStr,fut);
+            }
         }
+        return futList;
     }
 
     @Override
@@ -188,8 +195,8 @@ public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long>, Au
             return new String[0];
         }).collect(Collectors.toList());
 
-        runJobBatch(lstr);
-        mont.addJob(jobIdStr, fut);
+        Map<String,Future<List<String>>> futMap = runJobBatch(lstr);
+        futMap.forEach((key, value) -> mont.addJob(key, value));
     }
 
     /**
@@ -214,12 +221,16 @@ public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long>, Au
             String[] cachefileSplit = cachefiles.split(";");
             String[] jobidSplit = jobids.split(";");
 
-            List<String[]> lstr = IntStream.range(0, fingerprints.length()).mapToObj(i -> new String[]{querySplit[i], fingerprintSplit[i], projectDir, requestId, jobidSplit[i], cachefileSplit[i]}).collect(Collectors.toList());
+            List<String[]> lstr = IntStream.range(0, fingerprintSplit.length).mapToObj(i -> new String[]{querySplit[i], fingerprintSplit[i], projectDir, requestId, jobidSplit[i], cachefileSplit[i]}).collect(Collectors.toList());
 
             RedisBatchConsumer redisBatchConsumer = new RedisBatchConsumer(sparkSession, redisUrl);
-            redisBatchConsumer.runJobBatch(lstr);
+            Map<String,Future<List<String>>> futMap = redisBatchConsumer.runJobBatch(lstr);
 
-            System.err.println("done");
+            for(Future<List<String>> f : futMap.values()) {
+                f.get();
+            }
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
         }
     }
 }

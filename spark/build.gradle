@@ -194,7 +194,7 @@ project(':spark') {
 
         testImplementation project(':gortools')
         testImplementation project(':model')
-        //testImplementation project(':test')
+        testImplementation project(':test')
         //testCompile("${gorArtifactGroupId}:gor-test:${gorVersion}")
     }
 

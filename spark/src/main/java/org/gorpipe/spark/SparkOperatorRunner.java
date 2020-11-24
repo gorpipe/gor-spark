@@ -22,12 +22,14 @@ public class SparkOperatorRunner {
     CustomObjectsApi apiInstance;
     ObjectMapper objectMapper;
     String jobName;
+    String namespace;
 
-    public SparkOperatorRunner() throws IOException {
+    public SparkOperatorRunner(String namespace) throws IOException {
         ApiClient client = Config.defaultClient();
         Configuration.setDefaultApiClient(client);
         apiInstance = new CustomObjectsApi();
-        objectMapper = new ObjectMapper();
+        objectMapper = new ObjectMapper(new YAMLFactory());
+        this.namespace = namespace;
     }
 
     Map<String, Object> loadBody(String query, String project, String result_dir, Map<String, Object> parameters) throws IOException {
@@ -92,10 +94,12 @@ public class SparkOperatorRunner {
         return body;
     }
 
-    public void run(String yaml, String projectroot) throws IOException, ApiException {
+    public void run(String yaml, String projectroot, SparkOperatorSpecs specs) throws IOException, ApiException {
         if (projectroot == null || projectroot.length() == 0)
             projectroot = Paths.get(".").toAbsolutePath().normalize().toString();
         Map<String, Object> body = loadBody(yaml, projectroot, "", new HashMap<>());
-        apiInstance.createNamespacedCustomObject("sparkoperator.k8s.io", "v1beta2", "spark", "sparkapplications", body, "true", null, null);
+        specs.apply(body);
+        System.err.println(objectMapper.writeValueAsString(body));
+        apiInstance.createNamespacedCustomObject("sparkoperator.k8s.io", "v1beta2", namespace, "sparkapplications", body, "true", null, null);
     }
 }
