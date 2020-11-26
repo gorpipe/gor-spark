@@ -6,12 +6,12 @@ metadata:
 spec:
   type: Java
   mode: cluster
-  image: nextcode/spark:1.1.0
+  image: nextcode/spark:3.0.1
   imagePullPolicy: Never #Always
   imagePullSecrets:
     - dockerhub-nextcode-download-credentials
-  mainApplicationFile: local:///opt/spark/jars/gor-spark-1.1.0.jar
-  mainClass: gorsat.SparkOperator
+  mainApplicationFile: local:///opt/spark/jars/gor-spark-3.0.1.jar
+  mainClass: org.gorpipe.spark.redis.RedisBatchConsumer
   sparkVersion: 3.0.1
   restartPolicy:
     type: OnFailure
@@ -19,7 +19,7 @@ spec:
     onFailureRetryInterval: 10
     onSubmissionFailureRetries: 1
     onSubmissionFailureRetryInterval: 20
-    #sparkConf:
+  #sparkConf:
     #spark.kubernetes.executor.volumes.persistentVolumeClaim.gorproject.options.claimName: pvc-sparkgorproject-nfs
     #spark.kubernetes.executor.volumes.persistentVolumeClaim.gorproject.mount.path: "/gorproject"
     #spark.kubernetes.executor.volumes.persistentVolumeClaim.mntcsa.options.claimName: pvc-sparkgor-nfs

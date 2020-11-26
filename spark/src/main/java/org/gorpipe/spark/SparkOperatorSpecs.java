@@ -1,5 +1,7 @@
 package org.gorpipe.spark;
 
+import gorsat.Commands.CommandParseUtilities;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -7,10 +9,11 @@ public class SparkOperatorSpecs {
     Map<String,Object> configMap = new HashMap<>();
 
     public void addConfig(String config,Object value) {
-        String[] split = config.split("\\.");
+        String[] split = CommandParseUtilities.quoteSafeSplit(config,'.');
         Map<String,Object> current = configMap;
         for(int i = 0; i < split.length-1; i++) {
             String s = split[i];
+            if(s.startsWith("\"")) s = s.substring(1,s.length()-1);
             if(current.containsKey(s)) {
                 current = (Map<String,Object>)current.get(s);
             } else {
@@ -19,7 +22,9 @@ public class SparkOperatorSpecs {
                 current = next;
             }
         }
-        current.put(split[split.length-1],value);
+        String key = split[split.length-1];
+        if(key.startsWith("\"")) key = key.substring(1,key.length()-1);
+        current.put(key,value);
     }
 
     private Map<String,Object> merge(Map<String,Object> body,Map<String,Object> config) {

@@ -204,31 +204,31 @@ public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long>, Au
      * @param args
      */
     public static void main(String[] args) {
+        String redisUrl = args[0];
+        String requestId = args[1];
+        String projectDir = args[2];
+        String queries = args[3];
+        String fingerprints = args[4];
+        String cachefiles = args[5];
+        String jobids = args[6];
+
         SparkSession.Builder sb = new SparkSession.Builder();
         try(SparkSession sparkSession = sb
                 .master("local[*]")
-                .getOrCreate()) {
-            String redisUrl = args[0];
-            String requestId = args[1];
-            String projectDir = args[2];
-            String queries = args[3];
-            String fingerprints = args[4];
-            String cachefiles = args[5];
-            String jobids = args[6];
-
+                .getOrCreate(); RedisBatchConsumer redisBatchConsumer = new RedisBatchConsumer(sparkSession, redisUrl)) {
             String[] querySplit = queries.split(";;");
             String[] fingerprintSplit = fingerprints.split(";");
             String[] cachefileSplit = cachefiles.split(";");
             String[] jobidSplit = jobids.split(";");
 
             List<String[]> lstr = IntStream.range(0, fingerprintSplit.length).mapToObj(i -> new String[]{querySplit[i], fingerprintSplit[i], projectDir, requestId, jobidSplit[i], cachefileSplit[i]}).collect(Collectors.toList());
-
-            RedisBatchConsumer redisBatchConsumer = new RedisBatchConsumer(sparkSession, redisUrl);
             Map<String,Future<List<String>>> futMap = redisBatchConsumer.runJobBatch(lstr);
 
+            log.info("Number of batches " + futMap.size());
             for(Future<List<String>> f : futMap.values()) {
                 f.get();
             }
+            log.info("Finised running all batches");
         } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException(e);
         }
