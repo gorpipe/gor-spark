@@ -18,7 +18,7 @@ class MonitorThread implements Callable<String> {
 
     public MonitorThread(String redisUri) {
         futureActionSet = new ConcurrentHashMap<>();
-        jedisPool = SharedRedisPools.getJedisPool(JedisURIHelper.create(redisUri));
+        if(redisUri!=null&&redisUri.length()>0) jedisPool = SharedRedisPools.getJedisPool(JedisURIHelper.create(redisUri));
     }
 
     public void stopRunning() {
@@ -34,7 +34,7 @@ class MonitorThread implements Callable<String> {
     }
 
     public void setValue(String[] jobIds, String field, String value) {
-        try (Jedis jedis = jedisPool.getResource()) {
+        if(jedisPool!=null) try (Jedis jedis = jedisPool.getResource()) {
             for(String jobId : jobIds) {
                 jedis.hset(jobId, field, value);
                 jedis.expire(jobId, (int) getJobExpiration().getSeconds());
@@ -43,7 +43,7 @@ class MonitorThread implements Callable<String> {
     }
 
     public void setValues(String[] jobIds, String field, String[] values) {
-        try (Jedis jedis = jedisPool.getResource()) {
+        if(jedisPool!=null) try (Jedis jedis = jedisPool.getResource()) {
             for(int i = 0; i < jobIds.length; i++) {
                 String jobId = jobIds[i];
                 String value = values[i];
@@ -87,7 +87,7 @@ class MonitorThread implements Callable<String> {
                 if(futureActionSet.isEmpty()) Thread.sleep(500);
             }
         } finally {
-            jedisPool.close();
+            if(jedisPool!=null) jedisPool.close();
         }
         return "";
     }

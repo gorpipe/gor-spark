@@ -1,14 +1,25 @@
 package org.gorpipe.spark;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.google.gson.reflect.TypeToken;
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.Configuration;
+import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.openapi.apis.CustomObjectsApi;
+import io.kubernetes.client.openapi.models.V1DeleteOptions;
+import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.util.Config;
+import io.kubernetes.client.util.Watch;
+import okhttp3.Call;
+import org.gorpipe.exceptions.GorSystemException;
 import org.gorpipe.gor.driver.DataSource;
 import org.gorpipe.gor.model.DriverBackedFileReader;
+import org.gorpipe.gor.monitor.GorMonitor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -19,15 +30,26 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class SparkOperatorRunner {
+    private static final Logger log = LoggerFactory.getLogger(SparkOperatorRunner.class);
+
+    public static final String SPARKAPPLICATION_COMPLETED_STATE = "COMPLETED";
+    public static final String SPARKAPPLICATION_FAILED_STATE = "FAILED";
+    public static final String SPARKAPPLICATION_RUNNING_STATE = "RUNNING";
+
+    ApiClient client;
     CustomObjectsApi apiInstance;
+    CoreV1Api core;
     ObjectMapper objectMapper;
     String jobName;
+    String namespace;
 
-    public SparkOperatorRunner() throws IOException {
-        ApiClient client = Config.defaultClient();
+    public SparkOperatorRunner(String namespace) throws IOException {
+        client = Config.defaultClient();
         Configuration.setDefaultApiClient(client);
         apiInstance = new CustomObjectsApi();
-        objectMapper = new ObjectMapper();
+        core = new CoreV1Api(client);
+        objectMapper = new ObjectMapper(new YAMLFactory());
+        this.namespace = namespace;
     }
 
     Map<String, Object> loadBody(String query, String project, String result_dir, Map<String, Object> parameters) throws IOException {
@@ -60,11 +82,6 @@ public class SparkOperatorRunner {
             }
             if (name.equals("${name.val}")) md.put("name", jobName);
 
-            /*yamlContent = yamlContent.replace("${name.val}", jobName);
-
-            String argString = objectMapper.writeValueAsString(arguments);
-            yamlContent = yamlContent.replace("${arguments.val}", argString);*/
-
             yamlContent = objectMapper.writeValueAsString(yaml).substring(4);
             for (Map.Entry entry : parameters.entrySet()) {
                 yamlContent = yamlContent.replace("${" + entry.getKey() + ".val}", entry.getValue().toString());
@@ -92,10 +109,85 @@ public class SparkOperatorRunner {
         return body;
     }
 
-    public void run(String yaml, String projectroot) throws IOException, ApiException {
+    public String getSparkApplicationState(String name) throws ApiException {
+        try {
+            Object obj = apiInstance.getNamespacedCustomObject("sparkoperator.k8s.io", "v1beta2", namespace, "sparkapplications", name);
+            Map map = (Map)obj;
+            Map statusMap = (Map)map.get("status");
+            if(statusMap!=null) {
+                Map appMap = (Map) statusMap.get("applicationState");
+                return (String) appMap.get("state");
+            }
+        } catch (ApiException e) {
+            if(!e.getMessage().contains("Not Found")) throw e;
+        }
+        return "";
+    }
+
+    public void deleteSparkApplication(String name) throws ApiException {
+        V1DeleteOptions body = new V1DeleteOptions();
+        apiInstance.deleteNamespacedCustomObject("sparkoperator.k8s.io", "v1beta2", namespace, "sparkapplications", name, null, null, null, null, body);
+    }
+
+    public boolean waitForSparkApplicationToComplete(GorMonitor mon, String name) throws ApiException, InterruptedException {
+        String state = getSparkApplicationState(name);
+        while (!state.equals(SPARKAPPLICATION_COMPLETED_STATE)) {
+            if (state.equals(SPARKAPPLICATION_FAILED_STATE)) {
+                throw new GorSystemException(state, null);
+            }
+            if (mon!=null && mon.isCancelled()) {
+                deleteSparkApplication(name);
+                return false;
+            }
+            Thread.sleep(1000);
+            state = getSparkApplicationState(name);
+        }
+        return true;
+    }
+
+    void waitSparkApplicationState(GorMonitor mon,String name,String state) throws ApiException {
+        Call call = core.listNamespacedPodCall(namespace, null, null, null, null, null, null, null, 120, null, null);
+        try (Watch<V1Pod> watchSparkApplication = Watch.createWatch(client, call, new TypeToken<Watch.Response<V1Pod>>() {}.getType())) {
+            for (Watch.Response<V1Pod> item : watchSparkApplication) {
+                if (item.type != null && item.type.equals("MODIFIED") && item.object != null && item.object.getStatus() != null) {
+                    String phase = item.object.getStatus().getPhase();
+                    if (state.equals(phase)) {
+                        break;
+                    } else if ("Failed".equals(phase) || "Error".equals(phase)) {
+                        throw new GorSystemException(item.object.toString(), null);
+                    }
+                }
+                if (mon != null && mon.isCancelled()) {
+                    deleteSparkApplication(name);
+                }
+            }
+        } catch (Exception e) {
+            // Ignore watch errors
+            log.error(e.getMessage(), e);
+        }
+    }
+
+    public void createSparkApplicationFromJson(String json) throws ApiException, JsonProcessingException {
+        ObjectMapper mapper = new ObjectMapper();
+        createSparkApplication(mapper, json);
+    }
+
+    public void createSparkApplicationFromYaml(String yaml) throws ApiException, JsonProcessingException {
+        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        createSparkApplication(mapper, yaml);
+    }
+
+    public void createSparkApplication(ObjectMapper mapper, String contents) throws ApiException, JsonProcessingException {
+        Object jsonObject = mapper.readValue(contents, Object.class);
+        apiInstance.createNamespacedCustomObject("sparkoperator.k8s.io", "v1beta2", namespace, "sparkapplications", jsonObject, "true", null, null);
+    }
+
+    public void run(String yaml, String projectroot, SparkOperatorSpecs specs) throws IOException, ApiException {
         if (projectroot == null || projectroot.length() == 0)
             projectroot = Paths.get(".").toAbsolutePath().normalize().toString();
         Map<String, Object> body = loadBody(yaml, projectroot, "", new HashMap<>());
-        apiInstance.createNamespacedCustomObject("sparkoperator.k8s.io", "v1beta2", "spark", "sparkapplications", body, "true", null, null);
+        specs.apply(body);
+        System.err.println(objectMapper.writeValueAsString(body));
+        apiInstance.createNamespacedCustomObject("sparkoperator.k8s.io", "v1beta2", namespace, "sparkapplications", body, "true", null, null);
     }
 }
