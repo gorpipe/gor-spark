@@ -93,26 +93,14 @@ public class SparkPipeInstance extends PipeInstance {
                     Path projectRealPath = projectPath.toRealPath().toAbsolutePath();
                     Path projectSubPath = projectBasePath.relativize(projectRealPath);
 
-                    sparkOperatorSpecs.addConfig("spec.sparkConf.\"spark.kubernetes.driver.volumes.persistentVolumeClaim.gorproject.options.claimName\"", "pvc-gor-nfs-v2");
-                    sparkOperatorSpecs.addConfig("spec.sparkConf.\"spark.kubernetes.driver.volumes.persistentVolumeClaim.gorproject.mount.path\"",projectRealPath.toString());
-                    sparkOperatorSpecs.addConfig("spec.sparkConf.\"spark.kubernetes.driver.volumes.persistentVolumeClaim.gorproject.mount.subPath\"",projectSubPath);
-                    sparkOperatorSpecs.addConfig("spec.sparkConf.\"spark.kubernetes.executor.volumes.persistentVolumeClaim.gorproject.options.claimName\"", "pvc-gor-nfs-v2");
-                    sparkOperatorSpecs.addConfig("spec.sparkConf.\"spark.kubernetes.executor.volumes.persistentVolumeClaim.gorproject.mount.path\"",projectRealPath.toString());
-                    sparkOperatorSpecs.addConfig("spec.sparkConf.\"spark.kubernetes.executor.volumes.persistentVolumeClaim.gorproject.mount.subPath\"",projectSubPath);
+                    sparkOperatorSpecs.addDriverVolumeClaim("gorproject","pvc-gor-nfs-v2",projectRealPath.toString(),projectSubPath.toString(),false);
+                    sparkOperatorSpecs.addExecutorVolumeClaim("gorproject","pvc-gor-nfs-v2",projectRealPath.toString(),projectSubPath.toString(),false);
 
-                    sparkOperatorSpecs.addConfig("spec.sparkConf.\"spark.kubernetes.driver.volumes.persistentVolumeClaim.data.options.claimName\"", "pvc-phenocat-nfs");
-                    sparkOperatorSpecs.addConfig("spec.sparkConf.\"spark.kubernetes.driver.volumes.persistentVolumeClaim.data.mount.path\"","/mnt/csa/data");
-                    sparkOperatorSpecs.addConfig("spec.sparkConf.\"spark.kubernetes.driver.volumes.persistentVolumeClaim.data.mount.subPath\"","data");
-                    sparkOperatorSpecs.addConfig("spec.sparkConf.\"spark.kubernetes.executor.volumes.persistentVolumeClaim.data.options.claimName\"", "pvc-phenocat-nfs");
-                    sparkOperatorSpecs.addConfig("spec.sparkConf.\"spark.kubernetes.executor.volumes.persistentVolumeClaim.data.mount.path\"","/mnt/csa/data");
-                    sparkOperatorSpecs.addConfig("spec.sparkConf.\"spark.kubernetes.executor.volumes.persistentVolumeClaim.data.mount.subPath\"","data");
+                    sparkOperatorSpecs.addDriverVolumeClaim("gorproject","pvc-phenocat-v2","/mnt/csa/data","data",true);
+                    sparkOperatorSpecs.addExecutorVolumeClaim("gorproject","pvc-phenocat-v2","/mnt/csa/data","data",true);
 
-                    sparkOperatorSpecs.addConfig("spec.sparkConf.\"spark.kubernetes.driver.volumes.persistentVolumeClaim.volumes.options.claimName\"", "pvc-sm-nfs");
-                    sparkOperatorSpecs.addConfig("spec.sparkConf.\"spark.kubernetes.driver.volumes.persistentVolumeClaim.volumes.mount.path\"","/mnt/csa/volumes");
-                    sparkOperatorSpecs.addConfig("spec.sparkConf.\"spark.kubernetes.driver.volumes.persistentVolumeClaim.volumes.mount.subPath\"","volumes");
-                    sparkOperatorSpecs.addConfig("spec.sparkConf.\"spark.kubernetes.executor.volumes.persistentVolumeClaim.volumes.options.claimName\"", "pvc-sm-nfs");
-                    sparkOperatorSpecs.addConfig("spec.sparkConf.\"spark.kubernetes.executor.volumes.persistentVolumeClaim.volumes.mount.path\"","/mnt/csa/volumes");
-                    sparkOperatorSpecs.addConfig("spec.sparkConf.\"spark.kubernetes.executor.volumes.persistentVolumeClaim.volumes.mount.subPath\"","volumes");
+                    sparkOperatorSpecs.addDriverVolumeClaim("gorproject","pvc-sm-v2","/mnt/csa/volumes","volumes",true);
+                    sparkOperatorSpecs.addExecutorVolumeClaim("gorproject","pvc-sm-v2","/mnt/csa/volumes","volumes",true);
 
                     String[] args = new String[]{uristr, requestId, projectDir, queries, fingerprint, cachefilestr, jobid};
                     List<String> arglist = Arrays.asList(args);
