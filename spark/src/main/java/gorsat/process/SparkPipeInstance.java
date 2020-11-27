@@ -96,11 +96,11 @@ public class SparkPipeInstance extends PipeInstance {
                     sparkOperatorSpecs.addDriverVolumeClaim("gorproject","pvc-gor-nfs-v2",projectRealPath.toString(),projectSubPath.toString(),false);
                     sparkOperatorSpecs.addExecutorVolumeClaim("gorproject","pvc-gor-nfs-v2",projectRealPath.toString(),projectSubPath.toString(),false);
 
-                    sparkOperatorSpecs.addDriverVolumeClaim("gorproject","pvc-phenocat-v2","/mnt/csa/data","data",true);
-                    sparkOperatorSpecs.addExecutorVolumeClaim("gorproject","pvc-phenocat-v2","/mnt/csa/data","data",true);
+                    sparkOperatorSpecs.addDriverVolumeClaim("data","pvc-phenocat-v2","/mnt/csa/data","data",true);
+                    sparkOperatorSpecs.addExecutorVolumeClaim("data","pvc-phenocat-v2","/mnt/csa/data","data",true);
 
-                    sparkOperatorSpecs.addDriverVolumeClaim("gorproject","pvc-sm-v2","/mnt/csa/volumes","volumes",true);
-                    sparkOperatorSpecs.addExecutorVolumeClaim("gorproject","pvc-sm-v2","/mnt/csa/volumes","volumes",true);
+                    sparkOperatorSpecs.addDriverVolumeClaim("volumes","pvc-sm-v2","/mnt/csa/volumes","volumes",true);
+                    sparkOperatorSpecs.addExecutorVolumeClaim("volumes","pvc-sm-v2","/mnt/csa/volumes","volumes",true);
 
                     String[] args = new String[]{uristr, requestId, projectDir, queries, fingerprint, cachefilestr, jobid};
                     List<String> arglist = Arrays.asList(args);
