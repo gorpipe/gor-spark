@@ -89,73 +89,37 @@ public class SparkPipeInstance extends PipeInstance {
                 sparkOperatorSpecs.addConfig("spec.executor.volumeMounts", listMounts);
                 sparkOperatorSpecs.addConfig("spec.driver.volumeMounts", listMounts);
 
-                //sparkOperatorSpecs.addConfig("spec.imagePullPolicy","Always");
-
-                sparkOperatorSpecs.addConfig("spec.sparkConf.\"spark.kubernetes.driver.volumes.hostPath.volnfs.mount.path\"", projectDir);
-                //sparkOperatorSpecs.addConfig("spec.sparkConf.\"spark.kubernetes.driver.volumes.hostPath.volnfs.mount.readOnly\"", true);
-                sparkOperatorSpecs.addConfig("spec.sparkConf.\"spark.kubernetes.driver.volumes.hostPath.volnfs.options.path\"", projectDir);
-                sparkOperatorSpecs.addConfig("spec.sparkConf.\"spark.kubernetes.executor.volumes.hostPath.volnfs.mount.path\"", projectDir);
-                sparkOperatorSpecs.addConfig("spec.sparkConf.\"spark.kubernetes.executor.volumes.hostPath.volnfs.options.path\"", projectDir);
-
-            /*sparkOperatorSpecs.addConfig("spec.sparkConf.\"spark.kubernetes.driver.volumes.persistentVolumeClaim.gorproject.options.claimName\"", "pvc-gor-nfs-v2");
-            sparkOperatorSpecs.addConfig("spec.sparkConf.\"spark.kubernetes.driver.volumes.persistentVolumeClaim.gorproject.mount.path\"",projectDir);
-            sparkOperatorSpecs.addConfig("spec.sparkConf.\"spark.kubernetes.driver.volumes.persistentVolumeClaim.gorproject.mount.subPath\"","env/dev/orgs/internal_org/projects/ukbb_hg38");
-            sparkOperatorSpecs.addConfig("spec.sparkConf.\"spark.kubernetes.executor.volumes.persistentVolumeClaim.gorproject.options.claimName\"", "pvc-gor-nfs-v2");
-            sparkOperatorSpecs.addConfig("spec.sparkConf.\"spark.kubernetes.executor.volumes.persistentVolumeClaim.gorproject.mount.path\"",projectDir);
-            sparkOperatorSpecs.addConfig("spec.sparkConf.\"spark.kubernetes.executor.volumes.persistentVolumeClaim.gorproject.mount.subPath\"","env/dev/orgs/internal_org/projects/ukbb_hg38");
-
-            sparkOperatorSpecs.addConfig("spec.sparkConf.\"spark.kubernetes.driver.volumes.persistentVolumeClaim.data.options.claimName\"", "pvc-phenocat-nfs");
-            sparkOperatorSpecs.addConfig("spec.sparkConf.\"spark.kubernetes.driver.volumes.persistentVolumeClaim.data.mount.path\"","/mnt/csa/data");
-            sparkOperatorSpecs.addConfig("spec.sparkConf.\"spark.kubernetes.driver.volumes.persistentVolumeClaim.data.mount.subPath\"","data");
-            sparkOperatorSpecs.addConfig("spec.sparkConf.\"spark.kubernetes.executor.volumes.persistentVolumeClaim.data.options.claimName\"", "pvc-phenocat-nfs");
-            sparkOperatorSpecs.addConfig("spec.sparkConf.\"spark.kubernetes.executor.volumes.persistentVolumeClaim.data.mount.path\"","/mnt/csa/data");
-            sparkOperatorSpecs.addConfig("spec.sparkConf.\"spark.kubernetes.executor.volumes.persistentVolumeClaim.data.mount.subPath\"","data");
-
-            sparkOperatorSpecs.addConfig("spec.sparkConf.\"spark.kubernetes.driver.volumes.persistentVolumeClaim.volumes.options.claimName\"", "pvc-sm-nfs");
-            sparkOperatorSpecs.addConfig("spec.sparkConf.\"spark.kubernetes.driver.volumes.persistentVolumeClaim.volumes.mount.path\"","/mnt/csa/volumes");
-            sparkOperatorSpecs.addConfig("spec.sparkConf.\"spark.kubernetes.driver.volumes.persistentVolumeClaim.volumes.mount.subPath\"","volumes");
-            sparkOperatorSpecs.addConfig("spec.sparkConf.\"spark.kubernetes.executor.volumes.persistentVolumeClaim.volumes.options.claimName\"", "pvc-sm-nfs");
-            sparkOperatorSpecs.addConfig("spec.sparkConf.\"spark.kubernetes.executor.volumes.persistentVolumeClaim.volumes.mount.path\"","/mnt/csa/volumes");
-            sparkOperatorSpecs.addConfig("spec.sparkConf.\"spark.kubernetes.executor.volumes.persistentVolumeClaim.volumes.mount.subPath\"","volumes");*/
-
-
-            /*spark.kubernetes.driver.volumes.persistentVolumeClaim.volnfs.options.claimName: "pvc-gor-nfs-v2"
-            spark.kubernetes.driver.volumes.persistentVolumeClaim.volnfs.mount.path: "/Users/sigmar/gorproject"
-            spark.kubernetes.driver.volumes.persistentVolumeClaim.volnfs.mount.subPath: "env/dev/orgs/internal_org/projects/ukbb_hg38"
-            spark.kubernetes.executor.volumes.persistentVolumeClaim.volnfs.options.claimName: "pvc-gor-nfs-v2"
-            spark.kubernetes.executor.volumes.persistentVolumeClaim.volnfs.mount.path: "/Users/sigmar/gorproject"
-            spark.kubernetes.executor.volumes.persistentVolumeClaim.volnfs.mount.subPath: "env/dev/orgs/internal_org/projects/ukbb_hg38"
-            spark.kubernetes.driver.volumes.persistentVolumeClaim.data.options.claimName: "pvc-phenocat-nfs"
-            spark.kubernetes.driver.volumes.persistentVolumeClaim.data.mount.path: "/mnt/csa/data"
-            spark.kubernetes.driver.volumes.persistentVolumeClaim.data.mount.subPath: "data"
-            spark.kubernetes.executor.volumes.persistentVolumeClaim.data.options.claimName: "pvc-phenocat-nfs"
-            spark.kubernetes.executor.volumes.persistentVolumeClaim.data.mount.path: "/mnt/csa/data"
-            spark.kubernetes.executor.volumes.persistentVolumeClaim.data.mount.subPath: "data"
-            spark.kubernetes.driver.volumes.persistentVolumeClaim.volumes.options.claimName: "pvc-sm-nfs"
-            spark.kubernetes.driver.volumes.persistentVolumeClaim.volumes.mount.path: "/mnt/csa/volumes"
-            spark.kubernetes.driver.volumes.persistentVolumeClaim.volumes.mount.subPath: "volumes"
-            spark.kubernetes.executor.volumes.persistentVolumeClaim.volumes.options.claimName: "pvc-sm-nfs"
-            spark.kubernetes.executor.volumes.persistentVolumeClaim.volumes.mount.path: "/mnt/csa/volumes"
-            spark.kubernetes.executor.volumes.persistentVolumeClaim.volumes.mount.subPath: "volumes"*/
-
-                String[] args = new String[]{uristr, requestId, projectDir, queries, fingerprint, cachefilestr, jobid};
-                List<String> arglist = Arrays.asList(args);
-                sparkOperatorSpecs.addConfig("spec.arguments", arglist);
-
-                String sparkApplicationName = "gorquery-" + jobid;
-                sparkOperatorSpecs.addConfig("metadata.name", sparkApplicationName);
-
-                for (String config : resourceHints.split(" ")) {
-                    String[] confSplit = config.split("=");
-                    try {
-                        Integer ii = Integer.parseInt(confSplit[1]);
-                        sparkOperatorSpecs.addConfig(confSplit[0], ii);
-                    } catch (NumberFormatException ne) {
-                        sparkOperatorSpecs.addConfig(confSplit[0], confSplit[1]);
-                    }
-                }
-
                 try {
+                    Path projectBasePath = Paths.get("/mnt/csa");
+                    Path projectRealPath = projectPath.toRealPath().toAbsolutePath();
+                    Path projectSubPath = projectBasePath.relativize(projectRealPath);
+
+                    sparkOperatorSpecs.addDriverVolumeClaim("gorproject","pvc-gor-nfs-v2",projectRealPath.toString(),projectSubPath.toString(),false);
+                    sparkOperatorSpecs.addExecutorVolumeClaim("gorproject","pvc-gor-nfs-v2",projectRealPath.toString(),projectSubPath.toString(),false);
+
+                    sparkOperatorSpecs.addDriverVolumeClaim("data","pvc-phenocat-v2","/mnt/csa/data","data",true);
+                    sparkOperatorSpecs.addExecutorVolumeClaim("data","pvc-phenocat-v2","/mnt/csa/data","data",true);
+
+                    sparkOperatorSpecs.addDriverVolumeClaim("volumes","pvc-sm-v2","/mnt/csa/volumes","volumes",true);
+                    sparkOperatorSpecs.addExecutorVolumeClaim("volumes","pvc-sm-v2","/mnt/csa/volumes","volumes",true);
+
+                    String[] args = new String[]{uristr, requestId, projectDir, queries, fingerprint, cachefilestr, jobid};
+                    List<String> arglist = Arrays.asList(args);
+                    sparkOperatorSpecs.addConfig("spec.arguments", arglist);
+
+                    String sparkApplicationName = "gorquery-" + jobid;
+                    sparkOperatorSpecs.addConfig("metadata.name", sparkApplicationName);
+
+                    for (String config : resourceHints.split(" ")) {
+                        String[] confSplit = config.split("=");
+                        try {
+                            Integer ii = Integer.parseInt(confSplit[1]);
+                            sparkOperatorSpecs.addConfig(confSplit[0], ii);
+                        } catch (NumberFormatException ne) {
+                            sparkOperatorSpecs.addConfig(confSplit[0], confSplit[1]);
+                        }
+                    }
+
                     String yaml = getSparkOperatorYaml(projectDir);
                     SparkOperatorRunner sparkOperatorRunner = new SparkOperatorRunner(session.getKubeNamespace());
                     sparkOperatorRunner.run(yaml, projectDir, sparkOperatorSpecs);

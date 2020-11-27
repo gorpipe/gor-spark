@@ -41,6 +41,28 @@ public class SparkOperatorSpecs {
         return body;
     }
 
+    public void addVolumeClaim(String pod, String name, String pvc,String path,String subPath,boolean readOnly) {
+        String baseConfig = "spec.sparkConf.\"spark.kubernetes."+pod+".volumes.persistentVolumeClaim."+name;
+        String claimConfig = baseConfig+".options.claimName\"";
+        addConfig(claimConfig,pvc);
+        String pathConfig = baseConfig+".mount.path\"";
+        addConfig(pathConfig,pvc);
+        String subPathConfig = baseConfig+".mount.subPath\"";
+        addConfig(subPathConfig,pvc);
+        if(readOnly) {
+            String readOnlyConfig = baseConfig+".mount.readOnly\"";
+            addConfig(readOnlyConfig,pvc);
+        }
+    }
+
+    public void addDriverVolumeClaim(String name,String pvc,String path,String subPath,boolean readOnly) {
+        addVolumeClaim("driver",name,pvc,path,subPath,readOnly);
+    }
+
+    public void addExecutorVolumeClaim(String name,String pvc,String path,String subPath,boolean readOnly) {
+        addVolumeClaim("executor",name,pvc,path,subPath,readOnly);
+    }
+
     public void apply(Map<String,Object> body) {
         merge(body,configMap);
     }
