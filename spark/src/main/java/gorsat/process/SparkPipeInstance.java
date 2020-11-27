@@ -1,7 +1,6 @@
 package gorsat.process;
 
 import gorsat.Commands.CommandParseUtilities;
-import gorsat.Utilities.StringUtilities;
 import io.kubernetes.client.openapi.ApiException;
 import org.gorpipe.exceptions.GorSystemException;
 import org.gorpipe.gor.driver.meta.SourceReferenceBuilder;
@@ -11,19 +10,11 @@ import org.gorpipe.gor.driver.providers.stream.sources.file.FileSource;
 import org.gorpipe.gor.model.GenomicIterator;
 import org.gorpipe.gor.monitor.GorMonitor;
 import org.gorpipe.gor.session.GorContext;
-import org.gorpipe.gor.util.Util;
 import org.gorpipe.spark.GorSparkSession;
 import org.gorpipe.spark.SparkOperatorRunner;
-import org.gorpipe.spark.SparkOperatorSpecs;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
 
 public class SparkPipeInstance extends PipeInstance {
     GorSparkSession session;
@@ -32,22 +23,6 @@ public class SparkPipeInstance extends PipeInstance {
     public SparkPipeInstance(GorContext context) {
         super(context);
         session = (GorSparkSession) context.getSession();
-    }
-
-    public static String getSparkOperatorYaml(String projectDir) throws IOException {
-        String json = null;
-        try {
-            Path p = Paths.get(projectDir);
-            if (Files.exists(p)) {
-                Path so_json = p.resolve("config/sparkoperator.yaml");
-                if (Files.exists(so_json)) json = new String(Files.readAllBytes(so_json));
-            }
-        } finally {
-            if (json == null) {
-                json = Util.readAndCloseStream(SparkPipeInstance.class.getResourceAsStream("sparkoperator.yaml"));
-            }
-        }
-        return json;
     }
 
     @Override
@@ -59,95 +34,19 @@ public class SparkPipeInstance extends PipeInstance {
         if(resourceHints==null||resourceHints.length()==0) {
             super.init(params, gm);
         } else {
-            String uristr = session.redisUri();
-            String requestId = session.getRequestId();
-            String projectDir = session.getProjectContext().getRoot();
-            String queries;
-            if(commands.length>1) {
-                queries = String.join(";", Arrays.copyOfRange(commands,0,commands.length-1)) + ";" + resourceSplit[0];
-            } else {
-                queries = resourceSplit[0];
-            }
-            String fingerprint = StringUtilities.createMD5(queries);
-            Path projectPath = Paths.get(projectDir);
-            Path cachePath = projectPath.resolve("result_cache");
-            String cachefiles = fingerprint+".parquet";
-            Path cachefilepath = cachePath.resolve(cachefiles);
-            String cachefilestr = cachefilepath.toAbsolutePath().normalize().toString();
-            String jobid = fingerprint;
-
-            if(!Files.exists(cachefilepath)) {
-                SparkOperatorSpecs sparkOperatorSpecs = new SparkOperatorSpecs();
-
-                List<Map<String, Object>> vollist = new ArrayList<>();
-                vollist.add(Map.of("name", "volnfs", "hostPath", Map.of("path", projectDir, "type", "Directory")));
-                //vollist.add(Map.of("name","volnfs","persistentVolumeClaim",Map.of("claimName","pvc-gor-nfs-v2")));
-                sparkOperatorSpecs.addConfig("spec.volumes", vollist);
-
-                List<Map<String, Object>> listMounts = new ArrayList<>();
-                listMounts.add(Map.of("name", "volnfs", "mountPath", projectDir));
-                sparkOperatorSpecs.addConfig("spec.executor.volumeMounts", listMounts);
-                sparkOperatorSpecs.addConfig("spec.driver.volumeMounts", listMounts);
-
-                try {
-                    Path projectBasePath = Paths.get("/mnt/csa");
-                    Path projectRealPath = projectPath.toRealPath().toAbsolutePath();
-                    Path projectSubPath = projectBasePath.relativize(projectRealPath);
-
-                    sparkOperatorSpecs.addDriverVolumeClaim("gorproject","pvc-gor-nfs-v2",projectRealPath.toString(),projectSubPath.toString(),false);
-                    sparkOperatorSpecs.addExecutorVolumeClaim("gorproject","pvc-gor-nfs-v2",projectRealPath.toString(),projectSubPath.toString(),false);
-
-                    sparkOperatorSpecs.addDriverVolumeClaim("data","pvc-phenocat-v2","/mnt/csa/data","data",true);
-                    sparkOperatorSpecs.addExecutorVolumeClaim("data","pvc-phenocat-v2","/mnt/csa/data","data",true);
-
-                    sparkOperatorSpecs.addDriverVolumeClaim("volumes","pvc-sm-v2","/mnt/csa/volumes","volumes",true);
-                    sparkOperatorSpecs.addExecutorVolumeClaim("volumes","pvc-sm-v2","/mnt/csa/volumes","volumes",true);
-
-                    String[] args = new String[]{uristr, requestId, projectDir, queries, fingerprint, cachefilestr, jobid};
-                    List<String> arglist = Arrays.asList(args);
-                    sparkOperatorSpecs.addConfig("spec.arguments", arglist);
-
-                    String sparkApplicationName = "gorquery-" + jobid;
-                    sparkOperatorSpecs.addConfig("metadata.name", sparkApplicationName);
-
-                    for (String config : resourceHints.split(" ")) {
-                        String[] confSplit = config.split("=");
-                        try {
-                            Integer ii = Integer.parseInt(confSplit[1]);
-                            sparkOperatorSpecs.addConfig(confSplit[0], ii);
-                        } catch (NumberFormatException ne) {
-                            sparkOperatorSpecs.addConfig(confSplit[0], confSplit[1]);
-                        }
-                    }
-
-                    String yaml = getSparkOperatorYaml(projectDir);
-                    SparkOperatorRunner sparkOperatorRunner = new SparkOperatorRunner(session.getKubeNamespace());
-                    sparkOperatorRunner.run(yaml, projectDir, sparkOperatorSpecs);
-                    sparkOperatorRunner.waitForSparkApplicationToComplete(gm,sparkApplicationName);
-                } catch (IOException | ApiException | InterruptedException e) {
-                    throw new GorSystemException(e);
-                }
-
-                //RedisBatchConsumer.main(args);
-            /*List<String[]> lstr = Collections.singletonList(new String[]{queries, fingerprint, projectDir, requestId, jobid, cachefilepath});
-
-            RedisBatchConsumer redisBatchConsumer = new RedisBatchConsumer(session.sparkSession(), uristr);
-            Map<String, Future<List<String>>> futMap = redisBatchConsumer.runJobBatch(lstr);
-
             try {
-                for(Future<List<String>> f : futMap.values()) {
-                    f.get();
-                }
-            } catch (InterruptedException | ExecutionException e) {
-                throw new GorSystemException(e);
-            }*/
-            }
+                SparkOperatorRunner sparkOperatorRunner = new SparkOperatorRunner(session.getKubeNamespace());
+                Path cacheFilePath = sparkOperatorRunner.run(session.redisUri(),session.getRequestId(),session.getProjectContext().getRoot(),gm,commands,resourceSplit);
 
-            SourceReferenceBuilder srb = new SourceReferenceBuilder(cachefilestr);
-            srb.commonRoot(cachePath.toString());
-            FileSource fileSource = new FileSource(srb.build());
-            StreamSourceFile ssf = new StreamSourceFile(fileSource);
-            genit = new ParquetFileIterator(ssf);
+                Path cacheFileFullPath = cacheFilePath.toAbsolutePath().normalize();
+                SourceReferenceBuilder srb = new SourceReferenceBuilder(cacheFileFullPath.toString());
+                srb.commonRoot(session.getProjectContext().getRealProjectRootPath().toString());
+                FileSource fileSource = new FileSource(srb.build());
+                StreamSourceFile ssf = new StreamSourceFile(fileSource);
+                genit = new ParquetFileIterator(ssf);
+            } catch (IOException | InterruptedException | ApiException e) {
+                throw new GorSystemException(e);
+            }
         }
     }
 
