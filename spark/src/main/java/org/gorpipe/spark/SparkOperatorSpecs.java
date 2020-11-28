@@ -45,13 +45,26 @@ public class SparkOperatorSpecs {
         String baseConfig = "spec.sparkConf.\"spark.kubernetes."+pod+".volumes.persistentVolumeClaim."+name;
         String claimConfig = baseConfig+".options.claimName\"";
         addConfig(claimConfig,pvc);
+        addMount(baseConfig,path,subPath,readOnly);
+    }
+
+    public void addHostPath(String pod,String name,String hostPath,String path,String subPath,boolean readOnly) {
+        String baseConfig = "spec.sparkConf.\"spark.kubernetes."+pod+".volumes.hostPath."+name;
+        String hostPathConfig = baseConfig+".options.path\"";
+        addConfig(hostPathConfig,hostPath);
+        addMount(baseConfig,path,subPath,readOnly);
+    }
+
+    public void addMount(String baseConfig, String path, String subPath, boolean readOnly) {
         String pathConfig = baseConfig+".mount.path\"";
-        addConfig(pathConfig,pvc);
-        String subPathConfig = baseConfig+".mount.subPath\"";
-        addConfig(subPathConfig,pvc);
+        addConfig(pathConfig,path);
+        if(subPath!=null) {
+            String subPathConfig = baseConfig + ".mount.subPath\"";
+            addConfig(subPathConfig, subPath);
+        }
         if(readOnly) {
             String readOnlyConfig = baseConfig+".mount.readOnly\"";
-            addConfig(readOnlyConfig,pvc);
+            addConfig(readOnlyConfig,readOnly);
         }
     }
 
@@ -61,6 +74,14 @@ public class SparkOperatorSpecs {
 
     public void addExecutorVolumeClaim(String name,String pvc,String path,String subPath,boolean readOnly) {
         addVolumeClaim("executor",name,pvc,path,subPath,readOnly);
+    }
+
+    public void addDriverHostPath(String name,String pvc,String path,String subPath,boolean readOnly) {
+        addHostPath("driver",name,pvc,path,subPath,readOnly);
+    }
+
+    public void addExecutorHostPath(String name,String pvc,String path,String subPath,boolean readOnly) {
+        addHostPath("executor",name,pvc,path,subPath,readOnly);
     }
 
     public void apply(Map<String,Object> body) {
