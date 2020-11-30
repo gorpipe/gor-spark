@@ -546,7 +546,7 @@ public class SparkRowUtilities {
         if (is != null) {
             StringBuilder headerstr = new java.lang.StringBuilder();
             int r = is.read();
-            while (r != '\n') {
+            while (r != -1 && r != '\n') {
                 headerstr.append((char) r);
                 r = is.read();
             }

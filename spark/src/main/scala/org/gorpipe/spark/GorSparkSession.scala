@@ -27,7 +27,6 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
   val datasetMap = new ConcurrentHashMap[String, RowDataType]
   var redisUri: String = _
   var fileAliasMap: java.util.Map[String,String] = _
-  var kubeNamespace = "gorkube"
 
   if (GorInputSources.getInfo("SPARK") == null) {
       GorInputSources.register()
@@ -42,14 +41,6 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
 
   def setSparkSession(ss: SparkSession) {
     sparkSession = ss
-  }
-
-  def getKubeNamespace(): String = {
-    kubeNamespace
-  }
-
-  def setKubeNamespace(namespace: String): Unit = {
-    kubeNamespace = namespace
   }
 
   override

@@ -1,13 +1,13 @@
 package org.gorpipe.spark
 
 import java.nio.file.{Files, Path, Paths}
-
 import gorsat.Utilities.AnalysisUtilities
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.{Partition, TaskContext}
 import org.gorpipe.gor.monitor.GorMonitor
 
+import java.util.UUID
 import scala.collection.mutable.ListBuffer
 
 //Todo handle GORDICT and GORDICTPART
@@ -37,10 +37,10 @@ class GorQueryRDD(sparkSession: SparkSession, commandsToExecute: Array[String], 
     // Do this if we have result cache active or if we are running locally and the local cacheFile does not exist.
     val projectPath = Paths.get(projectDirectory)
     var cacheFilePath = Paths.get(cacheFile)
-    var cacheFileMd5Path = Paths.get(cacheFile+".md5")
     if( !cacheFilePath.isAbsolute ) cacheFilePath = projectPath.resolve(cacheFile)
+    val cacheFileMd5Path = cacheFilePath.getParent.resolve(cacheFilePath.getFileName+".md5")
     if (!Files.exists(cacheFilePath)) {
-      val temp_cacheFile = Files.createTempFile(cacheFilePath.getParent,"tmp",cacheFilePath.getFileName.toString)
+      val temp_cacheFile = if(cacheFilePath.getFileName.toString.startsWith("tmp")) cacheFilePath else cacheFilePath.getParent.resolve("tmp"+UUID.randomUUID()+cacheFilePath.getFileName.toString)
       val temp_cacheMd5File = temp_cacheFile.getParent.resolve(temp_cacheFile.getFileName.toString+".md5")
       val tempFile_absolutepath = temp_cacheFile.toAbsolutePath.normalize().toString
       try {

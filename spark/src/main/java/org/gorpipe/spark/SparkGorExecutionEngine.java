@@ -9,6 +9,7 @@ import gorsat.Outputs.StdOut;
 import gorsat.process.GorExecutionEngine;
 import gorsat.process.GorPipe;
 import gorsat.process.PipeInstance;
+import gorsat.process.SparkPipeInstance;
 import org.gorpipe.gor.binsearch.GorIndexType;
 import org.gorpipe.gor.monitor.GorMonitor;
 import org.gorpipe.gor.session.GorRunner;
@@ -45,11 +46,13 @@ public class SparkGorExecutionEngine extends GorExecutionEngine {
             PipeInstance pinst = createIterator(session);
             RowSource iterator = pinst.theInputSource();
             processor = pinst.thePipeStep();
-            brs = iterator.isBuffered() ? iterator : new BatchedReadSource(iterator, GorPipe.brsConfig());//, iterator.getHeader(), session.getSystemContext().getMonitor());
-            processor.rs_$eq(iterator);
-            processor.securedSetup(null);
-            while (brs.hasNext() && !processor.wantsNoMore()) {
-                processor.process(brs.next());
+            if(processor!=null) {
+                brs = iterator.isBuffered() ? iterator : new BatchedReadSource(iterator, GorPipe.brsConfig());//, iterator.getHeader(), session.getSystemContext().getMonitor());
+                processor.rs_$eq(iterator);
+                processor.securedSetup(null);
+                while (brs.hasNext() && !processor.wantsNoMore()) {
+                    processor.process(brs.next());
+                }
             }
         } catch (Exception ex) {
             if( brs != null ) brs.setEx(ex);
@@ -71,18 +74,20 @@ public class SparkGorExecutionEngine extends GorExecutionEngine {
 
     @Override
     public PipeInstance createIterator(GorSession session) {
-        PipeInstance pi = new PipeInstance(session.getGorContext());
+        SparkPipeInstance pi = new SparkPipeInstance(session.getGorContext(), outfile);
         pi.subProcessArguments(query, false, null, false, false, null);
-        String theHeader = pi.getIterator().getHeader();
-        if(outfile != null) {
-            Output ofile = OutFile.apply(outfile, theHeader, false, false, pi.isNorContext(), true, GorIndexType.NONE, Option.empty(), Deflater.BEST_SPEED);
-            pi.thePipeStep_$eq(pi.thePipeStep().$bar(ofile));
-        } else {
-            String header = pi.getHeader();
-            if (session.getNorContext() || pi.isNorContext()) {
-                pi.thePipeStep_$eq(pi.thePipeStep().$bar(NorStdOut.apply(header)));
+        if(!pi.hasResourceHints()) {
+            String theHeader = pi.getIterator().getHeader();
+            if (outfile != null) {
+                Output ofile = OutFile.apply(outfile, theHeader, false, false, pi.isNorContext(), true, GorIndexType.NONE, Option.empty(), Deflater.BEST_SPEED);
+                pi.thePipeStep_$eq(pi.thePipeStep().$bar(ofile));
             } else {
-                pi.thePipeStep_$eq(pi.thePipeStep().$bar(StdOut.apply(header)));
+                String header = pi.getHeader();
+                if (session.getNorContext() || pi.isNorContext()) {
+                    pi.thePipeStep_$eq(pi.thePipeStep().$bar(NorStdOut.apply(header)));
+                } else {
+                    pi.thePipeStep_$eq(pi.thePipeStep().$bar(StdOut.apply(header)));
+                }
             }
         }
         return pi;

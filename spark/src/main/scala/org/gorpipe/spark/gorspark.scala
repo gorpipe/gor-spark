@@ -9,7 +9,9 @@ import gorsat.Outputs.OutFile
 import gorsat.QueryHandlers.GeneralQueryHandler
 import gorsat.Script.{ScriptEngineFactory, ScriptExecutionEngine}
 import gorsat.Utilities.AnalysisUtilities
+import gorsat.Utilities.MacroUtilities.replaceAllAliases
 import gorsat.process._
+import gorsat.spark.ReceiveQueryHandler
 import gorsat.{BatchedPipeStepIteratorAdaptor, DynIterator}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
