@@ -11,6 +11,7 @@ import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import gorsat.process.SparkPipeInstance;
 import org.gorpipe.gor.model.GorParallelQueryHandler;
 import gorsat.Commands.CommandParseUtilities;
 import gorsat.process.PipeInstance;
@@ -84,11 +85,11 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
                 String[] args = new String[]{cmd, "-queryhandler", "spark"};
                 PipeOptions options = new PipeOptions();
                 options.parseOptions(args);
-                PipeInstance pi = new PipeInstance(session.getGorContext());
 
                 String cacheFile = cacheFiles[i];
                 Path cachePath = Paths.get(cacheFile);
                 if (!cachePath.isAbsolute()) cachePath = root.resolve(cacheFile);
+                SparkPipeInstance pi = new SparkPipeInstance(session.getGorContext(), cachePath.toString());
 
                 pi.subProcessArguments(options);
                 pi.theInputSource().pushdownWrite(cacheFile);

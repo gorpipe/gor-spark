@@ -16,11 +16,13 @@ import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.util.Config;
 import io.kubernetes.client.util.Watch;
 import okhttp3.Call;
+import org.apache.spark.sql.SparkSession;
 import org.gorpipe.exceptions.GorSystemException;
 import org.gorpipe.gor.driver.DataSource;
 import org.gorpipe.gor.model.DriverBackedFileReader;
 import org.gorpipe.gor.monitor.GorMonitor;
 import org.gorpipe.gor.util.Util;
+import org.gorpipe.spark.redis.RedisBatchConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,6 +31,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 public class SparkOperatorRunner {
@@ -44,13 +48,15 @@ public class SparkOperatorRunner {
     ObjectMapper objectMapper;
     String jobName;
     String namespace;
+    SparkSession sparkSession;
 
-    public SparkOperatorRunner() throws IOException {
+    public SparkOperatorRunner(GorSparkSession gorSparkSession) throws IOException {
         client = Config.defaultClient();
         Configuration.setDefaultApiClient(client);
         apiInstance = new CustomObjectsApi();
         core = new CoreV1Api(client);
         objectMapper = new ObjectMapper(new YAMLFactory());
+        sparkSession = gorSparkSession.getSparkSession();
     }
 
     Map<String, Object> loadBody(String query, String project, String result_dir, Map<String, Object> parameters) throws IOException {
@@ -202,7 +208,7 @@ public class SparkOperatorRunner {
         return json;
     }
 
-    public Path run(String uristr, String requestId, String projectDir, GorMonitor gm, String[] commands, String[] resourceSplit) throws IOException, ApiException, InterruptedException {
+    public Path run(String uristr, String requestId, String projectDir, GorMonitor gm, String[] commands, String[] resourceSplit, String cachefile) throws IOException, ApiException, InterruptedException {
         String queries;
         if(commands.length>1) {
             queries = String.join(";", Arrays.copyOfRange(commands,0,commands.length-1)) + ";" + resourceSplit[0];
@@ -210,11 +216,15 @@ public class SparkOperatorRunner {
             queries = resourceSplit[0];
         }
         String fingerprint = StringUtilities.createMD5(queries);
+        
+        Path cachefilepath;
         Path projectPath = Paths.get(projectDir);
-        Path cachePath = projectPath.resolve("result_cache");
-        String cachefiles = fingerprint+".parquet";
-        Path cachefilepath = cachePath.resolve(cachefiles);
-        String cachefilestr = cachefilepath.toAbsolutePath().normalize().toString();
+        if(cachefile==null) {
+            Path cachePath = projectPath.resolve("result_cache");
+            String cachefiles = fingerprint + ".parquet";
+            cachefilepath = cachePath.resolve(cachefiles);
+            cachefile = cachefilepath.toAbsolutePath().normalize().toString();
+        } else cachefilepath = Paths.get(cachefile);
         String jobid = fingerprint;
 
         if(!Files.exists(cachefilepath)) {
@@ -250,7 +260,7 @@ public class SparkOperatorRunner {
                 sparkOperatorSpecs.addExecutorVolumeClaim("volumes", "pvc-sm-v2", "/mnt/csa/volumes", "volumes", true);
             }
 
-            String[] args = new String[]{uristr, requestId, projectDir, queries, fingerprint, cachefilestr, jobid};
+            String[] args = new String[]{uristr, requestId, projectDir, queries, fingerprint, cachefile, jobid};
             List<String> arglist = Arrays.asList(args);
             sparkOperatorSpecs.addConfig("spec.arguments", arglist);
 
@@ -268,24 +278,35 @@ public class SparkOperatorRunner {
             }
 
             String yaml = getSparkOperatorYaml(projectDir);
-            runYaml(yaml, projectDir, sparkOperatorSpecs);
-            waitForSparkApplicationToComplete(gm,sparkApplicationName);
+            if(local) {
+                runLocal(sparkSession, args);
+            } else {
+                runYaml(yaml, projectDir, sparkOperatorSpecs);
+                waitForSparkApplicationToComplete(gm, sparkApplicationName);
+            }
         }
         return cachefilepath;
+    }
 
+    public void runLocal(SparkSession sparkSession, String[] args) {
         //RedisBatchConsumer.main(args);
-        /*List<String[]> lstr = Collections.singletonList(new String[]{queries, fingerprint, projectDir, requestId, jobid, cachefilepath});
-
-        RedisBatchConsumer redisBatchConsumer = new RedisBatchConsumer(session.sparkSession(), uristr);
-        Map<String, Future<List<String>>> futMap = redisBatchConsumer.runJobBatch(lstr);
-
-        try {
+        String redisUrl = args[0];
+        String requestId = args[1];
+        String projectDir = args[2];
+        String queries = args[3];
+        String fingerprints = args[4];
+        String cachefiles = args[5];
+        String jobids = args[6];
+        try(RedisBatchConsumer redisBatchConsumer = new RedisBatchConsumer(sparkSession, redisUrl)) {
+            String[] arr = new String[]{queries, fingerprints, projectDir, requestId, jobids, cachefiles};
+            List<String[]> lstr = Collections.singletonList(arr);
+            Map<String, Future<List<String>>> futMap = redisBatchConsumer.runJobBatch(lstr);
             for(Future<List<String>> f : futMap.values()) {
                 f.get();
             }
         } catch (InterruptedException | ExecutionException e) {
             throw new GorSystemException(e);
-        }*/
+        }
     }
 
     public void runYaml(String yaml, String projectroot, SparkOperatorSpecs specs) throws IOException, ApiException {
