@@ -7,10 +7,10 @@ include 'spark'
 include 'gortools'
 include 'model'
 //include 'gordrivers'
-include 'gorbase'
+include 'base'
 include 'test'
 
-include 'gorutil'
+include 'util'
 //include 'external'
 
 //include 'documentation'
@@ -18,8 +18,8 @@ include 'gorutil'
 project(":gortools").projectDir = file("../gor/gortools")
 project(":model").projectDir = file("../gor/model")
 //project(":gordrivers").projectDir = file("../gor/drivers")
-project(":gorbase").projectDir = file("../gor/base")
+project(":base").projectDir = file("../gor/base")
 project(":test").projectDir = file("../gor/test")
-project(":gorutil").projectDir = file("../gor/util")
+project(":util").projectDir = file("../gor/util")
 //project(":external").projectDir = file("../gor/external")
 //project(":documentation").projectDir = file("../gor/documentation")

@@ -45,13 +45,12 @@ public class SparkOperatorRunner {
     String jobName;
     String namespace;
 
-    public SparkOperatorRunner(String namespace) throws IOException {
+    public SparkOperatorRunner() throws IOException {
         client = Config.defaultClient();
         Configuration.setDefaultApiClient(client);
         apiInstance = new CustomObjectsApi();
         core = new CoreV1Api(client);
         objectMapper = new ObjectMapper(new YAMLFactory());
-        this.namespace = namespace;
     }
 
     Map<String, Object> loadBody(String query, String project, String result_dir, Map<String, Object> parameters) throws IOException {
@@ -72,6 +71,7 @@ public class SparkOperatorRunner {
             Map<String, Object> yaml = objectMapper.readValue(yamlContent, Map.class);
             Map<String, Object> md = (Map) yaml.get("metadata");
             String name = (String) md.get("name");
+            namespace = md.containsKey("namespace") ? md.get("namespace").toString() : "gorkube";
             if (name.equals("${name.val}")) md.put("name", jobName);
 
             Map<String, Object> specMap = (Map) body.get("spec");
@@ -90,6 +90,8 @@ public class SparkOperatorRunner {
             }
 
             body = objectMapper.readValue(yamlContent, Map.class);
+        } else {
+            namespace = metadata.containsKey("namespace") ? metadata.get("namespace").toString() : "gorkube";
         }
 
         if (body.containsKey("spec")) {
@@ -291,7 +293,6 @@ public class SparkOperatorRunner {
             projectroot = Paths.get(".").toAbsolutePath().normalize().toString();
         Map<String, Object> body = loadBody(yaml, projectroot, "", new HashMap<>());
         specs.apply(body);
-        System.err.println(objectMapper.writeValueAsString(body));
         apiInstance.createNamespacedCustomObject("sparkoperator.k8s.io", "v1beta2", namespace, "sparkapplications", body, "true", null, null);
     }
 }

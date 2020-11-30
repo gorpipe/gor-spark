@@ -16,8 +16,8 @@ project(':spark') {
     sourceSets.main.java.srcDirs = []
 
     dependencies {
-        implementation project(':gorbase')
-        implementation project(':gorutil')
+        implementation project(':base')
+        implementation project(':util')
         implementation project(':model')
         implementation(project(':gortools')) {
             exclude group: 'net.sourceforge.f2j', module: 'arpack_combined_all'
@@ -247,5 +247,15 @@ project(':spark') {
     scripts.each() { scriptName, params ->
         def t = params.containsKey('override') ? tasks.getByName(params.override) : tasks.create(name: scriptName + 'StartScript', type: CreateStartScripts)
         updateScriptTask("GOR", scriptName, params, t, project)
+    }
+
+    publishing {
+        publications {
+            mavenJavaLibModule(MavenPublication) {
+                //artifact distZip
+                artifact sourcesJar
+                artifact javadocJar
+            }
+        }
     }
 }
