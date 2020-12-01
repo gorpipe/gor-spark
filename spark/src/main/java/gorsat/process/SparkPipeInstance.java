@@ -56,7 +56,7 @@ public class SparkPipeInstance extends PipeInstance {
 
     @Override
     public RowSource getIterator() {
-        if(genit!=null) return wrapGenomicIterator(genit);
+        if(hasResourceHints) return wrapGenomicIterator(genit);
         return super.getIterator();
     }
 
@@ -80,17 +80,19 @@ public class SparkPipeInstance extends PipeInstance {
     }
 
     @Override
-    public RowSource init(String inputQuery, boolean useStdin, String forcedInputHeader) {
+    public GenomicIterator init(String inputQuery, boolean useStdin, String forcedInputHeader) {
         String[] commands = CommandParseUtilities.quoteSafeSplit(inputQuery,';');
         String lastcommand = commands[commands.length-1];
         String[] resourceSplit = GorJavaUtilities.splitResourceHints(lastcommand,"spec.");
         String resourceHints = resourceSplit[1];
         hasResourceHints = resourceHints!=null&&resourceHints.length()>0;
         if(!hasResourceHints) {
-            return super.init(inputQuery,useStdin,forcedInputHeader);
+            GenomicIterator inputSource = super.init(inputQuery,useStdin,forcedInputHeader);
+            genit = super.getIterator();
+            return inputSource;
         } else {
             genit = runSparkOperator(session.getSystemContext().getMonitor(), commands, resourceSplit);
-            RowSource rs = new RowSource() {
+            GenomicIterator rs = new GenomicIterator() {
                 @Override
                 public void close() {
                     genit.close();
@@ -120,6 +122,7 @@ public class SparkPipeInstance extends PipeInstance {
         hasResourceHints = resourceHints!=null&&resourceHints.length()>0;
         if(!hasResourceHints) {
             super.init(params, gm);
+            genit = super.getIterator();
         } else {
             genit = runSparkOperator(gm, commands, resourceSplit);
         }
@@ -127,25 +130,29 @@ public class SparkPipeInstance extends PipeInstance {
 
     @Override
     public String getHeader() {
-        if(genit!=null) return genit.getHeader();
+        if(hasResourceHints) return genit.getHeader();
         return super.getHeader();
     }
 
     @Override
     public void seek(String chr, int pos) {
-        if(genit!=null) genit.seek(chr,pos);
-        super.seek(chr,pos);
+        if(hasResourceHints) genit.seek(chr,pos);
+        else super.seek(chr,pos);
     }
 
     @Override
     public boolean hasNext() {
-        if(genit!=null) return genit.hasNext();
-        return super.hasNext();
+       return genit.hasNext();
     }
 
     @Override
     public String next() {
-        if(genit!=null) return genit.next().toString();
-        return super.next();
+        return genit.next().toString();
+    }
+
+    @Override
+    public void close() {
+        if(hasResourceHints) genit.close();
+        else super.close();
     }
 }

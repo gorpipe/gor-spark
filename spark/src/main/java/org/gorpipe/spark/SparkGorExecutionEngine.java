@@ -11,10 +11,10 @@ import gorsat.process.GorPipe;
 import gorsat.process.PipeInstance;
 import gorsat.process.SparkPipeInstance;
 import org.gorpipe.gor.binsearch.GorIndexType;
+import org.gorpipe.gor.model.GenomicIterator;
 import org.gorpipe.gor.monitor.GorMonitor;
 import org.gorpipe.gor.session.GorRunner;
 import org.gorpipe.gor.session.GorSession;
-import org.gorpipe.model.gor.iterators.RowSource;
 import scala.Option;
 
 import java.util.zip.Deflater;
@@ -40,11 +40,11 @@ public class SparkGorExecutionEngine extends GorExecutionEngine {
 
     @Override
     public void execute() {
-        RowSource brs = null;
+        GenomicIterator brs = null;
         Processor processor = null;
         try(GorSession session = createSession()) {
             PipeInstance pinst = createIterator(session);
-            RowSource iterator = pinst.theInputSource();
+            GenomicIterator iterator = pinst.theInputSource();
             processor = pinst.thePipeStep();
             if(processor!=null) {
                 brs = iterator.isBuffered() ? iterator : new BatchedReadSource(iterator, GorPipe.brsConfig());//, iterator.getHeader(), session.getSystemContext().getMonitor());
