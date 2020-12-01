@@ -48,7 +48,10 @@ public class SparkOperatorRunner {
     ObjectMapper objectMapper;
     String jobName;
     String namespace;
+    boolean hostMount = false;
     SparkSession sparkSession;
+
+    private static final boolean debug = false;
 
     public SparkOperatorRunner(GorSparkSession gorSparkSession) throws IOException {
         client = Config.defaultClient();
@@ -216,7 +219,7 @@ public class SparkOperatorRunner {
             queries = resourceSplit[0];
         }
         String fingerprint = StringUtilities.createMD5(queries);
-        
+
         Path cachefilepath;
         Path projectPath = Paths.get(projectDir);
         if(cachefile==null) {
@@ -232,7 +235,6 @@ public class SparkOperatorRunner {
 
             List<Map<String, Object>> vollist = new ArrayList<>();
             vollist.add(Map.of("name", "volnfs", "hostPath", Map.of("path", projectDir, "type", "Directory")));
-            //vollist.add(Map.of("name","volnfs","persistentVolumeClaim",Map.of("claimName","pvc-gor-nfs-v2")));
             sparkOperatorSpecs.addConfig("spec.volumes", vollist);
 
             List<Map<String, Object>> listMounts = new ArrayList<>();
@@ -244,8 +246,7 @@ public class SparkOperatorRunner {
             Path projectRealPath = projectPath.toRealPath().toAbsolutePath();
             Path projectSubPath = projectBasePath.relativize(projectRealPath);
 
-            boolean local = true;
-            if(local) {
+            if(hostMount) {
                 String projectRealPathStr = projectRealPath.toString();
                 sparkOperatorSpecs.addDriverHostPath("gorproject", projectRealPathStr, projectRealPathStr, null, false);
                 sparkOperatorSpecs.addExecutorHostPath("gorproject", projectRealPathStr, projectRealPathStr, null, false);
@@ -278,7 +279,7 @@ public class SparkOperatorRunner {
             }
 
             String yaml = getSparkOperatorYaml(projectDir);
-            if(local) {
+            if(debug) {
                 runLocal(sparkSession, args);
             } else {
                 runYaml(yaml, projectDir, sparkOperatorSpecs);
@@ -288,8 +289,12 @@ public class SparkOperatorRunner {
         return cachefilepath;
     }
 
-    public void runLocal(SparkSession sparkSession, String[] args) {
-        //RedisBatchConsumer.main(args);
+    /**
+     * Keep this for debuging purposes, no kubernetes needed
+     * @param sparkSession
+     * @param args
+     */
+    private void runLocal(SparkSession sparkSession, String[] args) {
         String redisUrl = args[0];
         String requestId = args[1];
         String projectDir = args[2];

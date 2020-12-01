@@ -1,12 +1,12 @@
 apiVersion: sparkoperator.k8s.io/v1beta2
 kind: SparkApplication
 metadata:
-  name: "d"
+  name: gorquery
   namespace: gorkube
 spec:
   type: Java
   mode: cluster
-  image: nextcode/spark:3.0.1
+  image: nextcode/spark:1.2.0
   imagePullPolicy: Never #Always
   imagePullSecrets:
     - dockerhub-nextcode-download-credentials
@@ -19,39 +19,15 @@ spec:
     onFailureRetryInterval: 10
     onSubmissionFailureRetries: 1
     onSubmissionFailureRetryInterval: 20
-  #sparkConf:
-    #spark.kubernetes.executor.volumes.persistentVolumeClaim.gorproject.options.claimName: pvc-sparkgorproject-nfs
-    #spark.kubernetes.executor.volumes.persistentVolumeClaim.gorproject.mount.path: "/gorproject"
-    #spark.kubernetes.executor.volumes.persistentVolumeClaim.mntcsa.options.claimName: pvc-sparkgor-nfs
-    #spark.kubernetes.executor.volumes.persistentVolumeClaim.mntcsa.mount.path: "/mnt/csa"
-    #spark.serializer: org.apache.spark.serializer.KryoSerializer
-    #spark.kryo.registrator: is.hail.kryo.HailKryoRegistrator
-    #spark.local.dir: "/mnt/csa/tmp"
-    #volumes:
-    #- name: mnt-csa
-    #  persistentVolumeClaim:
-    #      claimName: pvc-sparkgor-nfs
-    #- name: project-dir
-    #  persistentVolumeClaim:
-    #      claimName: pvc-sparkgorproject-nfs
-    #- name: sparktmp
-    #  persistentVolumeClaim:
-    #      claimName: pvc-sparkgortmp-nfs
   driver:
     cores: 1
     coreLimit: 1200m
     memory: 1500m
     labels:
       version: v3.0.1
-    #serviceAccount: spark
     securityContext:
       runAsUser: 3000
       fsGroup: 3000
-    #volumeMounts:
-    #    - name: project-dir
-    #      mountPath: "/gorproject"
-    #    - name: mnt-csa
-    #      mountPath: "/mnt/csa"
   executor:
     cores: 1
     instances: 1
@@ -61,9 +37,3 @@ spec:
     securityContext:
       runAsUser: 3000
       fsGroup: 3000
-    #volumeMounts:
-    #    - name: project-dir
-    #      mountPath: "/gorproject"
-    #    - name: mnt-csa
-    #      mountPath: "/mnt/csa"
-
