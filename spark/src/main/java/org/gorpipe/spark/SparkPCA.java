@@ -37,12 +37,12 @@ import java.util.stream.StreamSupport;
 public class SparkPCA {
     static String[] testargs = {"--projectroot","/gorproject","--freeze","plink_wes","--variants","testvars2.gorz","--pnlist","testpns.txt","--partsize","10","--pcacomponents","3","--outfile","out.txt"};//,"--sparse"};
 
-    public static void main(String[] args) {
+    public static void main2(String[] args) {
         SparkSession sparkSession = SparkSession.builder().master("local[1]").getOrCreate();
         System.err.println(sparkSession);
     }
 
-    public static void main2(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException {
         //args = testargs;
         List<String> argList = Arrays.asList(args);
         int i = argList.indexOf("--appname");
@@ -64,12 +64,12 @@ public class SparkPCA {
         String outfile = i != -1 ? argList.get(i+1) : null;
         boolean sparse = argList.indexOf("--sparse") != -1;
 
-        i = argList.indexOf("--instances");
+        /*i = argList.indexOf("--instances");
         int instances = i != -1 ? Integer.parseInt(argList.get(i+1)) : -1;
         i = argList.indexOf("--cores");
         int cores = i != -1 ? Integer.parseInt(argList.get(i+1)) : -1;
         i = argList.indexOf("--memory");
-        String memory = i != -1 ? argList.get(i+1) : "";
+        String memory = i != -1 ? argList.get(i+1) : "";*/
 
         Path root = Paths.get(projectRoot);
 
@@ -85,70 +85,8 @@ public class SparkPCA {
         Path varpath = Paths.get(variants);
         if(!varpath.isAbsolute()) varpath = root.resolve(varpath);
 
-        Stream<String> str;
-        if(varpath.getFileName().toString().endsWith(".gorz")) {
-            GenericSessionFactory gsf = new GenericSessionFactory(".", "result_cache");
-            GorSession gs = gsf.create();
-            GorContext gc = gs.getGorContext();
-            PipeInstance pi = new PipeInstance(gc);
-            pi.init("gor "+varpath.toString(), false, "");
-            str = StreamSupport.stream(Spliterators.spliteratorUnknownSize(pi.theInputSource(), 0), false).map(Object::toString);
-
-            /*byte[] output = new byte[65536];
-            byte[] input = new byte[65536];
-            InputStream in = Files.newInputStream(varpath);
-            int r = in.read();
-            while(r != '\n') r = in.read();
-            r = in.read();
-            while(r != -1) {
-                while(r != '\t') r = in.read();
-                r = in.read();
-                while(r != '\t') r = in.read();
-                r = in.read();
-                //r = in.read();
-                //in.read();
-                r = in.read();
-                int k = 0;
-                while(r != '\n') {
-                    input[k++] = (byte)r;
-                    r = in.read();
-                }
-                r = in.read();
-
-                Inflater ifl = new Inflater();
-                ifl.setInput(input,0,k);
-                try {
-                    ifl.inflate(output);
-                } catch (DataFormatException e) {
-                    e.printStackTrace();
-                }
-                String bb = new String(output);
-                System.err.println(bb);
-            }*/
-            /*str = str.flatMap(f -> {
-                byte[] gzip = f.getBytes(StandardCharsets.ISO_8859_1);
-                int k = 0;
-                while(gzip[k++]!='\t');
-                while(gzip[k++]!='\t');
-                Inflater ifl = new Inflater();
-                ifl.setInput(Arrays.copyOfRange(gzip,k,gzip.length));
-                try {
-                    ifl.inflate(output);
-                } catch (DataFormatException e) {
-                    e.printStackTrace();
-                }
-                String bb = new String(output);
-                String[] spl = bb.split("\t");
-                return Arrays.stream(spl);
-            });*/
-        } else {
-            str = Files.lines(varpath).skip(1);
-        }
-        long varcount = str.count();
-        long samplecount = Files.lines(pnpath).dropWhile(l -> l.startsWith("#")).count();
-
         SparkSession.Builder ssBuilder = SparkSession.builder();
-        if(instances>=0) {
+        /*if(instances>=0) {
             ssBuilder = ssBuilder.config("spark.executor.instances",instances == 0 ? samplecount / partsize + 1 : instances);
         }
         if(!memory.equals("-1")) {
@@ -156,12 +94,76 @@ public class SparkPCA {
         }
         if(cores>0) {
             ssBuilder = ssBuilder.config("spark.executor.cores",cores);
-        }
-
+        }*/
+        long varcount;
         try(SparkSession spark = ssBuilder/*.master("local[*]")*/.appName(appName).getOrCreate()) {
-        //try(SparkSession spark = SparkSession.builder().master("local[*]").appName(appName).getOrCreate()) {
+            Stream<String> str;
+            if(varpath.getFileName().toString().endsWith(".gorz")) {
+                GenericSessionFactory gsf = new GenericSessionFactory(".", "result_cache");
+                try (GorSession gs = gsf.create(); PipeInstance pi = new PipeInstance(gs.getGorContext())) {
+                    pi.init("gor " + varpath.toString(), false, "");
+                    str = StreamSupport.stream(Spliterators.spliteratorUnknownSize(pi.theInputSource(), 0), false).map(Object::toString);
+                    varcount = str.count();
+                }
+                /*byte[] output = new byte[65536];
+                byte[] input = new byte[65536];
+                InputStream in = Files.newInputStream(varpath);
+                int r = in.read();
+                while(r != '\n') r = in.read();
+                r = in.read();
+                while(r != -1) {
+                    while(r != '\t') r = in.read();
+                    r = in.read();
+                    while(r != '\t') r = in.read();
+                    r = in.read();
+                    //r = in.read();
+                    //in.read();
+                    r = in.read();
+                    int k = 0;
+                    while(r != '\n') {
+                        input[k++] = (byte)r;
+                        r = in.read();
+                    }
+                    r = in.read();
+
+                    Inflater ifl = new Inflater();
+                    ifl.setInput(input,0,k);
+                    try {
+                        ifl.inflate(output);
+                    } catch (DataFormatException e) {
+                        e.printStackTrace();
+                    }
+                    String bb = new String(output);
+                    System.err.println(bb);
+                }*/
+                /*str = str.flatMap(f -> {
+                    byte[] gzip = f.getBytes(StandardCharsets.ISO_8859_1);
+                    int k = 0;
+                    while(gzip[k++]!='\t');
+                    while(gzip[k++]!='\t');
+                    Inflater ifl = new Inflater();
+                    ifl.setInput(Arrays.copyOfRange(gzip,k,gzip.length));
+                    try {
+                        ifl.inflate(output);
+                    } catch (DataFormatException e) {
+                        e.printStackTrace();
+                    }
+                    String bb = new String(output);
+                    String[] spl = bb.split("\t");
+                    return Arrays.stream(spl);
+                });*/
+            } else {
+                str = Files.lines(varpath).skip(1);
+                varcount = str.count();
+            }
+            //long samplecount = Files.lines(pnpath).dropWhile(l -> l.startsWith("#")).count();
+
+            //try(SparkSession spark = SparkSession.builder().master("local[*]").appName(appName).getOrCreate()) {
+            System.err.println("starting pca " + varcount);
             pca(spark, projectRoot, freeze, pnlist, variants, partsize, pcacomponents, pnpath, varpath, freezepath, (int)varcount, outpath, sparse);
-            spark.stop();
+            System.err.println("pca done");
+        } catch(Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -298,16 +300,17 @@ public class SparkPCA {
         //spark.sparkContext().broadcast(idx2Pn, Encoders.bean(Map));
 
         JavaPairRDD<Long,String> jprs = pnidx.select("pn").map((MapFunction<Row,String>) r -> r.get(0).toString(),Encoders.STRING()).javaRDD().zipWithIndex().mapToPair(Tuple2::swap);
-        JavaPairRDD<Long,Vector> jprv = dv.javaRDD().zipWithIndex().mapToPair((PairFunction<Tuple2<Vector, Long>, Long, Vector>) Tuple2::swap);
+        JavaPairRDD<Long,Vector> jprv = dv.javaRDD().zipWithIndex().mapToPair((PairFunction<Tuple2<Vector, Long>, Long, Vector>) Tuple2::swap).repartition(10);
 
         /*JavaPairRDD<Long,Tuple2<Vector,String>> prdd = jprv.join(jprs);
         //prdd.mapValues(f -> new LabeledPoint());
 
         prdd.collect().forEach(System.err::println);*/
 
+        System.err.println("pca fit");
         PCA pca = new PCA(pcacomponents);
         PCAModel pcamodel = pca.fit(jprv.values());
-
+        System.err.println("fitting done");
         JavaPairRDD<Long,Vector> jprr = jprv.mapToPair(f -> new Tuple2<>(f._1,pcamodel.transform(f._2)));
 
         //jprv.map
@@ -315,8 +318,11 @@ public class SparkPCA {
         //JavaSparkContext javaSparkContext = JavaSparkContext.fromSparkContext(spark.sparkContext());
         //Broadcast<Map<Long,String>> bc = javaSparkContext.broadcast(jprs.collectAsMap());
         //JavaPairRDD<String,Vector> projected = jprv.mapToPair(p -> new Tuple2<>(bc.getValue().get(p._1), pcamodel.transform(p._2)));
-        Map<String,Vector> result = projected.collectAsMap();
 
+        //spark.createDataset(projected.rdd(),Encoders.tuple(Encoders.STRING(),Encoders.STRING())).write().mode(SaveMode.Overwrite).format("csv").save(outpath.toString());
+        System.err.println("collecting results");
+        Map<String,Vector> result = projected.collectAsMap();
+        System.err.println("writing output");
         try (BufferedWriter bw = Files.newBufferedWriter(outpath)) {
             for(String pn : result.keySet()) {
                 bw.write(pn);
@@ -328,7 +334,6 @@ public class SparkPCA {
                 bw.write('\n');
             }
         }
-
         /*DenseMatrix<Object> dmb = rowMatrix.toBreeze();
         System.err.println( dmb );*/
     }
