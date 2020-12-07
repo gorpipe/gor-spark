@@ -43,9 +43,6 @@ public class SparkOperatorRunner {
     public static final String SPARKAPPLICATION_RUNNING_STATE = "RUNNING";
 
     private static final String GOR_PROJECT_MOUNT_NAME = "gorproject";
-    private static final String GOR_VOLUME_MOUNT_NAME = "volume";
-    private static final String GOR_REFDATA_MOUNT_NAME = "data";
-
     private static final String BASE_NFS_MOUNT_POINT = "/mnt/csa/";
 
     ApiClient client;
@@ -241,7 +238,7 @@ public class SparkOperatorRunner {
 
             String projectRealPathStr = projectRealPath.toString();
             sparkOperatorSpecs.addDriverHostPath(GOR_PROJECT_MOUNT_NAME, projectRealPathStr, projectRealPathStr, null, false);
-            sparkOperatorSpecs.addExecutorHostPath(GOR_VOLUME_MOUNT_NAME, projectRealPathStr, projectRealPathStr, null, false);
+            sparkOperatorSpecs.addExecutorHostPath(GOR_PROJECT_MOUNT_NAME, projectRealPathStr, projectRealPathStr, null, false);
         } else {
             List<Map<String, Object>> vollist = new ArrayList<>();
             vollist.add(Map.of("name", GOR_PROJECT_MOUNT_NAME, "persistentVolumeClaim", Map.of("claimName", "pvc-gor-nfs-v2")));
@@ -249,12 +246,6 @@ public class SparkOperatorRunner {
 
             sparkOperatorSpecs.addDriverVolumeClaim(GOR_PROJECT_MOUNT_NAME, "pvc-gor-nfs-v2", projectRealPath.toString(), projectSubPath.toString(), false);
             sparkOperatorSpecs.addExecutorVolumeClaim(GOR_PROJECT_MOUNT_NAME, "pvc-gor-nfs-v2", projectRealPath.toString(), projectSubPath.toString(), false);
-
-            sparkOperatorSpecs.addDriverVolumeClaim(GOR_REFDATA_MOUNT_NAME, "pvc-phenocat-v2", BASE_NFS_MOUNT_POINT+GOR_REFDATA_MOUNT_NAME, GOR_REFDATA_MOUNT_NAME, true);
-            sparkOperatorSpecs.addExecutorVolumeClaim(GOR_REFDATA_MOUNT_NAME, "pvc-phenocat-v2", BASE_NFS_MOUNT_POINT+GOR_REFDATA_MOUNT_NAME, GOR_REFDATA_MOUNT_NAME, true);
-
-            sparkOperatorSpecs.addDriverVolumeClaim(GOR_VOLUME_MOUNT_NAME, "pvc-sm-v2", BASE_NFS_MOUNT_POINT+GOR_VOLUME_MOUNT_NAME, GOR_VOLUME_MOUNT_NAME, true);
-            sparkOperatorSpecs.addExecutorVolumeClaim(GOR_VOLUME_MOUNT_NAME, "pvc-sm-v2", BASE_NFS_MOUNT_POINT+GOR_VOLUME_MOUNT_NAME, GOR_VOLUME_MOUNT_NAME, true);
         }
         sparkOperatorSpecs.addConfig("spec.arguments", Arrays.asList(args));
         sparkOperatorSpecs.addConfig("metadata.name", sparkApplicationName);
