@@ -19,6 +19,19 @@ spec:
     onFailureRetryInterval: 10
     onSubmissionFailureRetries: 1
     onSubmissionFailureRetryInterval: 20
+  sparkConf:
+    spark.kubernetes.driver.volumes.persistentVolumeClaim.volume.mount.path: /mnt/csa/volume
+    spark.kubernetes.driver.volumes.persistentVolumeClaim.volume.mount.readOnly: true
+    spark.kubernetes.driver.volumes.persistentVolumeClaim.volume.options.claimName: pvc-phenocat-v2
+    spark.kubernetes.executor.volumes.persistentVolumeClaim.volume.mount.path: /mnt/csa/volume
+    spark.kubernetes.executor.volumes.persistentVolumeClaim.volume.mount.readOnly: true
+    spark.kubernetes.executor.volumes.persistentVolumeClaim.volume.options.claimName: pvc-phenocat-v2
+    spark.kubernetes.driver.volumes.persistentVolumeClaim.data.mount.path: /mnt/csa/data
+    spark.kubernetes.driver.volumes.persistentVolumeClaim.data.mount.readOnly: true
+    spark.kubernetes.driver.volumes.persistentVolumeClaim.data.options.claimName: pvc-sm-v2
+    spark.kubernetes.executor.volumes.persistentVolumeClaim.data.mount.path: /mnt/csa/data
+    spark.kubernetes.executor.volumes.persistentVolumeClaim.data.mount.readOnly: true
+    spark.kubernetes.executor.volumes.persistentVolumeClaim.data.options.claimName: pvc-sm-v2
   driver:
     cores: 1
     coreLimit: 1200m
