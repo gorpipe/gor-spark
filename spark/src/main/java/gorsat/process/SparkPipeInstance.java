@@ -8,7 +8,6 @@ import org.gorpipe.gor.driver.providers.stream.StreamSourceFile;
 import org.gorpipe.gor.driver.providers.stream.datatypes.parquet.ParquetFileIterator;
 import org.gorpipe.gor.driver.providers.stream.sources.file.FileSource;
 import org.gorpipe.gor.model.GenomicIterator;
-import org.gorpipe.gor.model.Line;
 import org.gorpipe.gor.model.Row;
 import org.gorpipe.gor.monitor.GorMonitor;
 import org.gorpipe.gor.session.GorContext;
@@ -49,7 +48,9 @@ public class SparkPipeInstance extends PipeInstance {
             srb.commonRoot(session.getProjectContext().getRealProjectRootPath().toString());
             FileSource fileSource = new FileSource(srb.build());
             StreamSourceFile ssf = new StreamSourceFile(fileSource);
-            return new ParquetFileIterator(ssf);
+            ParquetFileIterator pfi = new ParquetFileIterator(ssf);
+            pfi.init(session);
+            return pfi;
         } catch (IOException | InterruptedException | ApiException e) {
             throw new GorSystemException(e);
         }
@@ -98,34 +99,8 @@ public class SparkPipeInstance extends PipeInstance {
             return inputSource;
         } else {
             genit = runSparkOperator(session.getSystemContext().getMonitor(), commands, resourceSplit);
-            GenomicIterator rs = new GenomicIterator() {
-                @Override
-                public boolean seek(String chr, int pos) {
-                    return false;
-                }
-
-                @Override
-                public boolean next(Line line) {
-                    return false;
-                }
-
-                @Override
-                public void close() {
-                    genit.close();
-                }
-
-                @Override
-                public boolean hasNext() {
-                    return false;
-                }
-
-                @Override
-                public Row next() {
-                    return null;
-                }
-            };
-            this.theInputSource_$eq(rs);
-            return rs;
+            this.theInputSource_$eq(genit);
+            return genit;
         }
     }
 

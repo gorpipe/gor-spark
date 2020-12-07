@@ -57,7 +57,7 @@ public class SparkOperatorRunner {
     boolean hostMount = false;
     SparkSession sparkSession;
 
-    private static final boolean debug = false;
+    private static final boolean debug = true;
 
     public SparkOperatorRunner(GorSparkSession gorSparkSession) throws IOException {
         client = Config.defaultClient();
@@ -280,10 +280,19 @@ public class SparkOperatorRunner {
 
     public Path run(String uristr, String requestId, String projectDir, GorMonitor gm, String[] commands, String[] resourceSplit, String cachefile) throws IOException, ApiException, InterruptedException {
         String queries;
+        String lastCommand = resourceSplit[0];
+        int i = lastCommand.indexOf(" -j ");
+        String jobid = null;
+        if(i > 0) {
+            int k = lastCommand.indexOf(' ',i+4);
+            jobid = lastCommand.substring(i+4,k).trim();
+            lastCommand = lastCommand.substring(0,i)+lastCommand.substring(k);
+        }
+
         if(commands.length>1) {
-            queries = String.join(";", Arrays.copyOfRange(commands,0,commands.length-1)) + ";" + resourceSplit[0];
+            queries = String.join(";", Arrays.copyOfRange(commands,0,commands.length-1)) + ";" + lastCommand;
         } else {
-            queries = resourceSplit[0];
+            queries = lastCommand;
         }
         String fingerprint = StringUtilities.createMD5(queries);
 
@@ -295,7 +304,7 @@ public class SparkOperatorRunner {
             cachefilepath = cachePath.resolve(cachefiles);
             cachefile = cachefilepath.toAbsolutePath().normalize().toString();
         } else cachefilepath = Paths.get(cachefile);
-        String jobid = fingerprint;
+        if(jobid==null) jobid = fingerprint;
 
         String[] args = new String[]{uristr, requestId, projectDir, queries, fingerprint, cachefile, jobid};
         if(!Files.exists(cachefilepath)) {
