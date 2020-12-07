@@ -74,6 +74,11 @@ public class SparkPipeInstance extends PipeInstance {
             }
 
             @Override
+            public void setPosition(String seekChr, int seekPos) {
+                gi.seek(seekChr,seekPos);
+            }
+
+            @Override
             public void close() {
                 gi.close();
             }

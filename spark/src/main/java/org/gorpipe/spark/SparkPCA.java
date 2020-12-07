@@ -43,7 +43,6 @@ public class SparkPCA {
     }
 
     public static void main(String[] args) throws IOException {
-        //args = testargs;
         List<String> argList = Arrays.asList(args);
         int i = argList.indexOf("--appname");
         String appName = i != -1 ? argList.get(i+1) : "pca";
