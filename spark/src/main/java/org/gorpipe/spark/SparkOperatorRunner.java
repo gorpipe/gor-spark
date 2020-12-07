@@ -211,6 +211,63 @@ public class SparkOperatorRunner {
         return json;
     }
 
+    public void runQueryHandler(String appName, String uristr, String requestId, Path projectDir, GorMonitor gm, String[] commands, String[] fingerprints, String[] jobIds, String[] cacheFiles, String[] resources) throws IOException, ApiException, InterruptedException {
+        String[] args = new String[] {uristr,requestId,projectDir.toString(),String.join(";;",commands),String.join(";",fingerprints),String.join(";",cacheFiles),String.join(";",jobIds)};
+        runSparkOperator(gm, appName, projectDir, args, resources);
+    }
+
+    public void runSparkOperator(GorMonitor gm, String sparkApplicationName, Path projectDir, String[] args, String[] resources) throws IOException, ApiException, InterruptedException {
+        SparkOperatorSpecs sparkOperatorSpecs = new SparkOperatorSpecs();
+
+        List<Map<String, Object>> vollist = new ArrayList<>();
+        vollist.add(Map.of("name", "volnfs", "hostPath", Map.of("path", projectDir, "type", "Directory")));
+        sparkOperatorSpecs.addConfig("spec.volumes", vollist);
+
+        List<Map<String, Object>> listMounts = new ArrayList<>();
+        listMounts.add(Map.of("name", "volnfs", "mountPath", projectDir));
+        sparkOperatorSpecs.addConfig("spec.executor.volumeMounts", listMounts);
+        sparkOperatorSpecs.addConfig("spec.driver.volumeMounts", listMounts);
+
+        Path projectBasePath = Paths.get("/mnt/csa");
+        Path projectRealPath = projectDir.toRealPath().toAbsolutePath();
+        Path projectSubPath = projectBasePath.relativize(projectRealPath);
+
+        if(hostMount) {
+            String projectRealPathStr = projectRealPath.toString();
+            sparkOperatorSpecs.addDriverHostPath("gorproject", projectRealPathStr, projectRealPathStr, null, false);
+            sparkOperatorSpecs.addExecutorHostPath("gorproject", projectRealPathStr, projectRealPathStr, null, false);
+        } else {
+            sparkOperatorSpecs.addDriverVolumeClaim("gorproject", "pvc-gor-nfs-v2", projectRealPath.toString(), projectSubPath.toString(), false);
+            sparkOperatorSpecs.addExecutorVolumeClaim("gorproject", "pvc-gor-nfs-v2", projectRealPath.toString(), projectSubPath.toString(), false);
+
+            sparkOperatorSpecs.addDriverVolumeClaim("data", "pvc-phenocat-v2", "/mnt/csa/data", "data", true);
+            sparkOperatorSpecs.addExecutorVolumeClaim("data", "pvc-phenocat-v2", "/mnt/csa/data", "data", true);
+
+            sparkOperatorSpecs.addDriverVolumeClaim("volumes", "pvc-sm-v2", "/mnt/csa/volumes", "volumes", true);
+            sparkOperatorSpecs.addExecutorVolumeClaim("volumes", "pvc-sm-v2", "/mnt/csa/volumes", "volumes", true);
+        }
+        sparkOperatorSpecs.addConfig("spec.arguments", Arrays.asList(args));
+        sparkOperatorSpecs.addConfig("metadata.name", sparkApplicationName);
+
+        for (String config : resources) {
+            String[] confSplit = config.split("=");
+            try {
+                Integer ii = Integer.parseInt(confSplit[1]);
+                sparkOperatorSpecs.addConfig(confSplit[0], ii);
+            } catch (NumberFormatException ne) {
+                sparkOperatorSpecs.addConfig(confSplit[0], confSplit[1]);
+            }
+        }
+
+        String yaml = getSparkOperatorYaml(projectDir.toString());
+        if(debug) {
+            runLocal(sparkSession, args);
+        } else {
+            runYaml(yaml, projectDir.toString(), sparkOperatorSpecs);
+            waitForSparkApplicationToComplete(gm, sparkApplicationName);
+        }
+    }
+
     public Path run(String uristr, String requestId, String projectDir, GorMonitor gm, String[] commands, String[] resourceSplit, String cachefile) throws IOException, ApiException, InterruptedException {
         String queries;
         if(commands.length>1) {
@@ -230,61 +287,11 @@ public class SparkOperatorRunner {
         } else cachefilepath = Paths.get(cachefile);
         String jobid = fingerprint;
 
+        String[] args = new String[]{uristr, requestId, projectDir, queries, fingerprint, cachefile, jobid};
         if(!Files.exists(cachefilepath)) {
-            SparkOperatorSpecs sparkOperatorSpecs = new SparkOperatorSpecs();
-
-            List<Map<String, Object>> vollist = new ArrayList<>();
-            vollist.add(Map.of("name", "volnfs", "hostPath", Map.of("path", projectDir, "type", "Directory")));
-            sparkOperatorSpecs.addConfig("spec.volumes", vollist);
-
-            List<Map<String, Object>> listMounts = new ArrayList<>();
-            listMounts.add(Map.of("name", "volnfs", "mountPath", projectDir));
-            sparkOperatorSpecs.addConfig("spec.executor.volumeMounts", listMounts);
-            sparkOperatorSpecs.addConfig("spec.driver.volumeMounts", listMounts);
-
-            Path projectBasePath = Paths.get("/mnt/csa");
-            Path projectRealPath = projectPath.toRealPath().toAbsolutePath();
-            Path projectSubPath = projectBasePath.relativize(projectRealPath);
-
-            if(hostMount) {
-                String projectRealPathStr = projectRealPath.toString();
-                sparkOperatorSpecs.addDriverHostPath("gorproject", projectRealPathStr, projectRealPathStr, null, false);
-                sparkOperatorSpecs.addExecutorHostPath("gorproject", projectRealPathStr, projectRealPathStr, null, false);
-            } else {
-                sparkOperatorSpecs.addDriverVolumeClaim("gorproject", "pvc-gor-nfs-v2", projectRealPath.toString(), projectSubPath.toString(), false);
-                sparkOperatorSpecs.addExecutorVolumeClaim("gorproject", "pvc-gor-nfs-v2", projectRealPath.toString(), projectSubPath.toString(), false);
-
-                sparkOperatorSpecs.addDriverVolumeClaim("data", "pvc-phenocat-v2", "/mnt/csa/data", "data", true);
-                sparkOperatorSpecs.addExecutorVolumeClaim("data", "pvc-phenocat-v2", "/mnt/csa/data", "data", true);
-
-                sparkOperatorSpecs.addDriverVolumeClaim("volumes", "pvc-sm-v2", "/mnt/csa/volumes", "volumes", true);
-                sparkOperatorSpecs.addExecutorVolumeClaim("volumes", "pvc-sm-v2", "/mnt/csa/volumes", "volumes", true);
-            }
-
-            String[] args = new String[]{uristr, requestId, projectDir, queries, fingerprint, cachefile, jobid};
-            List<String> arglist = Arrays.asList(args);
-            sparkOperatorSpecs.addConfig("spec.arguments", arglist);
-
             String sparkApplicationName = "gorquery-" + jobid;
-            sparkOperatorSpecs.addConfig("metadata.name", sparkApplicationName);
-
-            for (String config : resourceSplit[1].split(" ")) {
-                String[] confSplit = config.split("=");
-                try {
-                    Integer ii = Integer.parseInt(confSplit[1]);
-                    sparkOperatorSpecs.addConfig(confSplit[0], ii);
-                } catch (NumberFormatException ne) {
-                    sparkOperatorSpecs.addConfig(confSplit[0], confSplit[1]);
-                }
-            }
-
-            String yaml = getSparkOperatorYaml(projectDir);
-            if(debug) {
-                runLocal(sparkSession, args);
-            } else {
-                runYaml(yaml, projectDir, sparkOperatorSpecs);
-                waitForSparkApplicationToComplete(gm, sparkApplicationName);
-            }
+            String[] resources = resourceSplit[1].split(" ");
+            runSparkOperator(gm, sparkApplicationName, projectPath, args, resources);
         }
         return cachefilepath;
     }
