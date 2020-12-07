@@ -42,6 +42,12 @@ public class SparkOperatorRunner {
     public static final String SPARKAPPLICATION_FAILED_STATE = "FAILED";
     public static final String SPARKAPPLICATION_RUNNING_STATE = "RUNNING";
 
+    private static final String GOR_PROJECT_MOUNT_NAME = "gorproject";
+    private static final String GOR_VOLUME_MOUNT_NAME = "volume";
+    private static final String GOR_REFDATA_MOUNT_NAME = "data";
+
+    private static final String BASE_NFS_MOUNT_POINT = "/mnt/csa/";
+
     ApiClient client;
     CustomObjectsApi apiInstance;
     CoreV1Api core;
@@ -219,32 +225,36 @@ public class SparkOperatorRunner {
     public void runSparkOperator(GorMonitor gm, String sparkApplicationName, Path projectDir, String[] args, String[] resources) throws IOException, ApiException, InterruptedException {
         SparkOperatorSpecs sparkOperatorSpecs = new SparkOperatorSpecs();
 
-        List<Map<String, Object>> vollist = new ArrayList<>();
-        vollist.add(Map.of("name", "volnfs", "hostPath", Map.of("path", projectDir, "type", "Directory")));
-        sparkOperatorSpecs.addConfig("spec.volumes", vollist);
-
         List<Map<String, Object>> listMounts = new ArrayList<>();
-        listMounts.add(Map.of("name", "volnfs", "mountPath", projectDir));
+        listMounts.add(Map.of("name", GOR_PROJECT_MOUNT_NAME, "mountPath", projectDir));
         sparkOperatorSpecs.addConfig("spec.executor.volumeMounts", listMounts);
         sparkOperatorSpecs.addConfig("spec.driver.volumeMounts", listMounts);
 
-        Path projectBasePath = Paths.get("/mnt/csa");
+        Path projectBasePath = Paths.get(BASE_NFS_MOUNT_POINT);
         Path projectRealPath = projectDir.toRealPath().toAbsolutePath();
         Path projectSubPath = projectBasePath.relativize(projectRealPath);
 
         if(hostMount) {
+            List<Map<String, Object>> vollist = new ArrayList<>();
+            vollist.add(Map.of("name", GOR_PROJECT_MOUNT_NAME, "hostPath", Map.of("path", projectDir, "type", "Directory")));
+            sparkOperatorSpecs.addConfig("spec.volumes", vollist);
+
             String projectRealPathStr = projectRealPath.toString();
-            sparkOperatorSpecs.addDriverHostPath("gorproject", projectRealPathStr, projectRealPathStr, null, false);
-            sparkOperatorSpecs.addExecutorHostPath("gorproject", projectRealPathStr, projectRealPathStr, null, false);
+            sparkOperatorSpecs.addDriverHostPath(GOR_PROJECT_MOUNT_NAME, projectRealPathStr, projectRealPathStr, null, false);
+            sparkOperatorSpecs.addExecutorHostPath(GOR_VOLUME_MOUNT_NAME, projectRealPathStr, projectRealPathStr, null, false);
         } else {
-            sparkOperatorSpecs.addDriverVolumeClaim("gorproject", "pvc-gor-nfs-v2", projectRealPath.toString(), projectSubPath.toString(), false);
-            sparkOperatorSpecs.addExecutorVolumeClaim("gorproject", "pvc-gor-nfs-v2", projectRealPath.toString(), projectSubPath.toString(), false);
+            List<Map<String, Object>> vollist = new ArrayList<>();
+            vollist.add(Map.of("name", GOR_PROJECT_MOUNT_NAME, "persistentVolumeClaim", Map.of("claimName", "pvc-gor-nfs-v2")));
+            sparkOperatorSpecs.addConfig("spec.volumes", vollist);
 
-            sparkOperatorSpecs.addDriverVolumeClaim("data", "pvc-phenocat-v2", "/mnt/csa/data", "data", true);
-            sparkOperatorSpecs.addExecutorVolumeClaim("data", "pvc-phenocat-v2", "/mnt/csa/data", "data", true);
+            sparkOperatorSpecs.addDriverVolumeClaim(GOR_PROJECT_MOUNT_NAME, "pvc-gor-nfs-v2", projectRealPath.toString(), projectSubPath.toString(), false);
+            sparkOperatorSpecs.addExecutorVolumeClaim(GOR_PROJECT_MOUNT_NAME, "pvc-gor-nfs-v2", projectRealPath.toString(), projectSubPath.toString(), false);
 
-            sparkOperatorSpecs.addDriverVolumeClaim("volumes", "pvc-sm-v2", "/mnt/csa/volumes", "volumes", true);
-            sparkOperatorSpecs.addExecutorVolumeClaim("volumes", "pvc-sm-v2", "/mnt/csa/volumes", "volumes", true);
+            sparkOperatorSpecs.addDriverVolumeClaim(GOR_REFDATA_MOUNT_NAME, "pvc-phenocat-v2", BASE_NFS_MOUNT_POINT+GOR_REFDATA_MOUNT_NAME, GOR_REFDATA_MOUNT_NAME, true);
+            sparkOperatorSpecs.addExecutorVolumeClaim(GOR_REFDATA_MOUNT_NAME, "pvc-phenocat-v2", BASE_NFS_MOUNT_POINT+GOR_REFDATA_MOUNT_NAME, GOR_REFDATA_MOUNT_NAME, true);
+
+            sparkOperatorSpecs.addDriverVolumeClaim(GOR_VOLUME_MOUNT_NAME, "pvc-sm-v2", BASE_NFS_MOUNT_POINT+GOR_VOLUME_MOUNT_NAME, GOR_VOLUME_MOUNT_NAME, true);
+            sparkOperatorSpecs.addExecutorVolumeClaim(GOR_VOLUME_MOUNT_NAME, "pvc-sm-v2", BASE_NFS_MOUNT_POINT+GOR_VOLUME_MOUNT_NAME, GOR_VOLUME_MOUNT_NAME, true);
         }
         sparkOperatorSpecs.addConfig("spec.arguments", Arrays.asList(args));
         sparkOperatorSpecs.addConfig("metadata.name", sparkApplicationName);
