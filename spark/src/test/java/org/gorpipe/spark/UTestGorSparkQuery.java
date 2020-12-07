@@ -1,7 +1,7 @@
 package org.gorpipe.spark;
 
-import gorsat.process.PipeInstance;
 import gorsat.process.PipeOptions;
+import gorsat.process.SparkPipeInstance;
 import io.projectglow.Glow;
 import org.apache.spark.sql.SparkSession;
 import org.gorpipe.gor.session.GorSession;
@@ -17,7 +17,7 @@ import java.util.stream.StreamSupport;
 
 public class UTestGorSparkQuery {
     SparkSession spark;
-    PipeInstance pi;
+    SparkPipeInstance pi;
 
     @Before
     public void init() {
@@ -25,7 +25,7 @@ public class UTestGorSparkQuery {
         Glow.register(spark);
         SparkSessionFactory sparkSessionFactory = new SparkSessionFactory(spark, Paths.get(".").toAbsolutePath().normalize().toString(), System.getProperty("java.io.tmpdir"), null, null, null);
         GorSession session = sparkSessionFactory.create();
-        pi = new PipeInstance(session.getGorContext());
+        pi = new SparkPipeInstance(session.getGorContext());
     }
 
     private void testSparkQuery(String query, String expectedResult) {
@@ -77,6 +77,12 @@ public class UTestGorSparkQuery {
         testSparkQuery("select /*+ BROADCAST(b) */ a.* from ../tests/data/gor/genes.gor a join (select * from ../tests/data/gor/genes.gor where gene_symbol like 'BRCA%') b where a.gene_symbol = b.gene_symbol",
                         "chr13\t32889610\t32973805\tBRCA2\n" +
                 "chr17\t41196311\t41322290\tBRCA1");
+    }
+
+    @Test
+    public void testSparkWithResourceHint() {
+        testSparkQuery("create xxx = select /*+ spec.executor.memory=2g */ * from ../tests/data/gor/genes.gor limit 10; select * from [xxx] limit 1",
+                "chr1\t11868\t14412\tDDX11L1");
     }
 
     @Test
