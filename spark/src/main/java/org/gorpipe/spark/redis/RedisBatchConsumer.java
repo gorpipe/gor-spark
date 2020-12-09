@@ -16,9 +16,7 @@ import org.gorpipe.gor.session.GorContext;
 import org.gorpipe.gor.session.GorSessionCache;
 import org.gorpipe.gor.session.ProjectContext;
 import org.gorpipe.gor.session.SystemContext;
-import org.gorpipe.spark.GeneralSparkQueryHandler;
-import org.gorpipe.spark.GorQueryRDD;
-import org.gorpipe.spark.GorSparkSession;
+import org.gorpipe.spark.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import py4j.Base64;
@@ -27,10 +25,12 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long>, AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(RedisBatchConsumer.class);
@@ -71,9 +71,7 @@ public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long>, Au
         es.shutdown();
     }
 
-    public void runGorJobs(String projectDirStr, Set<Integer> gorJobs, String[] queries, String[] fingerprints, String[] jobIds, String[] cachefiles) {
-        String jobIdStr = String.join(",", jobIds);
-
+    public Future<List<String>> runGorJobs(String projectDirStr, Set<Integer> gorJobs, String[] queries, String[] fingerprints, String[] jobIds, String[] cachefiles) {
         String[] newCommands = new String[gorJobs.size()];
         String[] newFingerprints = new String[gorJobs.size()];
         String[] newCacheFiles = new String[gorJobs.size()];
@@ -90,11 +88,10 @@ public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long>, Au
         String configFile = gss.getProjectContext() != null ? gss.getProjectContext().getGorConfigFile() : null;
         String aliasFile = gss.getProjectContext() != null ? gss.getProjectContext().getGorAliasFile() : null;
         GorQueryRDD gorQueryRDD = new GorQueryRDD(gss.sparkSession(), newCommands, newFingerprints, newCacheFiles, projectDirStr, "result_cache", configFile, aliasFile, newJobIds, gss.redisUri());
-        Future<List<String>> fut = gorQueryRDD.toJavaRDD().collectAsync();
-        mont.addJob(jobIdStr, fut);
+        return gorQueryRDD.toJavaRDD().collectAsync();
     }
 
-    public void runSparkJob(String projectDirStr,String[] creates,String cmd,String jobId,String cacheFile) {
+    public Future<List<String>> runSparkJob(String projectDirStr,String[] creates,String cmd,String jobId,String cacheFile) {
         log.info("Running spark job "+jobId+": " + cmd);
         String shortJobId = jobId.substring(jobId.lastIndexOf(':')+1);
 
@@ -131,8 +128,43 @@ public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long>, Au
         options.parseOptions(args);
 
         SparkGorQuery sgq = new SparkGorQuery(context, cmd, cacheFile);
-        Future<List<String>> fut = es.submit(sgq);
-        mont.addJob(jobId, fut);
+        return es.submit(sgq);
+    }
+
+    public Map<String,Future<List<String>>> runJobBatch(List<String[]> lstr) {
+        Optional<String> projectDir = lstr.stream().map(l -> l[2]).findFirst();
+        Map<String,Future<List<String>>> futList = new HashMap<>();
+        if (projectDir.isPresent()) {
+            String projectDirStr = projectDir.get();
+            String[] queries = lstr.stream().map(l -> l[0]).toArray(String[]::new);
+            String[] fingerprints = lstr.stream().map(l -> l[1]).toArray(String[]::new);
+            String[] cachefiles = lstr.stream().map(l -> l[5]).toArray(String[]::new);
+            String[] jobIds = lstr.stream().map(l -> l[4]).toArray(String[]::new);
+
+            mont.setValue(jobIds, "status", "RUNNING");
+
+            final Set<Integer> gorJobs = new TreeSet<>();
+            for (int i = 0; i < queries.length; i++) {
+                String cmd = queries[i];
+                String jobId = jobIds[i];
+                String[] cmdSplit = CommandParseUtilities.quoteSafeSplit(cmd,';');
+                String lastCommand = cmdSplit[cmdSplit.length-1].trim();
+                String lastCommandUpper = lastCommand.toUpperCase();
+                if (lastCommandUpper.startsWith("SELECT ") || lastCommandUpper.startsWith("SPARK ") || lastCommandUpper.startsWith("GORSPARK ") || lastCommandUpper.startsWith("NORSPARK ")) {
+                    Future<List<String>> fut = runSparkJob(projectDirStr, Arrays.copyOfRange(cmdSplit,0,cmdSplit.length-1), lastCommand, jobId, cachefiles[i]);
+                    futList.put(jobId,fut);
+                } else {
+                    gorJobs.add(i);
+                }
+            }
+
+            if (gorJobs.size() > 0) {
+                Future<List<String>> fut = runGorJobs(projectDirStr, gorJobs, queries, fingerprints, jobIds, cachefiles);
+                String jobIdStr = gorJobs.stream().map(i -> jobIds[i]).collect(Collectors.joining(","));
+                futList.put(jobIdStr,fut);
+            }
+        }
+        return futList;
     }
 
     @Override
@@ -163,30 +195,42 @@ public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long>, Au
             return new String[0];
         }).collect(Collectors.toList());
 
-        Optional<String> projectDir = lstr.stream().map(l -> l[2]).findFirst();
-        if (projectDir.isPresent()) {
-            String projectDirStr = projectDir.get();
-            String[] queries = lstr.stream().map(l -> l[0]).toArray(String[]::new);
-            String[] fingerprints = lstr.stream().map(l -> l[1]).toArray(String[]::new);
-            String[] cachefiles = lstr.stream().map(l -> l[5]).toArray(String[]::new);
-            String[] jobIds = lstr.stream().map(l -> l[4]).toArray(String[]::new);
+        Map<String,Future<List<String>>> futMap = runJobBatch(lstr);
+        futMap.forEach((key, value) -> mont.addJob(key, value));
+    }
 
-            mont.setValue(jobIds, "status", "RUNNING");
+    /**
+     * For standalone gor query sparkapplication
+     * @param args
+     */
+    public static void main(String[] args) {
+        String redisUrl = args[0];
+        String requestId = args[1];
+        String projectDir = args[2];
+        String queries = args[3];
+        String fingerprints = args[4];
+        String cachefiles = args[5];
+        String jobids = args[6];
 
-            final Set<Integer> gorJobs = new TreeSet<>();
-            for (int i = 0; i < queries.length; i++) {
-                String cmd = queries[i];
-                String[] cmdSplit = CommandParseUtilities.quoteSafeSplit(cmd,';');
-                String lastCommand = cmdSplit[cmdSplit.length-1].trim();
-                String lastCommandUpper = lastCommand.toUpperCase();
-                if (lastCommandUpper.startsWith("SELECT ") || lastCommandUpper.startsWith("SPARK ") || lastCommandUpper.startsWith("GORSPARK ") || lastCommandUpper.startsWith("NORSPARK ")) {
-                    runSparkJob(projectDirStr, Arrays.copyOfRange(cmdSplit,0,cmdSplit.length-1), lastCommand, jobIds[i], cachefiles[i]);
-                } else {
-                    gorJobs.add(i);
-                }
+        SparkSession.Builder sb = new SparkSession.Builder();
+        try(SparkSession sparkSession = sb
+                .master("local[*]")
+                .getOrCreate(); RedisBatchConsumer redisBatchConsumer = new RedisBatchConsumer(sparkSession, redisUrl)) {
+            String[] querySplit = queries.split(";;");
+            String[] fingerprintSplit = fingerprints.split(";");
+            String[] cachefileSplit = cachefiles.split(";");
+            String[] jobidSplit = jobids.split(";");
+
+            List<String[]> lstr = IntStream.range(0, fingerprintSplit.length).mapToObj(i -> new String[]{querySplit[i], fingerprintSplit[i], projectDir, requestId, jobidSplit[i], cachefileSplit[i]}).collect(Collectors.toList());
+            Map<String,Future<List<String>>> futMap = redisBatchConsumer.runJobBatch(lstr);
+
+            log.info("Number of batches " + futMap.size());
+            for(Future<List<String>> f : futMap.values()) {
+                f.get();
             }
-
-            if (gorJobs.size() > 0) runGorJobs(projectDirStr, gorJobs, queries, fingerprints, jobIds, cachefiles);
+            log.info("Finised running all batches");
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
         }
     }
 }

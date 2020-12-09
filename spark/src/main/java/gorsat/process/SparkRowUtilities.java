@@ -265,7 +265,7 @@ public class SparkRowUtilities {
                 Map<String, String> uNames;
                 Path dictFile = null;
                 int dictSplit = 0;
-                if (isGord) {
+                if (isGord && filePath != null) {
                     Path fileParent = filePath.toAbsolutePath().normalize().getParent();
                     dictSplit = Files.lines(filePath).mapToInt(l -> l.split("\t").length).findFirst().getAsInt();
                     dictFile = filePath;
@@ -322,7 +322,7 @@ public class SparkRowUtilities {
                     String bgenDataSource = "io.projectglow.bgen.BgenFileFormat"; //vcf
                     gor = gorSparkSession.getSparkSession().read().format(bgenDataSource).load(fileName);
                     dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
-                } else if (fileName.toLowerCase().endsWith(".gor") || fileName.toLowerCase().endsWith(".nor") || fileName.toLowerCase().endsWith(".tsv") || fileName.toLowerCase().endsWith(".csv")) {
+                } else if (splitFile == null && (fileName.toLowerCase().endsWith(".gor") || fileName.toLowerCase().endsWith(".nor") || fileName.toLowerCase().endsWith(".tsv") || fileName.toLowerCase().endsWith(".csv"))) {
                     DataFrameReader dfr = gorSparkSession.getSparkSession().read().format("csv").option("header",true).option("inferSchema",true);
                     if(!fileName.toLowerCase().endsWith(".csv")) dfr = dfr.option("delimiter","\t");
                     gor = dfr.load(fileName);
@@ -404,11 +404,15 @@ public class SparkRowUtilities {
                                 gor = gor.selectExpr("*", "get_pn(input_file_name()) as PN");
                             }
                         } else {
-                            if (isGorgz || gorDataType.base128) {
+                            if (isGorgz || gorDataType.base128 || splitFile != null) {
                                 DataFrameReader dfr = gorSparkSession.getSparkSession().read().format(gordatasourceClassname).schema(schema);
                                 if (gorSparkSession.getRedisUri() != null && gorSparkSession.getRedisUri().length() > 0) {
-                                    dfr = dfr.option("redis", gorSparkSession.getRedisUri()).option("jobid", jobid).option("cachefile", cacheFile).option("native", Boolean.toString(cpp));
+                                    dfr = dfr.option("redis", gorSparkSession.getRedisUri())
+                                            .option("jobid", jobid)
+                                            .option("cachefile", cacheFile)
+                                            .option("native", Boolean.toString(cpp));
                                 }
+                                if (splitFile != null) dfr = dfr.option("split", splitFile);
                                 if (chr != null) {
                                     String seek = chr;
                                     if (pos > 0 || end != -1) {
@@ -546,7 +550,7 @@ public class SparkRowUtilities {
         if (is != null) {
             StringBuilder headerstr = new java.lang.StringBuilder();
             int r = is.read();
-            while (r != '\n') {
+            while (r != -1 && r != '\n') {
                 headerstr.append((char) r);
                 r = is.read();
             }

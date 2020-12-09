@@ -11,6 +11,7 @@ import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.connector.read.PartitionReader;
 import org.apache.spark.sql.types.StructType;
+import org.gorpipe.gor.model.GenomicIterator;
 import org.gorpipe.gor.model.RowBase;
 import org.gorpipe.model.gor.RowObj;
 import org.gorpipe.model.gor.iterators.RowSource;
@@ -27,7 +28,7 @@ import java.nio.file.Paths;
 import java.util.stream.Collectors;
 
 public class GorPartitionReader implements PartitionReader<InternalRow> {
-    RowSource iterator;
+    GenomicIterator iterator;
     SparkGorRow sparkRow;
     SparkGorMonitor sparkGorMonitor;
     GorRangeInputPartition p;
@@ -65,7 +66,7 @@ public class GorPartitionReader implements PartitionReader<InternalRow> {
         return epathstr;
     }
 
-    private RowSource iteratorFromFile(PipeInstance pi) {
+    private GenomicIterator iteratorFromFile(PipeInstance pi) {
         boolean useNative = useCpp != null && useCpp.equalsIgnoreCase("true");
         String seek = useNative ? "cmd " : "gor ";
 
@@ -79,8 +80,8 @@ public class GorPartitionReader implements PartitionReader<InternalRow> {
         options.parseOptions(args);
         pi.subProcessArguments(options);
 
-        RowSource rowSource = pi.theInputSource();
-        if(p.chr!=null&&p.chr.length()>0) rowSource.setPosition(p.chr, p.start);
+        GenomicIterator rowSource = pi.theInputSource();
+        if(p.chr!=null&&p.chr.length()>0) rowSource.seek(p.chr, p.start);
 
         if (redisUri != null && redisUri.length() > 0) {
             return new BatchedReadSource(rowSource, GorPipe.brsConfig(), rowSource.getHeader(), sparkGorMonitor);
@@ -92,8 +93,8 @@ public class GorPartitionReader implements PartitionReader<InternalRow> {
     private RowSource iteratorWithPipeSteps(PipeInstance pi) {
         pi.init(p.query, false, null);
 
-        RowSource rowSource = pi.theInputSource();
-        if(p.chr!=null&&p.chr.length()>0) rowSource.setPosition(p.chr, p.start);
+        GenomicIterator rowSource = pi.theInputSource();
+        if(p.chr!=null&&p.chr.length()>0) rowSource.seek(p.chr, p.start);
         return new BatchedPipeStepIteratorAdaptor(rowSource, pi.getPipeStep(), rowSource.getHeader(), GorPipe.brsConfig());
     }
 

@@ -2,6 +2,7 @@ package org.gorpipe.spark.redis;
 
 import gorsat.process.GenericGorRunner;
 import gorsat.process.PipeInstance;
+import gorsat.process.SparkPipeInstance;
 import org.gorpipe.gor.session.GorContext;
 
 import java.util.Collections;
@@ -23,7 +24,7 @@ public class SparkGorQuery implements Callable<List<String>> {
 
     @Override
     public List<String> call() throws Exception {
-        PipeInstance pi = new PipeInstance(context);
+        SparkPipeInstance pi = new SparkPipeInstance(context, cachefile);
         pi.init(cmd, false, "");
         pi.theInputSource().pushdownWrite(cachefile);
 
