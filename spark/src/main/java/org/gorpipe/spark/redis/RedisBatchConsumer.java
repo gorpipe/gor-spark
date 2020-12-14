@@ -184,8 +184,8 @@ public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long>, Au
                 String requestId = map.get("request-id");
                 String gorquery = new String(Base64.decode(gorquerybase));
                 String cachefile = "result_cache/" + fingerprint + CommandParseUtilities.getExtensionForQuery(gorquery, false);
-                if (map.containsKey("cachefile")) {
-                    String tmpcacheFile = map.get("cachefile");
+                if (map.containsKey("outfile")) {
+                    String tmpcacheFile = map.get("outfile");
                     if (tmpcacheFile != null) cachefile = tmpcacheFile;
                 }
                 return new String[]{gorquery, fingerprint, projectRoot, requestId, jobid, cachefile};

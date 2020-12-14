@@ -87,7 +87,10 @@ class MonitorThread implements Callable<String> {
                 if(futureActionSet.isEmpty()) Thread.sleep(500);
             }
         } finally {
-            if(jedisPool!=null) jedisPool.close();
+            if(jedisPool!=null) {
+                //jedisPool.close();
+                jedisPool = null;
+            }
         }
         return "";
     }
