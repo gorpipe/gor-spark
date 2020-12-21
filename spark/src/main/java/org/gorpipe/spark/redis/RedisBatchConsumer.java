@@ -214,7 +214,6 @@ public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long>, Au
 
         SparkSession.Builder sb = new SparkSession.Builder();
         try(SparkSession sparkSession = sb
-                .master("local[*]")
                 .getOrCreate(); RedisBatchConsumer redisBatchConsumer = new RedisBatchConsumer(sparkSession, redisUrl)) {
             String[] querySplit = queries.split(";;");
             String[] fingerprintSplit = fingerprints.split(";");
