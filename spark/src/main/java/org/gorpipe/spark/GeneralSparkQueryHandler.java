@@ -11,7 +11,10 @@ import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import gorsat.DynIterator;
+import gorsat.process.GenericRunnerFactory;
 import gorsat.process.SparkPipeInstance;
+import org.gorpipe.gor.clients.LocalFileCacheClient;
 import org.gorpipe.gor.model.GorParallelQueryHandler;
 import gorsat.Commands.CommandParseUtilities;
 import gorsat.process.PipeInstance;
@@ -19,6 +22,9 @@ import gorsat.process.PipeOptions;
 import org.apache.spark.sql.SparkSession;
 import org.gorpipe.gor.monitor.GorMonitor;
 import org.gorpipe.gor.session.GorRunner;
+import org.gorpipe.gor.session.GorSessionCache;
+import org.gorpipe.gor.session.ProjectContext;
+import org.gorpipe.gor.session.SystemContext;
 import org.gorpipe.spark.platform.*;
 import redis.clients.jedis.JedisPool;
 
@@ -67,8 +73,10 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
             Path cachePath = Paths.get(cacheFiles[i]);
 
             if(!Files.exists(root.resolve(cachePath))) {
-                String commandUpper = commandsToExecute[i].toUpperCase();
-                if (commandUpper.startsWith("SELECT ") || commandUpper.startsWith("SPARK ") || commandUpper.startsWith("GORSPARK ") || commandUpper.startsWith("NORSPARK ")) {
+                String command = commandsToExecute[i];
+                String commandUpper = command.toUpperCase();
+                String[] split = CommandParseUtilities.quoteSafeSplit(command,';');
+                if (split.length > 1 || commandUpper.startsWith("SELECT ") || commandUpper.startsWith("SPARK ") || commandUpper.startsWith("GORSPARK ") || commandUpper.startsWith("NORSPARK ")) {
                     sparkJobs.add(i);
                 } else {
                     gorJobs.add(i);
@@ -79,9 +87,10 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
         Callable<String[]> sparkRes = () -> {
             List<Object> ret = sparkJobs.parallelStream().map(i -> {
                 String cmd = commandsToExecute[i];
+                String[] split = CommandParseUtilities.quoteSafeSplit(cmd,';');
                 String jobId = jobIds[i];
                 int firstSpace = cmd.indexOf(' ');
-                cmd = cmd.substring(0, firstSpace + 1) + "-j " + jobId + cmd.substring(firstSpace);
+                if(split.length==1) cmd = cmd.substring(0, firstSpace + 1) + "-j " + jobId + cmd.substring(firstSpace);
                 String[] args = new String[]{cmd, "-queryhandler", "spark"};
                 PipeOptions options = new PipeOptions();
                 options.parseOptions(args);
