@@ -27,7 +27,7 @@ public class SparkPipeInstance extends PipeInstance {
 
     public SparkPipeInstance(GorContext context) {
         super(context);
-        context.setAllowMergeQuery(false);
+        context.setAllowQueryScript(false);
         session = (GorSparkSession) context.getSession();
     }
 
