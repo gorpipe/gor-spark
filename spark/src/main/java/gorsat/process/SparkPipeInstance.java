@@ -17,6 +17,7 @@ import org.gorpipe.spark.SparkOperatorRunner;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class SparkPipeInstance extends PipeInstance {
     GorSparkSession session;
@@ -32,6 +33,15 @@ public class SparkPipeInstance extends PipeInstance {
     public SparkPipeInstance(GorContext context, String cachePath) {
         this(context);
         this.cachePath = cachePath;
+    }
+
+    public Path getRelativeCachePath() {
+        Path p = Paths.get(cachePath);
+        if(p.isAbsolute()) {
+            Path realRoot = session.getProjectContext().getRealProjectRootPath();
+            return realRoot.relativize(p);
+        }
+        return p;
     }
 
     public boolean hasResourceHints() {

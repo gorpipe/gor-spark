@@ -29,6 +29,7 @@ public class SparkGorQuery implements Callable<List<String>> {
         pi.theInputSource().pushdownWrite(cachefile);
 
         genericGorRunner.run(pi.getIterator(), pi.getPipeStep());
-        return Collections.singletonList("a\tb\t"+cachefile);
+        String relCachePath = pi.getRelativeCachePath().toString();
+        return Collections.singletonList("a\tb\t"+relCachePath);
     }
 }
