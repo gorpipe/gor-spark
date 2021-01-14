@@ -61,7 +61,7 @@ public class SparkPCA {
         int pcacomponents = i != -1 ? Integer.parseInt(argList.get(i+1)) : 3;
         i = argList.indexOf("--outfile");
         String outfile = i != -1 ? argList.get(i+1) : null;
-        boolean sparse = argList.indexOf("--sparse") != -1;
+        boolean sparse = argList.contains("--sparse");
 
         /*i = argList.indexOf("--instances");
         int instances = i != -1 ? Integer.parseInt(argList.get(i+1)) : -1;
