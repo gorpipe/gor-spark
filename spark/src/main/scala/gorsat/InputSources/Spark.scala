@@ -2,12 +2,12 @@ package gorsat.InputSources
 
 import java.io.File
 import java.nio.file.{Files, Paths}
-
 import org.gorpipe.spark.{GorSparkSession, SparkOperatorRunner}
 import gorsat.Commands.CommandParseUtilities._
 import gorsat.Commands.{CommandArguments, GenomicRange, InputSourceInfo, InputSourceParsingResult}
 import gorsat.Iterators.RowListIterator
 import gorsat.process.{GorJavaUtilities, SparkRowSource}
+import org.apache.spark.sql.SparkSession
 import org.gorpipe.gor.session.GorContext
 import org.gorpipe.model.gor.RowObj
 
@@ -56,14 +56,16 @@ object Spark {
       val tag = hasOption(args, "-tag")
       val native = hasOption(args, "-c")
       val profile = stringValueOfOptionWithDefault(args,"-profile",null)
+      var ddl = stringValueOfOptionWithDefault(args,"-schema",null)
+      if(ddl!=null) ddl = ddl.substring(1,ddl.length-1)
 
       val myCommand = GorJavaUtilities.seekReplacement(command, range.chromosome, range.start, range.stop)
-      new SparkRowSource(myCommand, profile, null, null, isNorContext, gpSession.asInstanceOf[GorSparkSession], filter, filterFile, filterColumn, splitFile, range.chromosome, range.start, range.stop, usegorpipe, jobId, native, parts, buckets, tag)
+      new SparkRowSource(myCommand, profile, null, null, isNorContext, gpSession.asInstanceOf[GorSparkSession], filter, filterFile, filterColumn, splitFile, range.chromosome, range.start, range.stop, usegorpipe, jobId, native, parts, buckets, tag, ddl)
     }
     InputSourceParsingResult(inputSource, inputSource.getHeader, isNorContext)
   }
 
-  class Select() extends InputSourceInfo("SELECT", CommandArguments("-n -c -tag", "-p -s -g -f -j -ff -split -buck -part -profile", 1, -1, ignoreIllegalArguments = true)) {
+  class Select() extends InputSourceInfo("SELECT", CommandArguments("-n -c -tag", "-p -s -g -f -j -ff -split -buck -part -profile -schema", 1, -1, ignoreIllegalArguments = true)) {
 
     override def processArguments(context: GorContext, argString: String, iargs: Array[String],
                                   args: Array[String]): InputSourceParsingResult = {
@@ -73,7 +75,7 @@ object Spark {
     }
   }
 
-  class Spark() extends InputSourceInfo("SPARK", CommandArguments("-n -c -tag", "-p -s -g -f -j -ff -split -buck -part -profile", 1, -1, ignoreIllegalArguments = true)) {
+  class Spark() extends InputSourceInfo("SPARK", CommandArguments("-n -c -tag", "-p -s -g -f -j -ff -split -buck -part -profile -schema", 1, -1, ignoreIllegalArguments = true)) {
 
     override def processArguments(context: GorContext, argString: String, iargs: Array[String],
                                   args: Array[String]): InputSourceParsingResult = {
@@ -97,6 +99,30 @@ object Spark {
                                   args: Array[String]): InputSourceParsingResult = {
 
       processAllArguments(context, iargs, args, isNorContext = true)
+    }
+  }
+
+  import org.apache.hadoop.fs._
+  def main(args: Array[String]): Unit = {
+    try {
+      val source = "/Users/sigmar/sko.scala"
+      val target = "s3a://nextcode-qc-data/lu.parquet"
+      val spark = SparkSession.builder()
+        .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
+        .config("spark.hadoop.fs.s3a.access.key", "AKIAIOVPBOGBSZ3PBYKA")
+        .config("spark.hadoop.fs.s3a.secret.key", "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").master("local[1]").getOrCreate()
+      val sc = spark.sparkContext
+      sc.hadoopConfiguration.set("mapreduce.fileoutputcommitter.algorithm.version", "2");
+
+      val srcPath = new Path(source);
+      val srcFs = FileSystem.get(srcPath.toUri, sc.hadoopConfiguration);
+      val dstPath = new Path(target).suffix(srcPath.getName);
+      val dstFs = FileSystem.get(dstPath.toUri, sc.hadoopConfiguration);
+      FileUtil.copy(srcFs, srcPath, dstFs, dstPath, false, false, sc.hadoopConfiguration)
+    } catch {
+      case e: Exception => {
+        System.err.println()
+      }
     }
   }
 

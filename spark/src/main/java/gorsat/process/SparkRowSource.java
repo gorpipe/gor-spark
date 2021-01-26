@@ -11,11 +11,18 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import java.util.zip.DataFormatException;
 
+import com.sun.xml.internal.xsom.impl.scd.Iterators;
 import gorsat.commands.PysparkAnalysis;
 import io.projectglow.transformers.blockvariantsandsamples.VariantSampleBlockMaker;
+import org.apache.spark.ml.feature.Normalizer;
+import org.apache.spark.ml.feature.PCA;
+import org.apache.spark.ml.feature.PCAModel;
+import org.apache.spark.ml.linalg.VectorUDT;
+import org.apache.spark.ml.linalg.Vectors;
 import org.apache.spark.sql.*;
 import org.apache.spark.sql.expressions.UserDefinedFunction;
 
+import org.gorpipe.exceptions.GorResourceException;
 import org.gorpipe.gor.driver.providers.stream.datatypes.bam.BamIterator;
 import org.gorpipe.gor.model.*;
 import org.gorpipe.gor.model.Row;
@@ -62,7 +69,7 @@ public class SparkRowSource extends ProcessSource {
         return nor;
     }
 
-    public SparkRowSource(String sql, String profile, String parquet, String type, boolean nor, GorSparkSession gpSession, final String filter, final String filterFile, final String filterColumn, final String splitFile, final String chr, final int pos, final int end, boolean usestreaming, String jobId, boolean useCpp, String parts, int buckets, boolean tag) throws IOException, DataFormatException {
+    public SparkRowSource(String sql, String profile, String parquet, String type, boolean nor, GorSparkSession gpSession, final String filter, final String filterFile, final String filterColumn, final String splitFile, final String chr, final int pos, final int end, boolean usestreaming, String jobId, boolean useCpp, String parts, int buckets, boolean tag, String ddl) throws IOException, DataFormatException {
         init();
         this.jobId = jobId;
         this.tag = tag;
@@ -136,12 +143,14 @@ public class SparkRowSource extends ProcessSource {
                 fileNames = Arrays.stream(cmdsplit).flatMap(gorfileflat).filter(gorpred).toArray(String[]::new);
                 for (String fn : fileNames) {
                     if (gorSparkSession.getSystemContext().getServer()) ProjectContext.validateServerFileName(fn, true);
-                    SparkRowUtilities.registerFile(new String[]{fn}, profile,null, gpSession, standalone, fileroot, cachepath, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp, tag);
+                    StructType schema = ddl!=null ? StructType.fromDDL(ddl) : null;
+                    SparkRowUtilities.registerFile(new String[]{fn}, profile,null, gpSession, standalone, fileroot, cachepath, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp, tag, schema);
                 }
                 dataset = gorSparkSession.getSparkSession().sql(sql);
             } else {
                 fileNames = headercommands.toArray(new String[0]);
-                dataset = SparkRowUtilities.registerFile(fileNames, null, profile, gpSession, standalone, fileroot, cachepath, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp, tag);
+                StructType schema = ddl!=null ? StructType.fromDDL(ddl) : null;
+                dataset = SparkRowUtilities.registerFile(fileNames, null, profile, gpSession, standalone, fileroot, cachepath, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp, tag, schema);
             }
 
             if (chr != null) {
@@ -169,6 +178,7 @@ public class SparkRowSource extends ProcessSource {
     Path fileroot = null;
     Path cachepath = null;
     String parquetPath = null;
+    int pcacomponents = 10;
     String pushdownGorPipe = null;
     GorSparkSession gorSparkSession;
 
@@ -370,7 +380,7 @@ public class SparkRowSource extends ProcessSource {
                 BufferedReader br = new BufferedReader(new InputStreamReader(is));
                 GenomicIterator.ChromoLookup lookup = ProcessRowSource.createChromoLookup();
                 try {
-                    it = new VcfGzGenomicIterator(lookup, "filename", null, br) {
+                    it = new VcfGzGenomicIterator(lookup, "filename", br) {
                         @Override
                         public boolean seek(String seekChr, int seekPos) {
                             return seek(seekChr, seekPos, lookup.chrToLen(seekChr));
@@ -468,7 +478,7 @@ public class SparkRowSource extends ProcessSource {
                         if (it == null) it = reader.iterator();
                     }
                 };
-                bamit.init(lookup, samreader, null, false);
+                bamit.init(lookup, samreader, false);
                 bamit.it = bamit.reader.iterator();
             }
         } catch (IOException e) {
@@ -482,6 +492,49 @@ public class SparkRowSource extends ProcessSource {
 
     private RowBuffer rowBuffer = null;
 
+    private Dataset<org.apache.spark.sql.Row> gttranspose(Dataset<org.apache.spark.sql.Row> ds) {
+        int varcount = ds.mapPartitions((MapPartitionsFunction<org.apache.spark.sql.Row, Integer>) ir -> {
+            Iterable<org.apache.spark.sql.Row> newIterable = () -> ir;
+            int count = (int)StreamSupport.stream(newIterable.spliterator(), false).count();
+            return Iterators.singleton(count);
+        }, Encoders.INT()).first();
+        StructType schema = new StructType().add("values",new VectorUDT());
+        ExpressionEncoder<org.apache.spark.sql.Row> vectorEncoder = RowEncoder.apply(schema);
+        Dataset<org.apache.spark.sql.Row> dv = ds.mapPartitions((MapPartitionsFunction<org.apache.spark.sql.Row, org.apache.spark.sql.Row>) ir -> {
+            double[][] mat = null;
+            Iterator<org.apache.spark.sql.Row> it = Collections.emptyIterator();
+            int start = 0;
+            while(ir.hasNext()) {
+                org.apache.spark.sql.Row row = ir.next();
+                String strvec = row.getString(0).substring(1);
+                int len = strvec.length();
+                if(mat==null) {
+                    mat = new double[len][];
+                    for(int i = 0; i < len; i++) {
+                        mat[i] = new double[varcount];
+                    }
+                }
+                //if(start*len > mat.length) throw new RuntimeException("len " + len + " " + mat.length + "  " + varcount);
+                for(int i = 0; i < len; i++) {
+                    mat[i][start] = strvec.charAt(i)-'0';
+                }
+                start++;
+            }
+            if(mat!=null) {
+                List<org.apache.spark.sql.Row> lv = new ArrayList<>(mat.length);
+                for(int i = 0; i < mat.length; i++) {
+                    //org.apache.spark.sql.Row.fromTuple()
+                    org.apache.spark.ml.linalg.Vector vector = Vectors.dense(mat[i]);
+                    org.apache.spark.sql.Row row = RowFactory.create(vector);
+                    lv.add(row);
+                }
+                return lv.stream().iterator();
+            }
+            return it;
+        }, vectorEncoder);
+        return dv;
+    }
+
     @Override
     public boolean hasNext() {
         if (it == null) {
@@ -491,24 +544,38 @@ public class SparkRowSource extends ProcessSource {
                     pPath = fileroot.resolve(pPath);
                 }
                 if (!Files.exists(pPath)) {
-                    Arrays.stream(dataset.columns()).filter(c -> c.contains("(")).forEach(c -> dataset = dataset.withColumnRenamed(c, c.replace('(', '_').replace(')', '_')));
-
-                    /*if (!checkNor(dataset.schema().fields())) {
-                        String path = pPath.resolve(pPath.getFileName().toString() + ".gorp").toAbsolutePath().normalize().toString();
-                        Encoder<org.apache.spark.sql.Row> enc = (Encoder<org.apache.spark.sql.Row>) dataset.encoder();
-                        GorpWriter gorpWriter = new GorpWriter(path);
-                        dataset = ((Dataset<org.apache.spark.sql.Row>) dataset).mapPartitions(gorpWriter, enc);
-                    }*/
-
-                    DataFrameWriter dfw = dataset.write();
-                    if (parts != null) {
-                        if (buckets != null) {
-                            dfw = dfw.bucketBy(buckets, parts);
-                        } else {
-                            dfw = dfw.partitionBy(parts.split(","));
+                    if(parquetPath.endsWith(".pca")) {
+                        PCA pca = new PCA();
+                        pca.setK(pcacomponents);
+                        pca.setOutputCol("pca");
+                        pca.setInputCol("values");
+                        PCAModel pcamodel = pca.fit(dataset);
+                        try {
+                            pcamodel.save(parquetPath);
+                        } catch (IOException e) {
+                            throw new GorResourceException("Unable to save pcamodel file", parquetPath, e);
                         }
+                        System.err.println();
+                    } else {
+                        Arrays.stream(dataset.columns()).filter(c -> c.contains("(")).forEach(c -> dataset = dataset.withColumnRenamed(c, c.replace('(', '_').replace(')', '_')));
+
+                        /*if (!checkNor(dataset.schema().fields())) {
+                            String path = pPath.resolve(pPath.getFileName().toString() + ".gorp").toAbsolutePath().normalize().toString();
+                            Encoder<org.apache.spark.sql.Row> enc = (Encoder<org.apache.spark.sql.Row>) dataset.encoder();
+                            GorpWriter gorpWriter = new GorpWriter(path);
+                            dataset = ((Dataset<org.apache.spark.sql.Row>) dataset).mapPartitions(gorpWriter, enc);
+                        }*/
+
+                        DataFrameWriter dfw = dataset.write();
+                        if (parts != null) {
+                            if (buckets != null) {
+                                dfw = dfw.bucketBy(buckets, parts);
+                            } else {
+                                dfw = dfw.partitionBy(parts.split(","));
+                            }
+                        }
+                        dfw.format("parquet").mode(SaveMode.Overwrite).save(pPath.toAbsolutePath().normalize().toString());
                     }
-                    dfw.format("parquet").mode(SaveMode.Overwrite).save(pPath.toAbsolutePath().normalize().toString());
                 }
                 return false;
             } else {
@@ -691,6 +758,19 @@ public class SparkRowSource extends ProcessSource {
             List<Column> colist = Arrays.stream(args).map(functions::col).collect(Collectors.toList());
             Seq<Column> colseq = JavaConverters.asScalaIterator(colist.iterator()).toSeq();
             dataset = dataset.withColumn(colName,functions.callUDF(udfname,colseq));
+        } else if (formula.toLowerCase().startsWith("normalize")) {
+            String oldcolname = formula.substring(10, formula.length() - 1).trim();
+            Dataset<org.apache.spark.sql.Row> ds = (Dataset<org.apache.spark.sql.Row>) dataset;
+            Normalizer normalizer = new Normalizer();
+            normalizer.setInputCol(oldcolname);
+            normalizer.setOutputCol(colName);
+            dataset = normalizer.transform(ds);
+        } else if (formula.toLowerCase().startsWith("pcatransform")) {
+            //int c = formula.indexOf(',');
+            //String oldcolname = formula.substring(13,formula.length()-1).trim();
+            String modelpath = formula.substring(13,formula.length()-1).trim();
+            Dataset<org.apache.spark.sql.Row> ds = (Dataset<org.apache.spark.sql.Row>)dataset;
+            dataset = pcatransform(ds, modelpath).withColumnRenamed("pca",colName);
         } else if (formula.toLowerCase().startsWith("chartodoublearray")) {
             if (pushdownGorPipe != null) gor();
             CharToDoubleArray cda = new CharToDoubleArray();
@@ -728,13 +808,24 @@ public class SparkRowSource extends ProcessSource {
 
     @Override
     public boolean pushdownSelect(String[] cols) {
+        //dataset = dataset.selectExpr(String.join(",",cols));
         return false;
     }
 
     @Override
     public boolean pushdownWrite(String filename) {
+        int id = filename.indexOf("-pca");
+        if(id!=-1) {
+            int k = id+5;
+            char c = filename.charAt(k);
+            while(c==' ') c = filename.charAt(++k);
+            while(c!=' ') c = filename.charAt(++k);
+            pcacomponents = Integer.parseInt(filename.substring(id+5,k).trim());
+            this.parquetPath = filename.substring(k+1).trim();
+        } else {
+            this.parquetPath = filename;
+        }
         it = null;
-        this.parquetPath = filename;
         return true;
     }
 
@@ -805,6 +896,12 @@ public class SparkRowSource extends ProcessSource {
         return ret;
     }
 
+    private Dataset<org.apache.spark.sql.Row> pcatransform(Dataset<org.apache.spark.sql.Row> dataset, String modelpath) {
+        PCAModel pcamodel = PCAModel.load(modelpath);
+        Dataset<org.apache.spark.sql.Row> pcaresult = pcamodel.transform(dataset).select("pca");
+        return pcaresult;
+    }
+
     @Override
     public boolean pushdownGor(String gor) {
         if (gor.startsWith("rename")) {
@@ -823,6 +920,19 @@ public class SparkRowSource extends ProcessSource {
         } else if (gor.toLowerCase().startsWith("selectexpr ")) {
             String[] selects = gor.substring("selectexpr".length()).trim().split(",");
             dataset = dataset.selectExpr(selects);
+        } else if (gor.toLowerCase().startsWith("gttranspose")) {
+            dataset = gttranspose((Dataset<org.apache.spark.sql.Row>)dataset);
+        } else if (gor.toLowerCase().startsWith("pcatransform ")) {
+            String pcamodel = gor.substring("pcatransform".length()).trim();
+            dataset = pcatransform((Dataset<org.apache.spark.sql.Row>)dataset, pcamodel);
+        } else if (gor.toLowerCase().startsWith("normalize ")) {
+            String colname = gor.substring("normalize".length()).trim();
+            Dataset<org.apache.spark.sql.Row> ds = (Dataset<org.apache.spark.sql.Row>)dataset;
+            Normalizer normalizer = new Normalizer();
+            normalizer.setInputCol(colname);
+            normalizer.setOutputCol("normalized_"+colname);
+            dataset = normalizer.transform(ds);
+            System.err.println();
         } else if (gor.startsWith("pyspark")) {
             if (pushdownGorPipe != null) gor();
             String cmd = gor.substring("pyspark".length());

@@ -48,7 +48,7 @@ public class GorOutputWriter extends OutputWriter {
         path = Paths.get(uri);
         path.getParent().toFile().mkdirs();
         OutputStream os = Files.newOutputStream(path);
-        of = new GorZipLexOutputStream(os, false, null, null, GorIndexType.NONE, Deflater.BEST_SPEED); //new OutFile(path.toString(), header, false, false);
+        of = new GorZipLexOutputStream(os, false, false, null, null, GorIndexType.NONE, Deflater.BEST_SPEED); //new OutFile(path.toString(), header, false, false);
         of.setHeader(header);
     }
 

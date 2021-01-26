@@ -175,13 +175,22 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
     }
 
     @Override
-    public String[] executeBatch(String[] fingerprints, String[] commandsToExecute, String[] batchGroupNames, GorMonitor mon) {
+    public String[] executeBatch(String[] fingerprints, String[] commandsToExecute, String[] batchGroupNames, String[] cacheFiles, GorMonitor mon) {
         String projectDir = gpSession.getProjectContext().getRoot();
         String cacheDir = gpSession.getProjectContext().getCacheDir();
 
         List<String> cacheFileList = new ArrayList<>();
         IntStream.range(0, commandsToExecute.length).forEach(i -> {
-            String cachePath = cacheDir + "/" + fingerprints[i] + CommandParseUtilities.getExtensionForQuery(commandsToExecute[i], false);
+            String command = commandsToExecute[i];
+            String[] cmdsplit = CommandParseUtilities.quoteSafeSplit(command,'|');
+            String lastCmd = cmdsplit[cmdsplit.length-1].trim();
+            String cachePath;
+            if(lastCmd.toLowerCase().startsWith("write ")) {
+                String[] lastCmdSplit = lastCmd.split(" ");
+                cachePath = lastCmdSplit[lastCmdSplit.length-1];
+            } else {
+                cachePath = cacheDir + "/" + fingerprints[i] + CommandParseUtilities.getExtensionForQuery(command, false);
+            }
             cacheFileList.add(cachePath);
         });
         String[] jobIds = Arrays.copyOf(fingerprints, fingerprints.length);

@@ -9,15 +9,14 @@ import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.*;
 import org.apache.spark.broadcast.Broadcast;
-import org.apache.spark.mllib.linalg.Vectors;
-import org.apache.spark.mllib.feature.PCA;
-import org.apache.spark.mllib.feature.PCAModel;
-import org.apache.spark.mllib.linalg.Matrices;
-import org.apache.spark.mllib.linalg.Matrix;
-import org.apache.spark.mllib.linalg.Vector;
+import org.apache.spark.ml.feature.PCA;
+import org.apache.spark.ml.feature.PCAModel;
+import org.apache.spark.ml.linalg.Matrices;
+import org.apache.spark.ml.linalg.Matrix;
+import org.apache.spark.ml.linalg.Vector;
+import org.apache.spark.ml.linalg.Vectors;
 import org.apache.spark.mllib.linalg.distributed.*;
 import org.apache.spark.sql.*;
-import org.gorpipe.gor.session.GorContext;
 import org.gorpipe.gor.session.GorSession;
 import scala.Tuple2;
 
@@ -167,7 +166,7 @@ public class SparkPCA {
     }
 
     private static RowMatrix blockMatrixToRowMatrix(Dataset<Row> ds, int varcount, int partsize) {
-        JavaRDD<Tuple2<Tuple2<Object,Object>,Matrix>> dbm = ds.select("chrom","pos","values").javaRDD().mapPartitionsWithIndex((Function2<Integer, Iterator<Row>, Iterator<Tuple2<Tuple2<Object, Object>, Matrix>>>) (pi, input) -> {
+        JavaRDD<Tuple2<Tuple2<Object,Object>, Matrix>> dbm = ds.select("chrom","pos","values").javaRDD().mapPartitionsWithIndex((Function2<Integer, Iterator<Row>, Iterator<Tuple2<Tuple2<Object, Object>, Matrix>>>) (pi, input) -> {
             double[] mat = null;
             Iterator<Tuple2<Tuple2<Object,Object>,Matrix>> it = Collections.emptyIterator();
             int start = 0;
@@ -193,13 +192,14 @@ public class SparkPCA {
             return it;
         },true);
 
-        BlockMatrix mat = new BlockMatrix(dbm.rdd(),partsize,varcount);
+        /*BlockMatrix mat = new BlockMatrix(dbm.rdd(),partsize,varcount);
         IndexedRowMatrix irm = mat.toIndexedRowMatrix();
 
         DenseMatrix<Object> dmb = irm.toBreeze();
         System.err.println( dmb );
 
-        return irm.toRowMatrix();
+        return irm.toRowMatrix();*/
+        return null;
     }
 
     private static RowMatrix coordMatrixToRowMatrix(Dataset<Row> ds, int varcount, int samplecount, int partsize) {
@@ -307,10 +307,12 @@ public class SparkPCA {
         prdd.collect().forEach(System.err::println);*/
 
         System.err.println("pca fit");
-        PCA pca = new PCA(pcacomponents);
-        PCAModel pcamodel = pca.fit(jprv.values());
+        PCA pca = new PCA();
+        pca.setK(pcacomponents);
+        PCAModel pcamodel = pca.fit(dv);
+        //pcamodel.save();
         System.err.println("fitting done");
-        JavaPairRDD<Long,Vector> jprr = jprv.mapToPair(f -> new Tuple2<>(f._1,pcamodel.transform(f._2)));
+        JavaPairRDD<Long,Vector> jprr = null;//jprv.mapToPair(f -> new Tuple2<>(f._1,pcamodel.transform(f._2)));
 
         //jprv.map
         JavaPairRDD<String,Vector> projected = jprs.join(jprr).mapToPair((PairFunction<Tuple2<Long,Tuple2<String, Vector>>, String, Vector>) f -> f._2);
@@ -413,13 +415,13 @@ public class SparkPCA {
                     @Override
                     public Stream<MatrixEntry> apply(Row row) {
                         assert row.getString(1).equals(tag);
-                        Stream<MatrixEntry> sme = row.getString(0).chars().map(c -> c-'0').asDoubleStream().mapToObj(new DoubleFunction<MatrixEntry>() {
+                        Stream<MatrixEntry> sme = row.getString(0).chars().map(c -> c-'0').asDoubleStream().mapToObj(new DoubleFunction<>() {
                             int i = 0;
 
                             @Override
                             public MatrixEntry apply(double d) {
                                 //System.err.println(i + " " + (sum+k));
-                                return new MatrixEntry(sum+k,i++,d);
+                                return new MatrixEntry(sum + k, i++, d);
                             }
                         });
                         k++;
@@ -480,13 +482,15 @@ public class SparkPCA {
         //BlockMatrix mat = new BlockMatrix(dbm.rdd());
         //mat.transpose().toIndexedRowMatrix().toRowMatrix().
         RowMatrix rowMatrix = cm.transpose().toRowMatrix();
-        Matrix pc = rowMatrix.computePrincipalComponents(3);
+
+
+        /*Matrix pc = rowMatrix.computePrincipalComponents(3);
 
         // Project the rows to the linear space spanned by the top 4 principal components.
         RowMatrix projected = rowMatrix.multiply(pc);
 
         DenseMatrix dm = projected.toBreeze();
-        System.err.println(dm.toString(20,20));
+        System.err.println(dm.toString(20,20));*/
                 //.collectAsList().forEach(System.err::println);*/
     }
 

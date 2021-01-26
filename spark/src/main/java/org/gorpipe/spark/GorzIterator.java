@@ -21,7 +21,7 @@ public class GorzIterator implements MapPartitionsFunction<String, String> {
     public Iterator<String> call(Iterator<String> iterator) throws Exception {
         PipedInputStream pip = new PipedInputStream();
         PipedOutputStream pos = new PipedOutputStream(pip);
-        GorZipLexOutputStream gzlos = new GorZipLexOutputStream(pos, false, null, true);
+        GorZipLexOutputStream gzlos = new GorZipLexOutputStream(pos, false, false,null,true);
         if( header != null ) gzlos.setHeader(header);
         Thread t = new Thread(() -> {
             try {

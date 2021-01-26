@@ -79,7 +79,7 @@ public class SparkGorExecutionEngine extends GorExecutionEngine {
         if(!pi.hasResourceHints()) {
             String theHeader = pi.getIterator().getHeader();
             if (outfile != null) {
-                Output ofile = OutFile.apply(outfile, theHeader, false, false, pi.isNorContext(), true, GorIndexType.NONE, Option.empty(), Deflater.BEST_SPEED);
+                Output ofile = OutFile.apply(outfile, theHeader, false, false, pi.isNorContext(), true, true, GorIndexType.NONE, Option.<String>empty(), Deflater.BEST_SPEED);
                 pi.thePipeStep_$eq(pi.thePipeStep().$bar(ofile));
             } else {
                 String header = pi.getHeader();
