@@ -133,7 +133,6 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
     }
 
     void inferSchema() {
-        commands = initCommands(query);
         schema = Encoders.STRING().schema();
         if(path!=null) {
             Path ppath = Paths.get(path);
@@ -182,6 +181,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
 
     @Override
     public StructType schema() {
+        if(commands==null) commands = initCommands(query);
         if(schema==null) inferSchema();
         return schema;
     }
@@ -203,7 +203,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
 
     @Override
     public ScanBuilder newScanBuilder(CaseInsensitiveStringMap caseInsensitiveStringMap) {
-        if(schema==null) inferSchema();
+        if(schema==null) schema();
         return new GorScanBuilder(schema, redisUri, jobId, cacheFile, projectRoot, cacheDir, configFile, aliasFile, useCpp) {
             Filter[] pushedFilters = new Filter[0];
             String filterChrom = fchrom;
