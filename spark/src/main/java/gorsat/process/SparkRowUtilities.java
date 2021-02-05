@@ -353,7 +353,6 @@ public class SparkRowUtilities {
                     Collection<String> pns = filter != null && filter.length() > 0 ? new HashSet<>(Arrays.asList(filter.split(","))) : fNames != null ? fNames.values() : Collections.emptySet();
 
                     final StructField[] fields;
-                    //StructType schema;
                     if ((isGorz && !gorDataType.base128) || dictFile != null) {
                         if(schema==null) {
                             if (dictFile != null) {
