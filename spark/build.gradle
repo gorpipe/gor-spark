@@ -109,7 +109,7 @@ project(':spark') {
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
 
-        compile group: 'com.redislabs', name: 'spark-redis_2.12', version: '2.5.0'
+        compile group: 'com.redislabs', name: 'spark-redis_2.12', version: '2.6.0'
 
         compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.11.0'
         compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.0'
@@ -134,7 +134,7 @@ project(':spark') {
 
         implementation "org.aeonbits.owner:owner:1.0.12"
 
-        implementation('io.projectglow:glow-spark3_2.12:0.6.0') {
+        implementation('io.projectglow:glow-spark3_2.12:1.0.0') {
             exclude group: 'org.freemarker'
         }
 
@@ -188,8 +188,8 @@ project(':spark') {
         compile 'org.apache.hadoop:hadoop-hdfs-client:3.3.0'
         compile 'org.apache.hadoop:hadoop-aws:3.3.0'
 
-        implementation("redis.clients:jedis:3.3.0")
-        implementation 'io.kubernetes:client-java:10.0.0'
+        implementation("redis.clients:jedis:3.5.1")
+        implementation 'io.kubernetes:client-java:11.0.0'
         //compile group: 'io.fabric8', name: 'kubernetes-client', version: '4.7.1'
 
         testImplementation project(':gortools')
