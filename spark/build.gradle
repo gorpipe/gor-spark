@@ -58,7 +58,7 @@ project(':spark') {
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
 
-        compile group: 'com.redislabs', name: 'spark-redis_2.12', version: '2.5.0'
+        compile group: 'com.redislabs', name: 'spark-redis_2.12', version: '2.6.0'
 
         compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.11.0'
         compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.0'
@@ -79,11 +79,11 @@ project(':spark') {
         compile group: 'org.apache.logging.log4j', name: 'log4j-slf4j-impl', version: '2.13.3'
         compile group: 'org.apache.logging.log4j', name: 'log4j-1.2-api', version: '2.13.3'
 
-        implementation('io.projectglow:glow-spark3_2.12:0.6.0') {
+        implementation('io.projectglow:glow-spark3_2.12:1.0.0') {
             exclude group: 'org.freemarker'
         }
 
-        implementation "org.aeonbits.owner:owner:1.0.+"
+        implementation "org.aeonbits.owner:owner:1.0.12"
         implementation 'info.picocli:picocli-shell-jline3:4.1.4'
 
         /*compile group: 'com.typesafe.scala-logging', name: 'scala-logging_2.12', version: '3.9.2'
@@ -105,9 +105,9 @@ project(':spark') {
         compile "org.json4s:json4s-jackson_2.12:3.6.7"
         compile "org.apache.commons:commons-lang3:3.9"*/
 
-        implementation("redis.clients:jedis:3.1.+")
+        implementation("redis.clients:jedis:3.5.1")
 
-        implementation 'io.kubernetes:client-java:10.0.0'
+        implementation 'io.kubernetes:client-java:11.0.0'
 
         testCompile("${gorArtifactGroupId}:gor-test:${gorVersion}")
     }
