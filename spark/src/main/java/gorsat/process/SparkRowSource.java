@@ -11,7 +11,6 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import java.util.zip.DataFormatException;
 
-import com.sun.xml.internal.xsom.impl.scd.Iterators;
 import gorsat.commands.PysparkAnalysis;
 import io.projectglow.transformers.blockvariantsandsamples.VariantSampleBlockMaker;
 import org.apache.spark.ml.feature.Normalizer;
@@ -496,7 +495,7 @@ public class SparkRowSource extends ProcessSource {
         int varcount = ds.mapPartitions((MapPartitionsFunction<org.apache.spark.sql.Row, Integer>) ir -> {
             Iterable<org.apache.spark.sql.Row> newIterable = () -> ir;
             int count = (int)StreamSupport.stream(newIterable.spliterator(), false).count();
-            return Iterators.singleton(count);
+            return Collections.singletonList(count).iterator();
         }, Encoders.INT()).first();
         StructType schema = new StructType().add("values",new VectorUDT());
         ExpressionEncoder<org.apache.spark.sql.Row> vectorEncoder = RowEncoder.apply(schema);
@@ -544,7 +543,7 @@ public class SparkRowSource extends ProcessSource {
                     pPath = fileroot.resolve(pPath);
                 }
                 if (!Files.exists(pPath)) {
-                    if(parquetPath.endsWith(".pca")) {
+                    if (parquetPath.endsWith(".pca")) {
                         PCA pca = new PCA();
                         pca.setK(pcacomponents);
                         pca.setOutputCol("pca");
@@ -555,7 +554,6 @@ public class SparkRowSource extends ProcessSource {
                         } catch (IOException e) {
                             throw new GorResourceException("Unable to save pcamodel file", parquetPath, e);
                         }
-                        System.err.println();
                     } else {
                         Arrays.stream(dataset.columns()).filter(c -> c.contains("(")).forEach(c -> dataset = dataset.withColumnRenamed(c, c.replace('(', '_').replace(')', '_')));
 

@@ -26,7 +26,7 @@ public class UTestSparkPCA {
     public void init() {
         spark = SparkSession.builder().master("local[2]").getOrCreate();
         Glow.register(spark);
-        SparkSessionFactory sparkSessionFactory = new SparkSessionFactory(spark, Paths.get(".").toAbsolutePath().normalize().toString(), "/Users/sigmar/gorproject/result_cache"/*System.getProperty("java.io.tmpdir")*/, null, null, null);
+        SparkSessionFactory sparkSessionFactory = new SparkSessionFactory(spark, Paths.get(".").toAbsolutePath().normalize().toString(), System.getProperty("java.io.tmpdir"), null, null, null);
         GorSession session = sparkSessionFactory.create();
         pi = new SparkPipeInstance(session.getGorContext());
     }
@@ -34,6 +34,7 @@ public class UTestSparkPCA {
     @After
     public void close() {
         if (pi != null) pi.close();
+        if (spark != null) spark.close();
     }
 
     private void testSparkQuery(String query, String expectedResult) {
