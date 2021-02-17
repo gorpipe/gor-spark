@@ -24,7 +24,6 @@ import com.nextcode.gradle.*
 
 plugins {
     id "gor.java-internal-library"
-    id "com.jfrog.artifactory"
     id 'maven-publish'
     id 'signing'
 }
@@ -34,7 +33,7 @@ publishing {
         mavenJavaLibModule(MavenPublication) {
             from components.java
             artifactId = getCustomProjectId()
-            groupId = 'org.gorpipe'//getCustomGroupId()
+            groupId = getCustomGroupId()
 
             pom {
                 name = 'Gorpipe'
@@ -51,6 +50,11 @@ publishing {
                         id = 'gisli'
                         name = 'Gisli Magnusson'
                         email = 'gisli@genuitysci.com'
+                    }
+                    developer {
+                        id = 'hakon'
+                        name = 'Hakon Gudbjartsson'
+                        email = 'hakon@genuitysci.com'
                     }
                     developer {
                         id = 'sigmar'
@@ -72,52 +76,34 @@ publishing {
         }
     }
     repositories {
-        /*maven {
-            name "gitlab-gor-maven"
-            url uri("https://gitlab.com/api/v4/projects/17033400/packages/maven")
-            credentials(HttpHeaderCredentials) {
-                name = project.findProperty('gitlab_token') ? "Private-Token" : "Job-Token"
-                value = project.findProperty('gitlab_token') ?: System.getenv("CI_JOB_TOKEN")
+        if (project.hasProperty('publishToMavenCentral')) {
+            maven {
+                name = "MavenCentral"
+                url = uri("https://oss.sonatype.org/service/local/staging/deploy/maven2")
+                credentials {
+                    username = project.findProperty("nexus_user")
+                    password = project.findProperty("nexus_password")
+                }
             }
-            authentication {
-                header(HttpHeaderAuthentication)
-            }
-        }*/
-        maven {
-            name = "MavenCentral"
-            url = uri("https://oss.sonatype.org/service/local/staging/deploy/maven2")
-            credentials {
-                username = project.findProperty("nexus_user")
-                password = project.findProperty("nexus_password")
+        } else {
+            maven {
+                name "gitlab-gor-maven"
+                url uri("https://gitlab.com/api/v4/projects/17033400/packages/maven")
+                credentials(HttpHeaderCredentials) {
+                    name = project.findProperty('gitlab_token') ? "Private-Token" : "Job-Token"
+                    value = project.findProperty('gitlab_token') ?: System.getenv("CI_JOB_TOKEN")
+                }
+                authentication {
+                    header(HttpHeaderAuthentication)
+                }
             }
         }
     }
 }
 
-signing {
-    sign publishing.publications.mavenJavaLibModule
-}
-
-artifactory {
-    contextUrl = artifactory_contextUrl
-    publish {
-        repository {
-            repoKey = artifactory_repo // The Artifactory repository key to publish to
-            username = project.hasProperty('artifactory_user') ? artifactory_user : "" // The publisher user name
-            password = project.hasProperty('artifactory_password') ? artifactory_password : "" // The publisher password
-        }
-        defaults {
-            // Reference to Gradle publications defined in the build script.
-            // This is how we tell the Artifactory Plugin which artifacts should be
-            // published to Artifactory.
-            publications('mavenJavaLibModule')
-            publishArtifacts = true
-            // Properties to be attached to the published artifacts.
-            //properties = ['qa.level': 'basic', 'dev.team' : 'core']
-            // Publish generated POM files to Artifactory (true by default)
-            publishPom = true
-        }
+if (project.hasProperty('publishToMavenCentral')) {
+    signing {
+        sign publishing.publications.mavenJavaLibModule
     }
-    clientConfig.timeout = 1200 // Artifactory connection timeout (in seconds). The default timeout is 300 seconds.
 }
 
