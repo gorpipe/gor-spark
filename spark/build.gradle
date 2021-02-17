@@ -57,8 +57,18 @@ project(':spark') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
+        implementation ('org.apache.spark:spark-hive_2.12:3.0.1') {
+            exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
+            exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
+            exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
+        }
+        implementation ('org.apache.spark:spark-hive-thriftserver_2.12:3.0.1') {
+            exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
+            exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
+            exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
+        }
 
-        compile group: 'com.redislabs', name: 'spark-redis_2.12', version: '2.6.0'
+        compile group: 'com.redislabs', name: 'spark-redis_2.12', version: '2.5.0'
 
         compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.11.0'
         compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.0'

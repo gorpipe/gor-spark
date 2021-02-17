@@ -45,11 +45,11 @@ class GorDataSource extends FileDataSourceV2 with RelationProvider with SchemaRe
     batchTable
   }
 
-  override def createRelation(sqlContext: SQLContext, parameters: Map[String, String], schema: StructType): BaseRelation = new BaseRelation() {
-    override def schema: StructType = schema
+  override def createRelation(theSqlContext: SQLContext, parameters: Map[String, String], theschema: StructType): BaseRelation = new BaseRelation() {
+    override def schema: StructType = theschema
 
     override
-    def sqlContext: SQLContext = sqlContext
+    def sqlContext: SQLContext = theSqlContext
   }
 
   override def createRelation(sqlContext: SQLContext, parameters: Map[String, String]): BaseRelation = null

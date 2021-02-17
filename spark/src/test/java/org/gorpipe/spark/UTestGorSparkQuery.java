@@ -16,7 +16,7 @@ import java.util.stream.StreamSupport;
 
 public class UTestGorSparkQuery {
     SparkSession spark;
-    PipeInstance pi;
+    SparkPipeInstance pi;
 
     @Before
     public void init() {
