@@ -1,6 +1,7 @@
 package org.gorpipe.spark;
 
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -9,6 +10,7 @@ import java.util.Map;
 public class UTestSparkOperatorSpecs {
 
     @Test
+    @Ignore("Not ready")
     public void testSpecs() {
         SparkOperatorSpecs specs = new SparkOperatorSpecs();
         specs.addConfig("spec.test", 10);

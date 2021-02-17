@@ -73,7 +73,7 @@ project(':spark') {
             exclude group: 'org.apache.hadoop', module: 'hadoop-client'
             exclude group: 'org.apache.hadoop', module: 'hadoop-common'
         }
-        /*implementation ('org.apache.spark:spark-hive_2.12:3.0.1') {
+        implementation ('org.apache.spark:spark-hive_2.12:3.0.1') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'com.fasterxml.jackson.module', module: 'jackson-module-scala'
@@ -91,7 +91,7 @@ project(':spark') {
             exclude group: 'org.apache.hadoop', module: 'hadoop-client'
             exclude group: 'org.apache.hadoop', module: 'hadoop-common'
             exclude group: 'org.pentaho', module: 'pentaho-aggdesigner-algorithm'
-        }*/
+        }
         implementation ('org.apache.spark:spark-catalyst_2.12:3.0.1') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
@@ -178,15 +178,30 @@ project(':spark') {
         compile "org.json4s:json4s-jackson_2.12:3.6.7"*/
         compile "org.apache.commons:commons-lang3:3.10"
 
+        implementation 'io.netty:netty-all:4.1.59.Final'
+        implementation 'io.netty:netty-common:4.1.59.Final'
+        implementation 'io.netty:netty-buffer:4.1.59.Final'
+        implementation 'io.netty:netty-handler:4.1.59.Final'
+        implementation 'io.netty:netty-resolver:4.1.59.Final'
+        implementation 'io.netty:netty-transport:4.1.59.Final'
+        implementation 'io.netty:netty-transport-native-epoll:4.1.59.Final'
+        implementation 'io.netty:netty-transport-native-unix-common:4.1.59.Final'
+
         compile ('org.apache.hadoop:hadoop-common:3.3.0') {
             exclude group: 'com.google.guava', module: 'guava'
         }
-        compile 'org.apache.hadoop:hadoop-client:3.3.0'
+        compile ('org.apache.hadoop:hadoop-client:3.3.0') {
+
+        }
         compile ('org.apache.hadoop:hadoop-hdfs:3.3.0') {
             exclude group: 'com.google.guava', module: 'guava'
         }
-        compile 'org.apache.hadoop:hadoop-hdfs-client:3.3.0'
-        compile 'org.apache.hadoop:hadoop-aws:3.3.0'
+        compile ('org.apache.hadoop:hadoop-hdfs-client:3.3.0') {
+
+        }
+        compile ('org.apache.hadoop:hadoop-aws:3.3.0') {
+
+        }
 
         implementation("redis.clients:jedis:3.5.1")
         implementation 'io.kubernetes:client-java:11.0.0'
@@ -194,7 +209,7 @@ project(':spark') {
 
         testImplementation project(':gortools')
         testImplementation project(':model')
-        //testImplementation project(':test')
+        testImplementation project(':test')
         //testCompile("${gorArtifactGroupId}:gor-test:${gorVersion}")
     }
 

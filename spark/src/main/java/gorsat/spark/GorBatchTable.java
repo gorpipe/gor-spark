@@ -222,7 +222,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
                     chrOpt.map(f -> ((EqualTo) f).value().toString()).ifPresent(s -> filterChrom = s);
 
                     Optional<Filter> inOpt = Arrays.stream(filters).filter(f -> f instanceof In).filter(f -> ((In) f).attribute().equalsIgnoreCase(lastName)).findFirst();
-                    if( !inOpt.isPresent() ) {
+                    if(inOpt.isEmpty()) {
                         inOpt = Arrays.stream(filters).filter(f -> f instanceof EqualTo).filter(f -> ((EqualTo) f).attribute().equalsIgnoreCase(lastName)).findFirst();
                         inOpt.map(f -> ((EqualTo) f).value()).map(Object::toString).ifPresent(s -> filter = s);
                     } else {
@@ -249,7 +249,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
                     });*/
 
                     Optional<Filter> posGreatOpt = Arrays.stream(filters).filter(f -> f instanceof GreaterThan).filter(f -> ((GreaterThan) f).attribute().equalsIgnoreCase(posName)).findFirst();
-                    if (!posGreatOpt.isPresent()) posGreatOpt = Arrays.stream(filters).filter(f -> f instanceof GreaterThanOrEqual).filter(f -> ((GreaterThanOrEqual) f).attribute().equalsIgnoreCase(posName)).findFirst();
+                    if (posGreatOpt.isEmpty()) posGreatOpt = Arrays.stream(filters).filter(f -> f instanceof GreaterThanOrEqual).filter(f -> ((GreaterThanOrEqual) f).attribute().equalsIgnoreCase(posName)).findFirst();
                     posGreatOpt.ifPresent(f -> {
                         if (f instanceof GreaterThan) {
                             start = ((Number) ((GreaterThan) f).value()).intValue() - 1;
@@ -260,7 +260,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
                     final Optional<Filter> posGreatOptFinal = posGreatOpt;
 
                     Optional<Filter> posLessOpt = Arrays.stream(filters).filter(f -> f instanceof LessThan).filter(f -> ((LessThan) f).attribute().equalsIgnoreCase(posName)).findFirst();
-                    if (!posLessOpt.isPresent()) posLessOpt = Arrays.stream(filters).filter(f -> f instanceof LessThanOrEqual).filter(f -> ((LessThanOrEqual) f).attribute().equalsIgnoreCase(posName)).findFirst();
+                    if (posLessOpt.isEmpty()) posLessOpt = Arrays.stream(filters).filter(f -> f instanceof LessThanOrEqual).filter(f -> ((LessThanOrEqual) f).attribute().equalsIgnoreCase(posName)).findFirst();
                     posLessOpt.ifPresent(f -> {
                         if (f instanceof LessThan) {
                             stop = ((Number) ((LessThan) f).value()).intValue();
@@ -270,7 +270,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
                     });
                     final Optional<Filter> posLessOptFinal = posLessOpt;
 
-                    ret =  Arrays.stream(filters).filter(f -> !chrOpt.isPresent() || (!f.equals(chrOpt.get()) && (!posGreatOptFinal.isPresent() || !f.equals(posGreatOptFinal.get())) && (!posLessOptFinal.isPresent() || !f.equals(posLessOptFinal.get())))).toArray(Filter[]::new);
+                    ret =  Arrays.stream(filters).filter(f -> chrOpt.isEmpty() || (!f.equals(chrOpt.get()) && (posGreatOptFinal.isEmpty() || !f.equals(posGreatOptFinal.get())) && (posLessOptFinal.isEmpty() || !f.equals(posLessOptFinal.get())))).toArray(Filter[]::new);
                 } else ret = new Filter[0];
 
                 Set<Filter> fset = new HashSet<>(Arrays.asList(ret));
@@ -314,7 +314,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
 
                     if (partitions == null) {
                         Map<String,Integer> buildSizeGeneric = ReferenceBuildDefaults.buildSizeGeneric();
-                        partitions = buildSizeGeneric.entrySet().stream().sorted(Comparator.comparing(Map.Entry::getKey)).map(e -> new GorRangeInputPartition(path, filter, filterFile, filterColumn,e.getKey(), 0, e.getValue(), e.getKey())).toArray(InputPartition[]::new);
+                        partitions = buildSizeGeneric.entrySet().stream().sorted(Map.Entry.comparingByKey()).map(e -> new GorRangeInputPartition(path, filter, filterFile, filterColumn,e.getKey(), 0, e.getValue(), e.getKey())).toArray(InputPartition[]::new);
                     }
                 }
                 return partitions;

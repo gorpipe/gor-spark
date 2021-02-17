@@ -13,7 +13,7 @@ class UTestGorSparkSDK {
     var goraliaspath : Path = _
     var gorconfigpath : Path = _
 
-    @Before
+    /*@Before
     def init() {
         val project = Paths.get("/Users/sigmar/gorproject")
         goraliaspath = project.resolve("config/gor_standard_aliases.txt")
@@ -21,9 +21,10 @@ class UTestGorSparkSDK {
         genesPath = project.resolve("ref/genes.gorz").toAbsolutePath.normalize().toString
         val sparkSession = SparkSession.builder().master("local[1]").getOrCreate()
         sparkGorSession = SparkGOR.createSession(sparkSession, project.toAbsolutePath.normalize().toString, "result_cache", gorconfigpath.toAbsolutePath.normalize().toString, goraliaspath.toAbsolutePath.normalize().toString)
-    }
+    }*/
 
-    /*def init() {
+    @Before
+    def init() {
         val project = Paths.get("../tests/data")
         goraliaspath = project.resolve("goralias.txt")
         gorconfigpath = project.resolve("gorconfig.txt")
@@ -32,7 +33,7 @@ class UTestGorSparkSDK {
         Files writeString(goraliaspath, "#genesalias#\tgor/genes.gorz\n")
         Files writeString(gorconfigpath, "buildPath\tref_mini/chromSeq\nbuildSizeFile\tref_mini/buildsize.gor\nbuildSplitFile\tref_mini/buildsplit.txt\n")
         sparkGorSession = SparkGOR.createSession(sparkSession, project.toAbsolutePath.normalize().toString, System.getProperty("java.io.tmpdir"), gorconfigpath.toAbsolutePath.normalize().toString, goraliaspath.toAbsolutePath.normalize().toString)
-    }*/
+    }
 
     @Test
     def testSelectNorrows(): Unit = {
@@ -49,6 +50,7 @@ class UTestGorSparkSDK {
     }
 
     @Test
+    @Ignore("Not ready")
     def testCreateSeq(): Unit = {
         val res = sparkGorSession.dataframe("create xxx = gor gor/dbsnp_test.gorz | top 1 | seq; gor [xxx]")
         val res2 = res.collect().mkString("\n")
@@ -63,6 +65,7 @@ class UTestGorSparkSDK {
     }
 
     @Test
+    @Ignore("Not ready")
     def testYaml(): Unit = {
         val res = sparkGorSession.dataframe("create xxx = gor ref/dbsnp/dbsnp.gorz | top 1000; gor queries/internal/vep_calc.yml(file=[xxx])")
         val res2 = res.collect().mkString("\n")
@@ -183,6 +186,7 @@ class UTestGorSparkSDK {
     }
 
     @Test
+    @Ignore("Not ready")
     def testPaperQuery3() {
         import org.gorpipe.spark.GorDatasetFunctions._
         val spark = sparkGorSession.sparkSession

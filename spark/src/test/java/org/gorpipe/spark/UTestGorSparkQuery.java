@@ -22,7 +22,7 @@ public class UTestGorSparkQuery {
     @Before
     public void init() {
         spark = SparkSession.builder().master("local[2]").getOrCreate();
-        Glow.register(spark);
+        Glow.register(spark, false);
         SparkSessionFactory sparkSessionFactory = new SparkSessionFactory(spark, Paths.get(".").toAbsolutePath().normalize().toString(), System.getProperty("java.io.tmpdir"), null, null, null);
         GorSession session = sparkSessionFactory.create();
         pi = new SparkPipeInstance(session.getGorContext());
@@ -37,6 +37,7 @@ public class UTestGorSparkQuery {
     }
 
     @Test
+    @Ignore("Not ready")
     public void testClinvalQuery() {
         var df = spark.read().format("vcf").option("flattenInfoFields", true).load("/Users/sigmar/testproject/clinvar.vcf.gz").limit(5);
         df.createOrReplaceTempView("clinvar2");
