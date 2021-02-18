@@ -372,7 +372,7 @@ public class SparkRowSource extends ProcessSource {
                 BufferedReader br = new BufferedReader(new InputStreamReader(is));
                 GenomicIterator.ChromoLookup lookup = ProcessRowSource.createChromoLookup();
                 try {
-                    it = new VcfGzGenomicIterator(lookup, "filename", null, br) {
+                    it = new VcfGzGenomicIterator(lookup, "filename", br) {
                         @Override
                         public boolean seek(String seekChr, int seekPos) {
                             return seek(seekChr, seekPos, lookup.chrToLen(seekChr));
@@ -470,7 +470,7 @@ public class SparkRowSource extends ProcessSource {
                         if (it == null) it = reader.iterator();
                     }
                 };
-                bamit.init(lookup, samreader, null, false);
+                bamit.init(lookup, samreader, false);
                 bamit.it = bamit.reader.iterator();
             }
         } catch (IOException e) {
