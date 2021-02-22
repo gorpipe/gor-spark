@@ -21,48 +21,48 @@ project(':spark') {
         compile("${gorArtifactGroupId}:gor-gortools:${gorVersion}")
         compile("${gorArtifactGroupId}:gor-util:${gorVersion}")
 
-        implementation ('org.apache.spark:spark-core_2.12:3.0.1') {
+        implementation ('org.apache.spark:spark-core_2.12:3.0.2') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
-        implementation ('org.apache.spark:spark-sql_2.12:3.0.1') {
+        implementation ('org.apache.spark:spark-sql_2.12:3.0.2') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
-        implementation ('org.apache.spark:spark-mllib_2.12:3.0.1') {
+        implementation ('org.apache.spark:spark-mllib_2.12:3.0.2') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
-        implementation ('org.apache.spark:spark-tags_2.12:3.0.1') {
+        implementation ('org.apache.spark:spark-tags_2.12:3.0.2') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
-        implementation ('org.apache.spark:spark-kubernetes_2.12:3.0.1') {
+        implementation ('org.apache.spark:spark-kubernetes_2.12:3.0.2') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.spark', module: 'spark-tags_2.12'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
-        implementation ('org.apache.spark:spark-catalyst_2.12:3.0.1') {
+        implementation ('org.apache.spark:spark-catalyst_2.12:3.0.2') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
-        implementation ('org.apache.spark:spark-repl_2.12:3.0.1') {
+        implementation ('org.apache.spark:spark-repl_2.12:3.0.2') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
-        implementation ('org.apache.spark:spark-hive_2.12:3.0.1') {
+        implementation ('org.apache.spark:spark-hive_2.12:3.0.2') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
-        implementation ('org.apache.spark:spark-hive-thriftserver_2.12:3.0.1') {
+        implementation ('org.apache.spark:spark-hive-thriftserver_2.12:3.0.2') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
