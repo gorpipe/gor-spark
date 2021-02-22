@@ -61,6 +61,11 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
         }
     }
 
+    private static boolean isSparkQuery(String lastQuery) {
+        var lastQueryLower = lastQuery.toLowerCase();
+        return lastQueryLower.startsWith("select ") || lastQueryLower.startsWith("spark ") || lastQueryLower.startsWith("gorspark ") || lastQueryLower.startsWith("norspark ") || lastQuery.contains("/*+");
+    }
+
     public static String[] executeSparkBatch(GorSparkSession session, String projectDir, String cacheDir, String[] fingerprints, String[] commandsToExecute, String[] jobIds, String[] cacheFiles) {
         SparkSession sparkSession = session.getSparkSession();
         String redisUri = session.getRedisUri();
@@ -74,9 +79,8 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
 
             if(!Files.exists(root.resolve(cachePath))) {
                 String command = commandsToExecute[i];
-                String commandUpper = command.toUpperCase();
                 String[] split = CommandParseUtilities.quoteSafeSplit(command,';');
-                if (split.length > 1 || commandUpper.startsWith("SELECT ") || commandUpper.startsWith("SPARK ") || commandUpper.startsWith("GORSPARK ") || commandUpper.startsWith("NORSPARK ")) {
+                if (split.length > 1 || isSparkQuery(command)) {
                     sparkJobs.add(i);
                 } else {
                     gorJobs.add(i);
@@ -89,8 +93,10 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
                 String cmd = commandsToExecute[i];
                 String[] split = CommandParseUtilities.quoteSafeSplit(cmd,';');
                 String jobId = jobIds[i];
-                int firstSpace = cmd.indexOf(' ');
-                if(split.length==1) cmd = cmd.substring(0, firstSpace + 1) + "-j " + jobId + cmd.substring(firstSpace);
+                String lastCmd = split[split.length-1];
+                int firstSpace = lastCmd.indexOf(' ');
+                lastCmd = lastCmd.substring(0, firstSpace + 1) + "-j " + jobId + lastCmd.substring(firstSpace);
+                cmd = split.length==1 ? lastCmd : String.join(";", Arrays.copyOfRange(split,0,split.length-1))+";"+lastCmd;
                 String[] args = new String[]{cmd, "-queryhandler", "spark"};
                 PipeOptions options = new PipeOptions();
                 options.parseOptions(args);
@@ -174,13 +180,22 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
     }
 
     @Override
-    public String[] executeBatch(String[] fingerprints, String[] commandsToExecute, String[] batchGroupNames, GorMonitor mon) {
+    public String[] executeBatch(String[] fingerprints, String[] commandsToExecute, String[] batchGroupNames, String[] cacheFiles, GorMonitor mon) {
         String projectDir = gpSession.getProjectContext().getRoot();
         String cacheDir = gpSession.getProjectContext().getCacheDir();
 
         List<String> cacheFileList = new ArrayList<>();
         IntStream.range(0, commandsToExecute.length).forEach(i -> {
-            String cachePath = cacheDir + "/" + fingerprints[i] + CommandParseUtilities.getExtensionForQuery(commandsToExecute[i], false);
+            String command = commandsToExecute[i];
+            String[] cmdsplit = CommandParseUtilities.quoteSafeSplit(command,'|');
+            String lastCmd = cmdsplit[cmdsplit.length-1].trim();
+            String cachePath;
+            if(lastCmd.toLowerCase().startsWith("write ")) {
+                String[] lastCmdSplit = lastCmd.split(" ");
+                cachePath = lastCmdSplit[lastCmdSplit.length-1];
+            } else {
+                cachePath = cacheDir + "/" + fingerprints[i] + CommandParseUtilities.getExtensionForQuery(command, false);
+            }
             cacheFileList.add(cachePath);
         });
         String[] jobIds = Arrays.copyOf(fingerprints, fingerprints.length);

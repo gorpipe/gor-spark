@@ -162,7 +162,7 @@ public class SparkOperatorRunner {
     }
 
     void waitSparkApplicationState(GorMonitor mon,String name,String state) throws ApiException {
-        Call call = core.listNamespacedPodCall(namespace, null, null, null, null, null, null, null, 120, null, null);
+        Call call = core.listNamespacedPodCall(namespace, null,null, null, null, null, null, null, null, 120, null, null);
         try (Watch<V1Pod> watchSparkApplication = Watch.createWatch(client, call, new TypeToken<Watch.Response<V1Pod>>() {}.getType())) {
             for (Watch.Response<V1Pod> item : watchSparkApplication) {
                 if (item.type != null && item.type.equals("MODIFIED") && item.object != null && item.object.getStatus() != null) {

@@ -10,9 +10,9 @@ spec:
   imagePullPolicy: Never #Always
   imagePullSecrets:
     - dockerhub-nextcode-download-credentials
-  mainApplicationFile: local:///opt/spark/jars/gor-spark-3.0.1.jar
+  mainApplicationFile: local:///opt/spark/jars/gor-spark-3.0.2.jar
   mainClass: org.gorpipe.spark.redis.RedisBatchConsumer
-  sparkVersion: 3.0.1
+  sparkVersion: 3.0.2
   restartPolicy:
     type: OnFailure
     onFailureRetries: 1
@@ -37,7 +37,7 @@ spec:
     coreLimit: 1200m
     memory: 1500m
     labels:
-      version: v3.0.1
+      version: v3.0.2
     securityContext:
       runAsUser: 3000
       fsGroup: 3000
@@ -46,7 +46,7 @@ spec:
     instances: 1
     memory: 900m
     labels:
-      version: v3.0.1
+      version: v3.0.2
     securityContext:
       runAsUser: 3000
       fsGroup: 3000

@@ -127,7 +127,7 @@ public class GorSparkUtilities {
         spark.udf().register("tointarray", new CommaToIntArray(), DataTypes.createArrayType(DataTypes.IntegerType));
 
         GlowBase gb = new GlowBase();
-        gb.register(spark);
+        gb.register(spark, false);
 
         return spark;
     }

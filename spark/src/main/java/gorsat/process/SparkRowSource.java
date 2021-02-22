@@ -62,7 +62,7 @@ public class SparkRowSource extends ProcessSource {
         return nor;
     }
 
-    public SparkRowSource(String sql, String profile, String parquet, String type, boolean nor, GorSparkSession gpSession, final String filter, final String filterFile, final String filterColumn, final String splitFile, final String chr, final int pos, final int end, boolean usestreaming, String jobId, boolean useCpp, String parts, int buckets, boolean tag) throws IOException, DataFormatException {
+    public SparkRowSource(String sql, String profile, String parquet, String type, boolean nor, GorSparkSession gpSession, final String filter, final String filterFile, final String filterColumn, final String splitFile, final String chr, final int pos, final int end, boolean usestreaming, String jobId, boolean useCpp, String parts, int buckets, boolean tag, String ddl) throws IOException, DataFormatException {
         init();
         this.jobId = jobId;
         this.tag = tag;
@@ -136,12 +136,14 @@ public class SparkRowSource extends ProcessSource {
                 fileNames = Arrays.stream(cmdsplit).flatMap(gorfileflat).filter(gorpred).toArray(String[]::new);
                 for (String fn : fileNames) {
                     if (gorSparkSession.getSystemContext().getServer()) ProjectContext.validateServerFileName(fn, true);
-                    SparkRowUtilities.registerFile(new String[]{fn}, profile,null, gpSession, standalone, fileroot, cachepath, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp, tag);
+                    StructType schema = ddl!=null ? StructType.fromDDL(ddl) : null;
+                    SparkRowUtilities.registerFile(new String[]{fn}, profile,null, gpSession, standalone, fileroot, cachepath, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp, tag, schema);
                 }
                 dataset = gorSparkSession.getSparkSession().sql(sql);
             } else {
                 fileNames = headercommands.toArray(new String[0]);
-                dataset = SparkRowUtilities.registerFile(fileNames, null, profile, gpSession, standalone, fileroot, cachepath, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp, tag);
+                StructType schema = ddl!=null ? StructType.fromDDL(ddl) : null;
+                dataset = SparkRowUtilities.registerFile(fileNames, null, profile, gpSession, standalone, fileroot, cachepath, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp, tag, schema);
             }
 
             if (chr != null) {
@@ -370,7 +372,7 @@ public class SparkRowSource extends ProcessSource {
                 BufferedReader br = new BufferedReader(new InputStreamReader(is));
                 GenomicIterator.ChromoLookup lookup = ProcessRowSource.createChromoLookup();
                 try {
-                    it = new VcfGzGenomicIterator(lookup, "filename", null, br) {
+                    it = new VcfGzGenomicIterator(lookup, "filename", br) {
                         @Override
                         public boolean seek(String seekChr, int seekPos) {
                             return seek(seekChr, seekPos, lookup.chrToLen(seekChr));
@@ -468,7 +470,7 @@ public class SparkRowSource extends ProcessSource {
                         if (it == null) it = reader.iterator();
                     }
                 };
-                bamit.init(lookup, samreader, null, false);
+                bamit.init(lookup, samreader, false);
                 bamit.it = bamit.reader.iterator();
             }
         } catch (IOException e) {

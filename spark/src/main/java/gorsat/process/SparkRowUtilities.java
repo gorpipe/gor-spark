@@ -154,7 +154,7 @@ public class SparkRowUtilities {
         return gdt;
     }
 
-    public static Dataset<? extends org.apache.spark.sql.Row> registerFile(String[] fns, String name, String profile, GorSparkSession gorSparkSession, String standalone, Path fileroot, Path cacheDir, boolean usestreaming, String filter, String filterFile, String filterColumn, String splitFile, final boolean nor, final String chr, final int pos, final int end, final String jobid, String cacheFile, boolean cpp, boolean tag) throws IOException, DataFormatException {
+    public static Dataset<? extends org.apache.spark.sql.Row> registerFile(String[] fns, String name, String profile, GorSparkSession gorSparkSession, String standalone, Path fileroot, Path cacheDir, boolean usestreaming, String filter, String filterFile, String filterColumn, String splitFile, final boolean nor, final String chr, final int pos, final int end, final String jobid, String cacheFile, boolean cpp, boolean tag, StructType schema) throws IOException, DataFormatException {
         String fn = fns[0];
         boolean curlyQuery = fn.startsWith("{");
         boolean nestedQuery = fn.startsWith("<(") || curlyQuery;
@@ -227,7 +227,7 @@ public class SparkRowUtilities {
                 }
 
                 StructField[] fields = IntStream.range(0, headerArray.length).mapToObj(i -> new StructField(headerArray[i], dataTypes[i], true, Metadata.empty())).toArray(StructField[]::new);
-                StructType schema = new StructType(fields);
+                schema = new StructType(fields);
 
                 ExpressionEncoder encoder = RowEncoder.apply(schema);
                 Map<Path, String> fNames;
@@ -307,6 +307,7 @@ public class SparkRowUtilities {
                     dfr.option("cachedir", cacheDir.toString());
                     dfr.option("aliasfile", gorSparkSession.getProjectContext().getGorAliasFile());
                     dfr.option("configfile", gorSparkSession.getProjectContext().getGorConfigFile());
+                    if(schema!=null) dfr.schema(schema);
                     gor = dfr.load();
                     dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
                 } else if (fileName.toLowerCase().endsWith(".parquet")) {
@@ -352,25 +353,26 @@ public class SparkRowUtilities {
                     Collection<String> pns = filter != null && filter.length() > 0 ? new HashSet<>(Arrays.asList(filter.split(","))) : fNames != null ? fNames.values() : Collections.emptySet();
 
                     final StructField[] fields;
-                    StructType schema;
                     if ((isGorz && !gorDataType.base128) || dictFile != null) {
-                        if (dictFile != null) {
-                            Stream<StructField> baseStream = IntStream.range(0, headerArray.length).mapToObj(i -> new StructField(headerArray[i], dataTypes[i], true, Metadata.empty()));
-                            Stream.Builder<StructField> sb = Stream.<StructField>builder();
-                            if (dictSplit == 2 && (filterColumn != null && filterColumn.length() > 0))
-                                sb.add(new StructField(filterColumn, StringType, true, Metadata.empty()));
-                            if (splitFile != null && splitFile.length() > 0)
-                                sb.add(new StructField("tag", StringType, true, Metadata.empty()));
-                            Stream<StructField> extra = sb.build();
-                            fields = Stream.concat(baseStream, extra).toArray(StructField[]::new);
-                        } else if (gorDataType.withStart) {
-                            StructField[] tmpfields = {new StructField("Chrom", StringType, true, Metadata.empty()), new StructField("Start", IntegerType, true, Metadata.empty()), new StructField("Stop", IntegerType, true, Metadata.empty()), new StructField("data", StringType, true, Metadata.empty())};
-                            fields = tmpfields;
-                        } else {
-                            StructField[] tmpfields = {new StructField("Chrom", StringType, true, Metadata.empty()), new StructField("Pos", IntegerType, true, Metadata.empty()), new StructField("data", StringType, true, Metadata.empty())}; //IntStream.range(0,header.length).mapToObj(i -> new StructField(header[i], dataTypes[i], true, Metadata.empty())).toArray(size -> new StructField[size]);
-                            fields = tmpfields;
+                        if(schema==null) {
+                            if (dictFile != null) {
+                                Stream<StructField> baseStream = IntStream.range(0, headerArray.length).mapToObj(i -> new StructField(headerArray[i], dataTypes[i], true, Metadata.empty()));
+                                Stream.Builder<StructField> sb = Stream.<StructField>builder();
+                                if (dictSplit == 2 && (filterColumn != null && filterColumn.length() > 0))
+                                    sb.add(new StructField(filterColumn, StringType, true, Metadata.empty()));
+                                if (splitFile != null && splitFile.length() > 0)
+                                    sb.add(new StructField("tag", StringType, true, Metadata.empty()));
+                                Stream<StructField> extra = sb.build();
+                                fields = Stream.concat(baseStream, extra).toArray(StructField[]::new);
+                            } else if (gorDataType.withStart) {
+                                StructField[] tmpfields = {new StructField("Chrom", StringType, true, Metadata.empty()), new StructField("Start", IntegerType, true, Metadata.empty()), new StructField("Stop", IntegerType, true, Metadata.empty()), new StructField("data", StringType, true, Metadata.empty())};
+                                fields = tmpfields;
+                            } else {
+                                StructField[] tmpfields = {new StructField("Chrom", StringType, true, Metadata.empty()), new StructField("Pos", IntegerType, true, Metadata.empty()), new StructField("data", StringType, true, Metadata.empty())}; //IntStream.range(0,header.length).mapToObj(i -> new StructField(header[i], dataTypes[i], true, Metadata.empty())).toArray(size -> new StructField[size]);
+                                fields = tmpfields;
+                            }
+                            schema = new StructType(fields);
                         }
-                        schema = new StructType(fields);
                         if (uNames != null) {
                             // hey SparkGorUtilities.getSparkSession(GorSparkSession).udf().register("get_pn", (UDF1<String, String>) uNames::get, DataTypes.StringType);
                             if (dictFile != null) {
@@ -399,8 +401,10 @@ public class SparkRowUtilities {
                             gor = gorSparkSession.getSparkSession().read().format(csvDataSource).option("header", "true").option("delimiter", "\t").schema(schema).load(fileName); //.replace("s3://","s3n://"));
                         }
                     } else {
-                        fields = IntStream.range(0, headerArray.length).mapToObj(i -> new StructField(headerArray[i], dataTypes[i], true, Metadata.empty())).toArray(StructField[]::new);
-                        schema = new StructType(fields);
+                        if(schema==null) {
+                            fields = IntStream.range(0, headerArray.length).mapToObj(i -> new StructField(headerArray[i], dataTypes[i], true, Metadata.empty())).toArray(StructField[]::new);
+                            schema = new StructType(fields);
+                        }
                         if (uNames != null && !gorDataType.base128) {
                             gor = gorSparkSession.getSparkSession().read().format(csvDataSource).option("header", "true").option("delimiter", "\t").schema(schema).load(fNames.entrySet().stream().filter(e -> pns.contains(e.getValue())).map(Map.Entry::getKey).map(Path::toString).toArray(String[]::new));
                             if (filter != null && filter.length() > 0) {
