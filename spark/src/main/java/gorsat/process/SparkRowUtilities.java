@@ -463,6 +463,7 @@ public class SparkRowUtilities {
 
                             StructField[] flds = IntStream.range(0, headerArray.length).mapToObj(i -> new StructField(headerArray[i], dataTypes[i], true, Metadata.empty())).toArray(StructField[]::new);
                             schema = new StructType(flds);
+
                             ExpressionEncoder<org.apache.spark.sql.Row> encoder = RowEncoder.apply(schema);
 
                             final boolean withStart = gorDataType.withStart;

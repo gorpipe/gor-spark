@@ -53,12 +53,7 @@ class GorQueryRDD(sparkSession: SparkSession, commandsToExecute: Array[String], 
         case e: Exception => handleException(e, temp_cacheFile)
       }
     }
-    val relCachePath = if(cacheFilePath.isAbsolute) {
-      projectPath.relativize(cacheFilePath).toString
-    } else {
-      cacheFile
-    }
-    Iterator(jobId+'\t'+commandSignature+'\t'+relCachePath)
+    Iterator(jobId+'\t'+commandSignature+'\t'+cacheFile)
   }
 
   override def collect: Array[String] = {

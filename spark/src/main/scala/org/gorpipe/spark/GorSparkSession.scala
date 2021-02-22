@@ -2,7 +2,6 @@ package org.gorpipe.spark
 
 import java.util
 import java.util.concurrent.ConcurrentHashMap
-
 import org.gorpipe.gor.model.RowBase
 import org.gorpipe.model.gor.RowObj.splitArray
 import gorsat.InputSources.Spark
@@ -15,6 +14,7 @@ import gorsat.Utilities.MacroUtilities.replaceAllAliases
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{Dataset, Encoder, Row, SparkSession}
+import org.gorpipe.gor.function.GorRowInferFunction
 import org.gorpipe.gor.session.{EventLogger, GorSession, GorSessionCache, ProjectContext, SystemContext}
 
 import scala.collection.JavaConverters
@@ -101,9 +101,13 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
         m = header.indexOf("\t", m + 1)
         header = header.substring(m + 1)
       }
-      val gr = new GorSparkRowInferFunction()
+      val gr = new GorRowInferFunction()
       val typ = gors.limit(100).reduce(gr)
-      schema = if( typ.isPresent ) SparkRowSource.schemaFromRow(header.split("\t"), typ.get()) else null
+      schema = if( typ.isPresent ) {
+        var row = typ.get()
+        if (row.chr != null) row = gr.infer(row, row)
+        SparkRowSource.schemaFromRow(header.split("\t"), row)
+      } else null
     } finally {
       gors.close()
     }
@@ -133,7 +137,7 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
 
   def spark(qry: String, sc: StructType = null): Dataset[_ <: Row] = {
     val qryspl = CommandParseUtilities.quoteSafeSplit(qry,';')
-    val pi = new PipeInstance(this.getGorContext)
+    val pi = new SparkPipeInstance(this.getGorContext)
     val lastqry : String = replaceAllAliases(qryspl.last.trim, fileAliasMap)
     val slicecreates = qryspl.slice(0,qryspl.length-1)
     val increates = if(slicecreates.length > 0) slicecreates.mkString("",";",";") else ""
@@ -141,7 +145,7 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
       (if(sc!=null) "spark -schema {"+sc.toDDL+"} " else "spark ") + "{"+lastqry+"}"
     } else lastqry
     val createQueries = getCreateQueries(increates)
-    val fullQuery = if (createQueries.length > 0) createQueries + query else query
+    val fullQuery = if (createQueries.nonEmpty) createQueries + query else query
 
     val args = Array[String](fullQuery)
     val options = new PipeOptions
@@ -170,7 +174,8 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
           }
 
           val list: java.util.List[Row] = GorSparkUtilities.stream2SparkRowList(gors, schema)
-          val ds = sparkSession.createDataset(list)(RowEncoder.apply(schema))
+          val enc = RowEncoder.apply(schema)
+          val ds = sparkSession.createDataset(list)(enc)
           ds
         } finally {
           if (gors != null) gors.close()
