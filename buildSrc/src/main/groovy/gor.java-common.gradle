@@ -40,7 +40,7 @@ plugins {
 // -----------------------------------------------------
 
 ext {
-    gorArtifactGroupId = 'com.wuxinextcode.gor'
+    gorArtifactGroupId = 'org.gorpipe'
     gorVersion = new File("${rootDir}/GOR_VERSION").text.trim()
 }
 

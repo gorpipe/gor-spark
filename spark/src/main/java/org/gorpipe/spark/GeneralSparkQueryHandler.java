@@ -61,6 +61,11 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
         }
     }
 
+    private static boolean isSparkQuery(String lastQuery) {
+        var lastQueryLower = lastQuery.toLowerCase();
+        return lastQueryLower.startsWith("select ") || lastQueryLower.startsWith("spark ") || lastQueryLower.startsWith("gorspark ") || lastQueryLower.startsWith("norspark ") || lastQuery.contains("/*+");
+    }
+
     public static String[] executeSparkBatch(GorSparkSession session, String projectDir, String cacheDir, String[] fingerprints, String[] commandsToExecute, String[] jobIds, String[] cacheFiles) {
         SparkSession sparkSession = session.getSparkSession();
         String redisUri = session.getRedisUri();
@@ -75,7 +80,7 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
             if(!Files.exists(root.resolve(cachePath))) {
                 String command = commandsToExecute[i];
                 String[] split = CommandParseUtilities.quoteSafeSplit(command,';');
-                if (split.length > 1 || CommandParseUtilities.isSparkQuery(command)) {
+                if (split.length > 1 || isSparkQuery(command)) {
                     sparkJobs.add(i);
                 } else {
                     gorJobs.add(i);
