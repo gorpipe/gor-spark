@@ -25,7 +25,7 @@ public class UTestSparkPCA {
     @Before
     public void init() {
         spark = SparkSession.builder().master("local[2]").getOrCreate();
-        Glow.register(spark);
+        Glow.register(spark, false);
         SparkSessionFactory sparkSessionFactory = new SparkSessionFactory(spark, Paths.get(".").toAbsolutePath().normalize().toString(), System.getProperty("java.io.tmpdir"), null, null, null);
         GorSession session = sparkSessionFactory.create();
         pi = new SparkPipeInstance(session.getGorContext());
