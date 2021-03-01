@@ -42,6 +42,7 @@ public class SparkGorExecutionEngine extends GorExecutionEngine {
     public void execute() {
         GenomicIterator brs = null;
         Processor processor = null;
+        Exception exception = null;
         try(GorSession session = createSession()) {
             PipeInstance pinst = createIterator(session);
             GenomicIterator iterator = pinst.theInputSource();
@@ -55,11 +56,11 @@ public class SparkGorExecutionEngine extends GorExecutionEngine {
                 }
             }
         } catch (Exception ex) {
-            if( brs != null ) brs.setEx(ex);
+            exception = ex;
             throw ex;
         } finally {
             try {
-                if( processor != null ) processor.securedFinish(brs != null ? brs.getEx() : null);
+                if( processor != null ) processor.securedFinish(exception);
             } finally {
                 if( brs != null ) brs.close();
             }
