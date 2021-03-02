@@ -21,7 +21,7 @@ import org.apache.spark.{Partition, TaskContext}
 import org.gorpipe.gor.session.GorContext
 import org.gorpipe.gor.function.{GorRowFilterFunction, GorRowMapFunction}
 import org.gorpipe.gor.binsearch.GorIndexType
-import org.gorpipe.gor.model.{GenomicIterator, RowBase}
+import org.gorpipe.gor.model.{GenomicIterator, GenomicIteratorBase, RowBase}
 import org.gorpipe.model.gor.iterators.RowSource
 
 import scala.collection.mutable.ListBuffer
@@ -170,7 +170,7 @@ object GorDatasetFunctions {
 class GorpipeRDD[T: ClassTag](prev: RDD[T], pipeStep: Analysis, encoder: ExpressionEncoder[T], header: String, gor: Boolean) extends RDD[T](prev) {
   override def compute(split: Partition, context: TaskContext): Iterator[T] = {
     val rowit = firstParent[T].iterator(split, context)
-    val rs = if (gor) new GenomicIterator {
+    val rs = if (gor) new GenomicIteratorBase {
       override def hasNext: Boolean = rowit.hasNext
 
       override def next(): org.gorpipe.gor.model.Row = {
@@ -184,16 +184,7 @@ class GorpipeRDD[T: ClassTag](prev: RDD[T], pipeStep: Analysis, encoder: Express
       override def close(): Unit = {}
 
       override def seek(seekChr: String, seekPos: Int): Boolean = ???
-
-      def getHeader(): String = ???
-      def getSourceName(): String = ???
-      def init(x$1: org.gorpipe.gor.session.GorSession): Unit = ???
-      def isSourceAlreadyInserted(): Boolean = ???
-      def setContext(x$1: org.gorpipe.gor.session.GorContext): Unit = ???
-      def setHeader(x$1: String): Unit = ???
-      def setSourceAlreadyInserted(x$1: Boolean): Unit = ???
-      def setSourceName(x$1: String): Unit = ???
-    } else new GenomicIterator {
+    } else new GenomicIteratorBase {
       override def hasNext: Boolean = rowit.hasNext
 
       override def next(): org.gorpipe.gor.model.Row = {
@@ -207,16 +198,6 @@ class GorpipeRDD[T: ClassTag](prev: RDD[T], pipeStep: Analysis, encoder: Express
       override def close(): Unit = {}
 
       override def seek(seekChr: String, seekPos: Int): Boolean = ???
-
-      def getHeader(): String = ???
-      def getSourceName(): String = ???
-      def init(x$1: org.gorpipe.gor.session.GorSession): Unit = ???
-      def isSourceAlreadyInserted(): Boolean = ???
-      def setContext(x$1: org.gorpipe.gor.session.GorContext): Unit = ???
-      def setHeader(x$1: String): Unit = ???
-      def setSourceAlreadyInserted(x$1: Boolean): Unit = ???
-      def setSourceName(x$1: String): Unit = ???
-
     }
     rs.setHeader(if (gor) header else "chromNOR\tposNOR\t" + header)
 
@@ -247,7 +228,7 @@ class GorpipeRDD[T: ClassTag](prev: RDD[T], pipeStep: Analysis, encoder: Express
 class TestGorRDD(prev: RDD[Row], gorcmd: String, header: String, gor: Boolean) extends RDD[org.gorpipe.gor.model.Row](prev) {
   override def compute(split: Partition, context: TaskContext): Iterator[org.gorpipe.gor.model.Row] = {
     val rowit = firstParent[Row].iterator(split, context)
-    val rs = if (gor) new GenomicIterator {
+    val rs = if (gor) new GenomicIteratorBase {
       override def hasNext: Boolean = rowit.hasNext
 
       override def next(): org.gorpipe.gor.model.Row = {
@@ -261,16 +242,7 @@ class TestGorRDD(prev: RDD[Row], gorcmd: String, header: String, gor: Boolean) e
       override def close(): Unit = {}
 
       override def seek(seekChr: String, seekPos: Int): Boolean = ???
-
-      def getHeader(): String = ???
-      def getSourceName(): String = ???
-      def init(x$1: org.gorpipe.gor.session.GorSession): Unit = ???
-      def isSourceAlreadyInserted(): Boolean = ???
-      def setContext(x$1: org.gorpipe.gor.session.GorContext): Unit = ???
-      def setHeader(x$1: String): Unit = ???
-      def setSourceAlreadyInserted(x$1: Boolean): Unit = ???
-      def setSourceName(x$1: String): Unit = ???
-    } else new GenomicIterator {
+    } else new GenomicIteratorBase {
       override def hasNext: Boolean = rowit.hasNext
 
       override def next(): org.gorpipe.gor.model.Row = {
@@ -284,16 +256,6 @@ class TestGorRDD(prev: RDD[Row], gorcmd: String, header: String, gor: Boolean) e
       override def close(): Unit = {}
 
       override def seek(seekChr: String, seekPos: Int): Boolean = ???
-
-      def getHeader(): String = ???
-      def getSourceName(): String = ???
-      def init(x$1: org.gorpipe.gor.session.GorSession): Unit = ???
-      def isSourceAlreadyInserted(): Boolean = ???
-      def setContext(x$1: org.gorpipe.gor.session.GorContext): Unit = ???
-      def setHeader(x$1: String): Unit = ???
-      def setSourceAlreadyInserted(x$1: Boolean): Unit = ???
-      def setSourceName(x$1: String): Unit = ???
-
     }
 
     val gp = Paths.get("/gorproject")
@@ -324,7 +286,7 @@ class GorRDD[T: ClassTag](prev: RDD[T], gorcmd: String, header: String, gor: Boo
   // override compute method to calculate the discount
   override def compute(split: Partition, context: TaskContext): Iterator[org.gorpipe.gor.model.Row] = {
     val rowit = firstParent[Row].iterator(split, context)
-    val rs = if (gor) new GenomicIterator {
+    val rs = if (gor) new GenomicIteratorBase {
       override def hasNext: Boolean = rowit.hasNext
 
       override def next(): org.gorpipe.gor.model.Row = {
@@ -338,16 +300,7 @@ class GorRDD[T: ClassTag](prev: RDD[T], gorcmd: String, header: String, gor: Boo
       override def close(): Unit = {}
 
       override def seek(seekChr: String, seekPos: Int): Boolean = ???
-
-      def getHeader(): String = ???
-      def getSourceName(): String = ???
-      def init(x$1: org.gorpipe.gor.session.GorSession): Unit = ???
-      def isSourceAlreadyInserted(): Boolean = ???
-      def setContext(x$1: org.gorpipe.gor.session.GorContext): Unit = ???
-      def setHeader(x$1: String): Unit = ???
-      def setSourceAlreadyInserted(x$1: Boolean): Unit = ???
-      def setSourceName(x$1: String): Unit = ???
-    } else new GenomicIterator {
+    } else new GenomicIteratorBase {
       override def hasNext: Boolean = rowit.hasNext
 
       override def next(): org.gorpipe.gor.model.Row = {
@@ -361,15 +314,6 @@ class GorRDD[T: ClassTag](prev: RDD[T], gorcmd: String, header: String, gor: Boo
       override def close(): Unit = {}
 
       override def seek(seekChr: String, seekPos: Int): Boolean = ???
-
-      def getHeader(): String = ???
-      def getSourceName(): String = ???
-      def init(x$1: org.gorpipe.gor.session.GorSession): Unit = ???
-      def isSourceAlreadyInserted(): Boolean = ???
-      def setContext(x$1: org.gorpipe.gor.session.GorContext): Unit = ???
-      def setHeader(x$1: String): Unit = ???
-      def setSourceAlreadyInserted(x$1: Boolean): Unit = ???
-      def setSourceName(x$1: String): Unit = ???
     }
 
     val newheader = if (gor) header else "chromNOR\tposNOR\t" + header
