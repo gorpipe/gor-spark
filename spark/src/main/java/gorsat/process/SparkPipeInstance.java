@@ -8,6 +8,7 @@ import org.gorpipe.gor.driver.providers.stream.StreamSourceFile;
 import org.gorpipe.gor.driver.providers.stream.datatypes.parquet.ParquetFileIterator;
 import org.gorpipe.gor.driver.providers.stream.sources.file.FileSource;
 import org.gorpipe.gor.model.GenomicIterator;
+import org.gorpipe.gor.model.GenomicIteratorBase;
 import org.gorpipe.gor.model.Row;
 import org.gorpipe.gor.monitor.GorMonitor;
 import org.gorpipe.gor.session.GorContext;
@@ -66,7 +67,7 @@ public class SparkPipeInstance extends PipeInstance {
     }
 
     public GenomicIterator wrapGenomicIterator(GenomicIterator gi) {
-        return new GenomicIterator() {
+        return new GenomicIteratorBase() {
             @Override
             public boolean hasNext() {
                 return gi.hasNext();
@@ -75,46 +76,6 @@ public class SparkPipeInstance extends PipeInstance {
             @Override
             public Row next() {
                 return gi.next();
-            }
-
-            @Override
-            public void init(GorSession session) {
-
-            }
-
-            @Override
-            public void setContext(GorContext context) {
-
-            }
-
-            @Override
-            public String getSourceName() {
-                return null;
-            }
-
-            @Override
-            public void setSourceName(String sourceName) {
-
-            }
-
-            @Override
-            public boolean isSourceAlreadyInserted() {
-                return false;
-            }
-
-            @Override
-            public void setSourceAlreadyInserted(boolean sourceAlreadyInserted) {
-
-            }
-
-            @Override
-            public String getHeader() {
-                return null;
-            }
-
-            @Override
-            public void setHeader(String header) {
-
             }
 
             @Override
