@@ -370,7 +370,7 @@ public class SparkRowSource extends ProcessSource {
                 if (nor) setHeader("ChromNOR\tPosNOR\t" + getHeader().replace(" ", "_").replace(":", ""));
             } else if (type.equalsIgnoreCase("vcf")) {
                 BufferedReader br = new BufferedReader(new InputStreamReader(is));
-                GenomicIterator.ChromoLookup lookup = ProcessRowSource.createChromoLookup();
+                ChromoLookup lookup = ProcessRowSource.createChromoLookup();
                 try {
                     it = new VcfGzGenomicIterator(lookup, "filename", br) {
                         @Override
@@ -410,7 +410,7 @@ public class SparkRowSource extends ProcessSource {
                     throw new RuntimeException("Error initializing vcf reader. Exit value from process: " + exitValue + ". Error from process: " + errorStr, e);
                 }
             } else if (type.equalsIgnoreCase("bam") || type.equalsIgnoreCase("sam") || type.equalsIgnoreCase("cram")) {
-                GenomicIterator.ChromoLookup lookup = ProcessRowSource.createChromoLookup();
+                ChromoLookup lookup = ProcessRowSource.createChromoLookup();
                 SamReaderFactory srf = SamReaderFactory.makeDefault().validationStringency(ValidationStringency.SILENT);
                 SamInputResource sir = SamInputResource.of(is);
                 SamReader samreader = srf.open(sir);
@@ -542,8 +542,8 @@ public class SparkRowSource extends ProcessSource {
     }
 
     @Override
-    public void setPosition(String seekChr, int seekPos) {
-
+    public boolean seek(String seekChr, int seekPos) {
+        return true;
     }
 
     @Override

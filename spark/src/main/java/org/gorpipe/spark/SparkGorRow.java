@@ -54,7 +54,7 @@ public class SparkGorRow extends GorSparkRowBase implements Serializable {
     }
 
     @Override
-    public Long colAsLong(int colNum) {
+    public long colAsLong(int colNum) {
         return row.colAsLong(colNum);
     }
 
