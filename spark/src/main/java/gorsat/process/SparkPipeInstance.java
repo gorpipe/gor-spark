@@ -11,6 +11,7 @@ import org.gorpipe.gor.model.GenomicIterator;
 import org.gorpipe.gor.model.Row;
 import org.gorpipe.gor.monitor.GorMonitor;
 import org.gorpipe.gor.session.GorContext;
+import org.gorpipe.gor.session.GorSession;
 import org.gorpipe.model.gor.iterators.RowSource;
 import org.gorpipe.spark.GorSparkSession;
 import org.gorpipe.spark.SparkOperatorRunner;
@@ -59,13 +60,13 @@ public class SparkPipeInstance extends PipeInstance {
     }
 
     @Override
-    public RowSource getIterator() {
+    public GenomicIterator getIterator() {
         if(hasResourceHints) return wrapGenomicIterator(genit);
         return super.getIterator();
     }
 
-    public RowSource wrapGenomicIterator(GenomicIterator gi) {
-        return new RowSource() {
+    public GenomicIterator wrapGenomicIterator(GenomicIterator gi) {
+        return new GenomicIterator() {
             @Override
             public boolean hasNext() {
                 return gi.hasNext();
@@ -77,8 +78,48 @@ public class SparkPipeInstance extends PipeInstance {
             }
 
             @Override
-            public void setPosition(String seekChr, int seekPos) {
-                gi.seek(seekChr,seekPos);
+            public void init(GorSession session) {
+
+            }
+
+            @Override
+            public void setContext(GorContext context) {
+
+            }
+
+            @Override
+            public String getSourceName() {
+                return null;
+            }
+
+            @Override
+            public void setSourceName(String sourceName) {
+
+            }
+
+            @Override
+            public boolean isSourceAlreadyInserted() {
+                return false;
+            }
+
+            @Override
+            public void setSourceAlreadyInserted(boolean sourceAlreadyInserted) {
+
+            }
+
+            @Override
+            public String getHeader() {
+                return null;
+            }
+
+            @Override
+            public void setHeader(String header) {
+
+            }
+
+            @Override
+            public boolean seek(String seekChr, int seekPos) {
+                return gi.seek(seekChr,seekPos);
             }
 
             @Override

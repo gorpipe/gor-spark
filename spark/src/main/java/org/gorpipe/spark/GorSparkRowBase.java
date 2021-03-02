@@ -59,7 +59,7 @@ public abstract class GorSparkRowBase extends Row implements org.apache.spark.sq
     public abstract double colAsDouble(int colNum);
 
     @Override
-    public abstract Long colAsLong(int colNum);
+    public abstract long colAsLong(int colNum);
 
     @Override
     public abstract CharSequence colAsString(int colNum);

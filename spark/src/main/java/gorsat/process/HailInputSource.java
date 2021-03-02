@@ -10,6 +10,9 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
+import org.gorpipe.gor.model.GenomicIterator;
+import org.gorpipe.gor.session.GorContext;
+import org.gorpipe.gor.session.GorSession;
 import org.gorpipe.model.gor.iterators.RowSource;
 import org.gorpipe.spark.GorSparkRow;
 import scala.Option;
@@ -21,7 +24,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-public class HailInputSource extends RowSource {
+public class HailInputSource implements GenomicIterator {
     //static HailContext hl;
     Dataset<Row> ds;
     Iterator<Row> it;
@@ -131,6 +134,51 @@ public class HailInputSource extends RowSource {
     }
 
     @Override
+    public void init(GorSession session) {
+
+    }
+
+    @Override
+    public void setContext(GorContext context) {
+
+    }
+
+    @Override
+    public String getSourceName() {
+        return null;
+    }
+
+    @Override
+    public void setSourceName(String sourceName) {
+
+    }
+
+    @Override
+    public boolean isSourceAlreadyInserted() {
+        return false;
+    }
+
+    @Override
+    public void setSourceAlreadyInserted(boolean sourceAlreadyInserted) {
+
+    }
+
+    @Override
+    public String getHeader() {
+        return null;
+    }
+
+    @Override
+    public void setHeader(String header) {
+
+    }
+
+    @Override
+    public boolean seek(String chr, int pos) {
+        return false;
+    }
+
+    @Override
     public void close() {
 
     }
@@ -147,10 +195,5 @@ public class HailInputSource extends RowSource {
     @Override
     public org.gorpipe.gor.model.Row next() {
         return new GorSparkRow(it.next());
-    }
-
-    @Override
-    public void setPosition(String seekChr, int seekPos) {
-
     }
 }

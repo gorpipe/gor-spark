@@ -91,7 +91,7 @@ public class GorPartitionReader implements PartitionReader<InternalRow> {
         }
     }
 
-    private RowSource iteratorWithPipeSteps(PipeInstance pi) {
+    private GenomicIterator iteratorWithPipeSteps(PipeInstance pi) {
         pi.init(p.query, false, null);
 
         GenomicIterator rowSource = pi.theInputSource();

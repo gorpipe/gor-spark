@@ -1,4 +1,4 @@
-FROM nextcode/basespark:3.0.1
+FROM nextcode/basespark:3.0.2
 
 # To build nextcode/basespark:[version] base image on mac
 # brew install apache-spark
