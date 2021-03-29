@@ -312,10 +312,10 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
                         }
                     }
 
-                    if (partitions == null) {
+                    if (partitions == null && path != null) {
                         Map<String,Integer> buildSizeGeneric = ReferenceBuildDefaults.buildSizeGeneric();
                         partitions = buildSizeGeneric.entrySet().stream().sorted(Map.Entry.comparingByKey()).map(e -> new GorRangeInputPartition(path, filter, filterFile, filterColumn,e.getKey(), 0, e.getValue(), e.getKey())).toArray(InputPartition[]::new);
-                    }
+                    } else partitions = new InputPartition[0];
                 }
                 return partitions;
             }
