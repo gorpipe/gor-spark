@@ -13,6 +13,7 @@ import org.gorpipe.gor.model.Row;
 import org.gorpipe.gor.monitor.GorMonitor;
 import org.gorpipe.gor.session.GorContext;
 import org.gorpipe.gor.session.GorSession;
+import org.gorpipe.gor.table.PathUtils;
 import org.gorpipe.model.gor.iterators.RowSource;
 import org.gorpipe.spark.GorSparkSession;
 import org.gorpipe.spark.SparkOperatorRunner;
@@ -40,8 +41,8 @@ public class SparkPipeInstance extends PipeInstance {
     public Path getRelativeCachePath() {
         Path p = Paths.get(cachePath);
         if(p.isAbsolute()) {
-            Path realRoot = session.getProjectContext().getRealProjectRootPath();
-            return realRoot.relativize(p);
+            Path root = Paths.get(session.getProjectContext().getRoot());
+            return PathUtils.relativize(root, p);
         }
         return p;
     }
