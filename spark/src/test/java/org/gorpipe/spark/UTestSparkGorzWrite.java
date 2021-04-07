@@ -55,7 +55,7 @@ public class UTestSparkGorzWrite {
 
         GorzFlatMap gorzFlatMap = new GorzFlatMap();
         dss = ds.flatMap(gorzFlatMap, Encoders.STRING());
-        String result = dss.collectAsList().stream().collect(Collectors.joining("\n"));
+        String result = String.join("\n", dss.collectAsList());
 
         Assert.assertEquals("Wrong content loaded from in gorz file in spark", "[chr1,11868,14412,DDX11L1]\n[chr1,14362,29806,WASH7P]\n[chr1,34553,36081,FAM138A]\n[chr1,53048,54936,AL627309.1]", result);
     }

@@ -46,7 +46,7 @@ public class GorOutputWriter extends OutputWriter {
         String header = String.join("\t", schema.fieldNames());
         URI uri = URI.create(uristr);
         path = Paths.get(uri);
-        path.getParent().toFile().mkdirs();
+        Files.createDirectories(path.getParent());
         OutputStream os = Files.newOutputStream(path);
         of = new GorZipLexOutputStream(os, false, false, null, null, GorIndexType.NONE, Deflater.BEST_SPEED); //new OutFile(path.toString(), header, false, false);
         of.setHeader(header);
