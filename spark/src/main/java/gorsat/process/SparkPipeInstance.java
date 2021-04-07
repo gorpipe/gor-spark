@@ -8,9 +8,12 @@ import org.gorpipe.gor.driver.providers.stream.StreamSourceFile;
 import org.gorpipe.gor.driver.providers.stream.datatypes.parquet.ParquetFileIterator;
 import org.gorpipe.gor.driver.providers.stream.sources.file.FileSource;
 import org.gorpipe.gor.model.GenomicIterator;
+import org.gorpipe.gor.model.GenomicIteratorBase;
 import org.gorpipe.gor.model.Row;
 import org.gorpipe.gor.monitor.GorMonitor;
 import org.gorpipe.gor.session.GorContext;
+import org.gorpipe.gor.session.GorSession;
+import org.gorpipe.gor.table.PathUtils;
 import org.gorpipe.model.gor.iterators.RowSource;
 import org.gorpipe.spark.GorSparkSession;
 import org.gorpipe.spark.SparkOperatorRunner;
@@ -38,8 +41,8 @@ public class SparkPipeInstance extends PipeInstance {
     public Path getRelativeCachePath() {
         Path p = Paths.get(cachePath);
         if(p.isAbsolute()) {
-            Path realRoot = session.getProjectContext().getRealProjectRootPath();
-            return realRoot.relativize(p);
+            Path root = Paths.get(session.getProjectContext().getRoot());
+            return PathUtils.relativize(root, p);
         }
         return p;
     }
@@ -67,13 +70,13 @@ public class SparkPipeInstance extends PipeInstance {
     }
 
     @Override
-    public RowSource getIterator() {
+    public GenomicIterator getIterator() {
         if(hasResourceHints) return wrapGenomicIterator(genit);
         return super.getIterator();
     }
 
-    public RowSource wrapGenomicIterator(GenomicIterator gi) {
-        return new RowSource() {
+    public GenomicIterator wrapGenomicIterator(GenomicIterator gi) {
+        return new GenomicIteratorBase() {
             @Override
             public boolean hasNext() {
                 return gi.hasNext();
@@ -85,8 +88,8 @@ public class SparkPipeInstance extends PipeInstance {
             }
 
             @Override
-            public void setPosition(String seekChr, int seekPos) {
-                gi.seek(seekChr,seekPos);
+            public boolean seek(String seekChr, int seekPos) {
+                return gi.seek(seekChr,seekPos);
             }
 
             @Override
