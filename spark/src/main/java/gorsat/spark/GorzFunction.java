@@ -48,7 +48,7 @@ class GorzFunction implements Function1<PartitionedFile, Iterator<InternalRow>>,
 
         this.encoder = RowEncoder.apply(schema).resolveAndBind(sattr, SimpleAnalyzer$.MODULE$);
         this.serializer = encoder.createSerializer();
-        this.unzip = new Unzipper();
+        //this.unzip = new Unzipper(false);
         this.chrom = filters.stream().filter(f -> f instanceof EqualTo).map(f -> (EqualTo)f).filter(f -> f.attribute().equalsIgnoreCase("chrom")).map(EqualTo::value).map(Object::toString).findFirst().orElse(null);
         this.start = filters.stream().filter(f -> f instanceof GreaterThan).map(f -> (GreaterThan)f).filter(f -> f.attribute().equalsIgnoreCase("pos")).map(GreaterThan::value).map(f -> (Integer)f).findFirst().orElse(-1);
         this.stop = filters.stream().filter(f -> f instanceof LessThan).map(f -> (LessThan)f).filter(f -> f.attribute().equalsIgnoreCase("pos")).map(LessThan::value).map(f -> (Integer)f).findFirst().orElse(-1);

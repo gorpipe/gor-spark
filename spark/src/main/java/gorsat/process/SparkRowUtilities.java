@@ -21,12 +21,14 @@ import org.gorpipe.gor.driver.providers.stream.sources.StreamSource;
 import org.gorpipe.gor.model.ParquetLine;
 import org.gorpipe.gor.model.Row;
 import org.gorpipe.spark.GorSparkSession;
+import org.gorpipe.spark.GorzFlatMapFunction;
 import org.gorpipe.spark.RowDataType;
 import org.gorpipe.spark.RowGorRDD;
 import org.gorpipe.util.collection.ByteArray;
 import scala.collection.JavaConverters;
 
 import java.io.*;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -466,51 +468,8 @@ public class SparkRowUtilities {
 
                             ExpressionEncoder<org.apache.spark.sql.Row> encoder = RowEncoder.apply(schema);
 
-                            final boolean withStart = gorDataType.withStart;
-                            gor = ((Dataset<org.apache.spark.sql.Row>) gor).<org.apache.spark.sql.Row>flatMap((FlatMapFunction<org.apache.spark.sql.Row, org.apache.spark.sql.Row>) row -> {
-                                String zip = withStart ? row.getString(3) : row.getString(2);
-                                char tp = zip.charAt(0);
-                                final CompressionType compressionLibrary = (tp & 0x02) == 0 ? CompressionType.ZLIB : CompressionType.ZSTD;
-                                String zipo = zip.substring(1);
-                                byte[] bb;
-                                try {
-                                    bb = Base64.getDecoder().decode(zipo);
-                                } catch (Exception e) {
-                                    bb = ByteArray.to8Bit(zipo.getBytes());
-                                }
-                                Unzipper unzip = new Unzipper();
-                                unzip.setType(compressionLibrary);
-                                unzip.setRawInput(bb, 0, bb.length);
-                                int unzipLen = unzip.decompress(unzipBuffer, 0, unzipBuffer.length);
-                                ByteArrayInputStream bais = new ByteArrayInputStream(unzipBuffer, 0, unzipLen);
-                                InputStreamReader isr = new InputStreamReader(bais);
-                                BufferedReader br = new BufferedReader(isr);
-                                return (nor ? br.lines().map(line -> {
-                                    String[] split = line.split("\t");
-                                    Object[] objs = new Object[split.length];
-                                    for (int i = 0; i < split.length; i++) {
-                                        if (dataTypeMap.containsKey(i)) {
-                                            if (dataTypeMap.get(i) == IntegerType)
-                                                objs[i] = Integer.parseInt(split[i]);
-                                            else objs[i] = Double.parseDouble(split[i]);
-                                        } else objs[i] = split[i];
-                                    }
-                                    return RowFactory.create(objs);
-                                }) : br.lines().map(line -> {
-                                    String[] split = line.split("\t");
-                                    Object[] objs = new Object[split.length];
-                                    objs[0] = split[0];
-                                    objs[1] = Integer.parseInt(split[1]);
-                                    for (int i = 2; i < split.length; i++) {
-                                        if (dataTypeMap.containsKey(i)) {
-                                            if (dataTypeMap.get(i) == IntegerType)
-                                                objs[i] = Integer.parseInt(split[i]);
-                                            else objs[i] = Double.parseDouble(split[i]);
-                                        } else objs[i] = split[i];
-                                    }
-                                    return RowFactory.create(objs);
-                                })).iterator();
-                            }, encoder);
+                            GorzFlatMapFunction gorzFlatMap = new GorzFlatMapFunction(gorDataType);
+                            gor = ((Dataset<org.apache.spark.sql.Row>) gor).<org.apache.spark.sql.Row>flatMap(gorzFlatMap, encoder);
                             if (chr != null) {
                                 gor = ((Dataset<org.apache.spark.sql.Row>) gor).filter((FilterFunction<org.apache.spark.sql.Row>) row -> {
                                     int p = row.getInt(1);
@@ -535,8 +494,6 @@ public class SparkRowUtilities {
         }
         return gor;
     }
-
-    static byte[] unzipBuffer = new byte[1 << 17];
 
     public static GorDataType inferDataTypes(Path filePath, String fileName, boolean isGorz, boolean nor) throws IOException, DataFormatException {
         boolean isUrl = fileName.contains("://");
@@ -589,20 +546,22 @@ public class SparkRowUtilities {
                     }
                     is.close();
                     byte[] baosArray = baos.toByteArray();
-                    byte[] bb;
+                    ByteBuffer bb;
                     try {
-                        bb = Base64.getDecoder().decode(baosArray);
+                        bb = ByteBuffer.wrap(Base64.getDecoder().decode(baosArray));
                     } catch (Throwable e) {
                         base128 = true;
-                        bb = ByteArray.to8Bit(baosArray);
+                        bb = ByteBuffer.wrap(ByteArray.to8Bit(baosArray));
                     }
-                    Unzipper unzip = new Unzipper();
+                    Unzipper unzip = new Unzipper(false);
                     unzip.setType(compressionLibrary);
-                    unzip.setRawInput(bb, 0, bb.length);
-                    int unzipLen = unzip.decompress(unzipBuffer, 0, unzipBuffer.length);
-                    String str = new String(unzipBuffer, 0, unzipLen);
-                    StringReader strreader = new StringReader(str);
-                    linestream = new BufferedReader(strreader).lines();
+                    unzip.setInput(bb, 0, bb.capacity());
+                    int unzipLen = unzip.decompress(0, 1 << 17);
+                    ByteArrayInputStream bais = new ByteArrayInputStream(unzip.out.array(), 0, unzipLen);
+                    InputStreamReader isr = new InputStreamReader(bais);
+                    //String str = new String(unzipBuffer, 0, unzipLen);
+                    //StringReader strreader = new StringReader(str);
+                    linestream = new BufferedReader(isr).lines();
                 } else linestream = Stream.empty();
             } else {
                 is.close();
@@ -638,7 +597,7 @@ public class SparkRowUtilities {
                 gortypes[i] = "S";
             }
         }
-        return new GorDataType(dataTypeMap, withStart, header, gortypes);
+        return new GorDataType(dataTypeMap, withStart, header, gortypes, false);
     }
 
     public static GorDataType typeFromStream(Stream<String> linestream, boolean withStart, String[] headerArray, final boolean nor) {
@@ -711,6 +670,6 @@ public class SparkRowUtilities {
             return dataTypeMap.size() > 0;
         });
 
-        return new GorDataType(dataTypeMap, withStart, headerArray, gortypes, base128);
+        return new GorDataType(dataTypeMap, withStart, headerArray, gortypes, base128, nor);
     }
 }
