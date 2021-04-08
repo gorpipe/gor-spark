@@ -70,6 +70,7 @@ public class SparkRowSource extends ProcessSource {
 
     public SparkRowSource(String sql, String profile, String parquet, String type, boolean nor, GorSparkSession gpSession, final String filter, final String filterFile, final String filterColumn, final String splitFile, final String chr, final int pos, final int end, boolean usestreaming, String jobId, boolean useCpp, String parts, int buckets, boolean tag, String ddl) throws IOException, DataFormatException {
         init();
+        this.sql = sql;
         this.jobId = jobId;
         this.tag = tag;
 
@@ -165,6 +166,7 @@ public class SparkRowSource extends ProcessSource {
         setHeader((nor || checknor ? "chrNOR\tposNOR\t" : "") + correctHeader(dataset.columns()));
     }
 
+    String sql;
     String errorStr = "";
     List<String> commands;
     String type;
@@ -817,9 +819,13 @@ public class SparkRowSource extends ProcessSource {
             int k = id+5;
             char c = filename.charAt(k);
             while(c==' ') c = filename.charAt(++k);
-            while(c!=' ') c = filename.charAt(++k);
-            pcacomponents = Integer.parseInt(filename.substring(id+5,k).trim());
-            this.parquetPath = filename.substring(k+1).trim();
+            while(k < filename.length() && c!=' ') c = filename.charAt(k++);
+            String pcompstr = filename.substring(id+5,k).trim();
+            pcacomponents = Integer.parseInt(pcompstr);
+            this.parquetPath = filename.substring(k).trim();
+            if(this.parquetPath.length()==0) {
+                this.parquetPath = gorSparkSession.getProjectContext().getFileCache().tempLocation(jobId,CommandParseUtilities.getExtensionForQuery(sql.startsWith("<(") ? "spark "+sql : sql, false));
+            }
         } else {
             this.parquetPath = filename;
         }

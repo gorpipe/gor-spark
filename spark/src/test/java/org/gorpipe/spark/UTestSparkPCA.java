@@ -5,7 +5,10 @@ import gorsat.process.SparkPipeInstance;
 import io.projectglow.Glow;
 import org.apache.spark.sql.SparkSession;
 import org.gorpipe.gor.session.GorSession;
-import org.junit.*;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -44,7 +47,6 @@ public class UTestSparkPCA {
     }
 
     @Test
-    @Ignore("Not ready")
     public void testSparkPCAModelWrite() throws IOException {
         Path bucketFile = Paths.get("buckets.tsv");
         Path variantBucketFile1 = Paths.get("variants1.gor");
