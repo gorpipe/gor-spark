@@ -5,7 +5,7 @@ plugins {
     id 'gor.scala-common'
 }
 
-project(':spark') {
+project(':gorshell') {
     configurations.all {
         if (name.startsWith("incrementalScalaAnalysis")) {
             extendsFrom = []
@@ -16,9 +16,12 @@ project(':spark') {
     sourceSets.main.java.srcDirs = []
 
     dependencies {
+        implementation project(":spark")
+
         implementation("${gorArtifactGroupId}:gor-base:${gorVersion}")
         implementation("${gorArtifactGroupId}:gor-model:${gorVersion}")
         implementation("${gorArtifactGroupId}:gor-gortools:${gorVersion}")
+        implementation("${gorArtifactGroupId}:gor-gorscripts:${gorVersion}")
         implementation("${gorArtifactGroupId}:gor-util:${gorVersion}")
 
         implementation ('org.apache.spark:spark-core_2.12:3.1.1') {
@@ -74,14 +77,6 @@ project(':spark') {
         implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.0'
         implementation group: 'com.fasterxml.jackson.module', name: 'jackson-module-scala_2.12', version: '2.11.0'
 
-        /*compile('org.broadinstitute:gatk:4.1.4.1') {
-            exclude group: 'com.esotericsoftware'
-            exclude group: 'org.apache.commons', module: 'commons-vfs2'
-            exclude group: 'org.apache.spark'
-            exclude group: 'org.bdgenomics.adam'
-        }
-        compile group: 'org.broadinstitute', name: 'gatk-native-bindings', version: '1.0.0'*/
-
         implementation group: 'org.apache.logging.log4j', name: 'log4j', version: '2.13.3', ext: 'pom'
         implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.13.3', ext: 'pom'
         implementation group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.13.3', ext: 'pom'
@@ -96,29 +91,52 @@ project(':spark') {
         implementation "org.aeonbits.owner:owner:1.0.12"
         implementation 'info.picocli:picocli-shell-jline3:4.1.4'
 
-        /*compile group: 'com.typesafe.scala-logging', name: 'scala-logging_2.12', version: '3.9.2'
-        compile group: 'org.jdbi', name: 'jdbi', version: '2.78'
-        compile group: 'org.seqdoop', name: 'hadoop-bam', version: '7.10.0'
-
-        compile group: 'com.clearspring.analytics', name: 'stream', version: '2.9.8'
-        compile group: 'com.esotericsoftware', name: 'kryo-shaded', version: '4.0.2'
-        compile group: 'org.lz4', name: 'lz4-java', version: '1.7.0'
-        compile group: 'org.apache.xbean', name: 'xbean-asm7-shaded', version: '4.15'
-        compile group: 'com.univocity', name: 'univocity-parsers', version: '2.8.4'
-        compile group: 'org.fusesource.leveldbjni', name: 'leveldbjni', version: '1.8'
-
-        compile "org.codehaus.janino:janino:3.0.15"
-        compile "org.codehaus.janino:commons-compiler:3.0.15"
-
-        compile "org.json4s:json4s-core_2.12:3.6.7"
-        compile "org.json4s:json4s-ast_2.12:3.6.7"
-        compile "org.json4s:json4s-jackson_2.12:3.6.7"
-        compile "org.apache.commons:commons-lang3:3.9"*/
-
         implementation("redis.clients:jedis:3.5.1")
 
         implementation 'io.kubernetes:client-java:11.0.0'
 
         testImplementation("${gorArtifactGroupId}:gor-test:${gorVersion}")
+    }
+
+    jar {
+        manifest.attributes 'Main-Class': "gorsat.process.SparkPipe"
+    }
+
+    def scripts = [
+            'gorpipe'   : ['className'     : 'org.gorpipe.spark.SparkPipe',
+                           'defaultJvmOpts': ['-Djava.security.egd=file:/dev/./urandom',
+                                              '-Dgor.querylimits.writequota.mb=0',
+                                              '-Dgor.querylimits.timeout.seconds=0',
+                                              '-Dlog4j.configurationFile=__APP_HOME__/config/log4j-console.xml']],
+
+            'gorshell'   : ['className'     : 'org.gorpipe.gorshell.GorSparkShell',
+                            'defaultJvmOpts': ['-Djava.security.egd=file:/dev/./urandom',
+                                               '-Dgor.querylimits.writequota.mb=0',
+                                               '-Dgor.querylimits.timeout.seconds=0',
+                                               '-Dlog4j.configurationFile=__APP_HOME__/config/log4j.xml']],
+
+            'gor'       : ['className'     : 'org.gorpipe.gor.cli.GorCLI',
+                           'defaultJvmOpts': ['-Djava.security.egd=file:/dev/./urandom',
+                                              '-Dgor.querylimits.writequota.mb=0',
+                                              '-Dgor.querylimits.timeout.seconds=0',
+                                              '-Dlog4j.configurationFile=__APP_HOME__/config/log4j-console.xml']],
+
+            'jessica'   : ['override'      : 'startScripts',
+                           'className'     : 'org.gorpipe.jessica.Jessica',
+                           'defaultJvmOpts': []],
+
+            'gormanager': ['className'     : 'org.gorpipe.gor.manager.TableManagerCLI',
+                           'defaultJvmOpts': ['-Djava.security.egd=file:/dev/./urandom',
+                                              '-Dgor.querylimits.writequota.mb=0',
+                                              '-Dgor.querylimits.timeout.seconds=0',
+                                              '-Dlog4j.configurationFile=__APP_HOME__/config/log4j.xml']],
+
+            'gortool'   : ['className'     : 'org.gorpipe.gor.tools.GorToolsCLI',
+                           'defaultJvmOpts': ['-Dlog4j.configurationFile=__APP_HOME__/config/log4j.xml']]
+    ]
+
+    scripts.each() { scriptName, params ->
+        def t = params.containsKey('override') ? tasks.getByName(params.override) : tasks.create(name: scriptName + 'StartScript', type: CreateStartScripts)
+        updateScriptTask("GOR", scriptName, params, t, project)
     }
 }

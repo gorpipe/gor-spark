@@ -35,6 +35,11 @@ publishing {
             artifactId = getCustomProjectId()
             groupId = getCustomGroupId()
 
+            if (project.hasProperty('publishToMavenCentral')) {
+                artifact javadocJar
+                artifact sourcesJar
+            }
+
             pom {
                 name = 'Gorpipe'
                 description = 'GORpipe allows analysis of large sets of genomic and phenotypic tabular data using a declarative query language in a parallel execution engine'

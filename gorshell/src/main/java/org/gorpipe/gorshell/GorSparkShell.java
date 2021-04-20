@@ -23,7 +23,7 @@
 package org.gorpipe.gorshell;
 
 import gorsat.process.PipeInstance;
-import org.gorpipe.gor.util.ConfigUtil;
+import org.gorpipe.util.ConfigUtil;
 import org.gorpipe.logging.GorLogbackUtil;
 
 import java.io.IOException;
