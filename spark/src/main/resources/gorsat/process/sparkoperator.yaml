@@ -6,13 +6,13 @@ metadata:
 spec:
   type: Java
   mode: cluster
-  image: nextcode/spark:1.2.0
+  image: nextcode/spark:1.3.3
   imagePullPolicy: Always
   imagePullSecrets:
     - dockerhub-nextcode-download-credentials
-  mainApplicationFile: local:///opt/spark/jars/gor-spark-3.0.1.jar
+  mainApplicationFile: local:///opt/spark/jars/gor-spark-1.3.3.jar
   mainClass: org.gorpipe.spark.redis.RedisBatchConsumer
-  sparkVersion: 3.0.1
+  sparkVersion: 3.1.1
   restartPolicy:
     type: OnFailure
     onFailureRetries: 1
@@ -37,7 +37,7 @@ spec:
     coreLimit: 1200m
     memory: 1500m
     labels:
-      version: v3.0.1
+      version: v3.1.1
     securityContext:
       runAsUser: 3000
       fsGroup: 3000
@@ -46,7 +46,7 @@ spec:
     instances: 1
     memory: 900m
     labels:
-      version: v3.0.1
+      version: v3.1.1
     securityContext:
       runAsUser: 3000
       fsGroup: 3000

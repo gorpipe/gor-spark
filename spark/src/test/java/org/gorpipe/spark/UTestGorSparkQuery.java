@@ -1,7 +1,9 @@
 package org.gorpipe.spark;
 
-import gorsat.process.PipeInstance;
 import gorsat.process.PipeOptions;
+import gorsat.process.SparkPipeInstance;
+import io.projectglow.Glow;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.gorpipe.gor.session.GorSession;
 import org.junit.*;
@@ -16,7 +18,8 @@ import java.util.stream.StreamSupport;
 
 public class UTestGorSparkQuery {
     SparkSession spark;
-    PipeInstance pi;
+    GorSparkSession sparkGorSession;
+    SparkPipeInstance pi;
 
     @Before
     public void init() {
@@ -24,7 +27,8 @@ public class UTestGorSparkQuery {
         //Glow.register(spark);
         SparkSessionFactory sparkSessionFactory = new SparkSessionFactory(spark, Paths.get(".").toAbsolutePath().normalize().toString(), System.getProperty("java.io.tmpdir"), null, null, null);
         GorSession session = sparkSessionFactory.create();
-        pi = new PipeInstance(session.getGorContext());
+        sparkGorSession = (GorSparkSession) session;
+        pi = new SparkPipeInstance(session.getGorContext());
     }
 
     private void testSparkQuery(String query, String expectedResult) {
@@ -93,6 +97,13 @@ public class UTestGorSparkQuery {
                 "BRCA2\n" +
                         "BRCA1");
         Files.delete(tmpfile);
+    }
+
+    @Test
+    public void testEmptySplit() {
+        var res = sparkGorSession.dataframe("pgor -split <(gor -p chrA ../tests/data/gor/genes.gorz) ../tests/data/gor/genes.gorz", null);
+        var sres = res.collectAsList().stream().map(Row::toString).collect(Collectors.joining("\n"));
+        Assert.assertEquals("Wrong result","",sres);
     }
 
     @Test

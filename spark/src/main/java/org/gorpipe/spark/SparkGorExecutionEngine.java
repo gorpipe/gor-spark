@@ -42,6 +42,7 @@ public class SparkGorExecutionEngine extends GorExecutionEngine {
     public void execute() {
         GenomicIterator brs = null;
         Processor processor = null;
+        Exception exception = null;
         try(GorSession session = createSession()) {
             PipeInstance pinst = createIterator(session);
             GenomicIterator iterator = pinst.theInputSource();
@@ -55,11 +56,11 @@ public class SparkGorExecutionEngine extends GorExecutionEngine {
                 }
             }
         } catch (Exception ex) {
-            if( brs != null ) brs.setEx(ex);
+            exception = ex;
             throw ex;
         } finally {
             try {
-                if( processor != null ) processor.securedFinish(brs != null ? brs.getEx() : null);
+                if( processor != null ) processor.securedFinish(exception);
             } finally {
                 if( brs != null ) brs.close();
             }
@@ -79,7 +80,7 @@ public class SparkGorExecutionEngine extends GorExecutionEngine {
         if(!pi.hasResourceHints()) {
             String theHeader = pi.getIterator().getHeader();
             if (outfile != null) {
-                Output ofile = OutFile.apply(outfile, theHeader, false, false, pi.isNorContext(), true, GorIndexType.NONE, Option.empty(), Deflater.BEST_SPEED);
+                Output ofile = OutFile.apply(outfile, session.getProjectContext().getFileReader(), theHeader, false, false, pi.isNorContext(), true, true, GorIndexType.NONE, Option.<String>empty(), Deflater.BEST_SPEED);
                 pi.thePipeStep_$eq(pi.thePipeStep().$bar(ofile));
             } else {
                 String header = pi.getHeader();

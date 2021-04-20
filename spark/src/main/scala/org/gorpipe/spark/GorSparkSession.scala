@@ -136,7 +136,7 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
     val slicecreates = qryspl.slice(0,qryspl.length-1)
     val increates = if(slicecreates.length > 0) slicecreates.mkString("",";",";") else ""
     val query = if(!lastqry.toLowerCase.startsWith("spark ") && !lastqry.toLowerCase.startsWith("select ")) {
-      "spark {"+lastqry+"}"
+      (if(sc!=null) "spark -schema {"+sc.toDDL+"} " else "spark ") + "{"+lastqry+"}"
     } else lastqry
     val createQueries = getCreateQueries(increates)
     val fullQuery = if (createQueries.length > 0) createQueries + query else query

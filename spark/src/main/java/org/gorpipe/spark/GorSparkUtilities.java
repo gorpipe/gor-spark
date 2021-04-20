@@ -8,6 +8,7 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
 import org.gorpipe.gor.model.Row;
 import org.gorpipe.spark.udfs.CharToDoubleArray;
+import org.gorpipe.spark.udfs.CharToDoubleArrayParallel;
 import org.gorpipe.spark.udfs.CommaToDoubleArray;
 import org.gorpipe.spark.udfs.CommaToDoubleMatrix;
 import org.gorpipe.spark.udfs.CommaToIntArray;
@@ -120,12 +121,13 @@ public class GorSparkUtilities {
         SparkSession spark = ssb.config(sparkConf).getOrCreate();
 
         spark.udf().register("chartodoublearray", new CharToDoubleArray(), DataTypes.createArrayType(DataTypes.DoubleType));
+        spark.udf().register("chartodoublearrayparallel", new CharToDoubleArrayParallel(), DataTypes.createArrayType(DataTypes.DoubleType));
         spark.udf().register("todoublearray", new CommaToDoubleArray(), DataTypes.createArrayType(DataTypes.DoubleType));
         spark.udf().register("todoublematrix", new CommaToDoubleMatrix(), SQLDataTypes.MatrixType());
         spark.udf().register("tointarray", new CommaToIntArray(), DataTypes.createArrayType(DataTypes.IntegerType));
 
         GlowBase gb = new GlowBase();
-        gb.register(spark);
+        gb.register(spark, false);
 
         return spark;
     }

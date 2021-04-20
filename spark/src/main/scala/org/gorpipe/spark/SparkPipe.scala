@@ -6,7 +6,7 @@ import org.gorpipe.base.config.ConfigManager
 import org.gorpipe.exceptions.{ExceptionUtilities, GorException}
 import org.gorpipe.gor.model.{DbSource, DefaultFileReader}
 import org.gorpipe.gor.servers.GorConfig
-import org.gorpipe.gor.util.ConfigUtil
+import org.gorpipe.util.ConfigUtil
 import org.slf4j.LoggerFactory
 
 import scala.language.postfixOps

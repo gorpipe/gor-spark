@@ -5,6 +5,7 @@ import gorsat.BatchedReadSource;
 import gorsat.process.GorPipe;
 import gorsat.process.PipeInstance;
 import gorsat.process.PipeOptions;
+import gorsat.process.SparkPipeInstance;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder;
@@ -66,7 +67,7 @@ public class GorPartitionReader implements PartitionReader<InternalRow> {
         return epathstr;
     }
 
-    private GenomicIterator iteratorFromFile(PipeInstance pi) {
+    private GenomicIterator iteratorFromFile(SparkPipeInstance pi) {
         boolean useNative = useCpp != null && useCpp.equalsIgnoreCase("true");
         String seek = useNative ? "cmd " : "gor ";
 
@@ -90,7 +91,7 @@ public class GorPartitionReader implements PartitionReader<InternalRow> {
         }
     }
 
-    private RowSource iteratorWithPipeSteps(PipeInstance pi) {
+    private GenomicIterator iteratorWithPipeSteps(PipeInstance pi) {
         pi.init(p.query, false, null);
 
         GenomicIterator rowSource = pi.theInputSource();
@@ -108,7 +109,7 @@ public class GorPartitionReader implements PartitionReader<InternalRow> {
 
         SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectRoot, cacheDir, configFile, aliasFile, sparkGorMonitor);
         GorSparkSession gorPipeSession = (GorSparkSession) sessionFactory.create();
-        PipeInstance pi = new PipeInstance(gorPipeSession.getGorContext());
+        SparkPipeInstance pi = new SparkPipeInstance(gorPipeSession.getGorContext());
 
         if(p.query!=null) {
             iterator = iteratorWithPipeSteps(pi);

@@ -11,7 +11,7 @@ public class ReceiveQueryHandler implements GorParallelQueryHandler {
     }
 
     @Override
-    public String[] executeBatch(String[] fingerprints, String[] commandsToExecute, String[] batchGroupNames, GorMonitor cancelMonitor) {
+    public String[] executeBatch(String[] fingerprints, String[] commandsToExecute, String[] batchGroupNames, String[] cacheFiles, GorMonitor cancelMonitor) {
         this.commandsToExecute = commandsToExecute;
 
         return new String[0];
