@@ -96,6 +96,8 @@ project(':spark') {
         implementation "org.aeonbits.owner:owner:1.0.12"
         implementation 'info.picocli:picocli-shell-jline3:4.1.4'
 
+        runtimeOnly "io.prometheus.jmx:jmx_prometheus_javaagent:0.15.0"
+
         /*compile group: 'com.typesafe.scala-logging', name: 'scala-logging_2.12', version: '3.9.2'
         compile group: 'org.jdbi', name: 'jdbi', version: '2.78'
         compile group: 'org.seqdoop', name: 'hadoop-bam', version: '7.10.0'
