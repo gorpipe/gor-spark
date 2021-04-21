@@ -42,7 +42,7 @@ public class UTestSparkPCA {
         PipeOptions pipeOptions = new PipeOptions();
         pipeOptions.query_$eq(query);
         pi.subProcessArguments(pipeOptions);
-        String content = StreamSupport.stream(Spliterators.spliteratorUnknownSize(pi.theInputSource(), 0), false).map(Row::otherCols).collect(Collectors.joining("\n"));
+        String content = StreamSupport.stream(Spliterators.spliteratorUnknownSize(pi.theInputSource(), 0), false).map(Row::otherCols).sorted().collect(Collectors.joining("\n"));
         String header = pi.getHeader();
         String result = header.substring(header.indexOf("\t",header.indexOf("\t")+1)+1) + "\n" + content;
         Assert.assertEquals("Wrong results from spark query: " + query, expectedResult, result);
@@ -98,13 +98,13 @@ public class UTestSparkPCA {
                         "b\t1,,,0.6483044836643852,-0.7536972957915549\n" +
                         "c\t1,,,-0.7612452225129875,-0.6442659253692565\n" +
                         "d\t1,,,-0.07986116231206566,-0.9885092735321991\n" +
-                        "i\t1,,,-0.046658580476841016,-0.7796623742913575\n" +
-                        "j\t1,,,-0.05798882734257649,-0.8790037110490492\n" +
-                        "k\t1,,,-0.7612452225129875,-0.6442659253692565\n" +
-                        "l\t1,,,-0.39094784691610396,-0.9133126394545222\n" +
                         "e\t1,,,0.0,0.0\n" +
                         "f\t1,,,0.23942194521938825,-0.9622518360815662\n" +
                         "g\t1,,,0.6483044836643852,-0.7536972957915549\n" +
-                        "h\t1,,,-0.39094784691610396,-0.9133126394545222");
+                        "h\t1,,,-0.39094784691610396,-0.9133126394545222\n" +
+                        "i\t1,,,-0.046658580476841016,-0.7796623742913575\n" +
+                        "j\t1,,,-0.05798882734257649,-0.8790037110490492\n" +
+                        "k\t1,,,-0.7612452225129875,-0.6442659253692565\n" +
+                        "l\t1,,,-0.39094784691610396,-0.9133126394545222");
     }
 }
