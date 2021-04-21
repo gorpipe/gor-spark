@@ -6,7 +6,7 @@ FROM nextcode/basespark:3.1.1
 # docker build --build-arg java_image_tag=15-slim --build-arg spark_uid=3000 -t nextcode/basespark:[version] -f kubernetes/dockerfiles/spark/Dockerfile .
 # docker push
 
-COPY spark/build/install/gor-scripts/lib /opt/spark/jars
+COPY spark/build/install/spark/lib /opt/spark/jars
 
 USER root
 RUN rm -rf /opt/spark/jars/netty-all-4.0.23.Final.jar
