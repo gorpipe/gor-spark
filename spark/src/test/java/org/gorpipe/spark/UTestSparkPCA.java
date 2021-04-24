@@ -138,7 +138,7 @@ public class UTestSparkPCA {
                 "variants3.gor\t3\tchr1\t0\tchrZ\t1000000000\ti,j,k,l\n");
 
         testSparkQuery(
-                "create xxx = spark <(pgor -split <(nor "+variantBucketFile1+" | select chrom,pos | replace pos pos-1 | calc end pos+1) "+variantDictFile +
+                "create xxx = spark <(pgor -split <(gor <(nor "+variantBucketFile1+" | select chrom,pos | replace pos pos-1 | calc end pos+1)) "+variantDictFile +
                         "| rename Chrom CHROM | rename ref REF | rename alt ALT " +
                         "| calc ID chrom+'_'+pos+'_'+ref+'_'+alt " +
                         "| csvsel "+bucketFile+" <(nor pns.txt | select pn) -u 3 -gc id,ref,alt -vs 1 | replace values 'u'+values)" +
