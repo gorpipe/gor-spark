@@ -107,4 +107,41 @@ public class UTestSparkPCA {
                         "k\t1,,,-0.7612452225129875,-0.6442659253692565\n" +
                         "l\t1,,,-0.39094784691610396,-0.9133126394545222");
     }
+
+    @Test
+    public void testSparkGlowGR() throws IOException {
+        Path bucketFile = Paths.get("buckets.tsv");
+        Path variantBucketFile1 = Paths.get("variants1.gor");
+        Path variantBucketFile2 = Paths.get("variants2.gor");
+        Path variantBucketFile3 = Paths.get("variants3.gor");
+        Path variantDictFile = Paths.get("variants.gord");
+        Path pnpath = Paths.get("pns.txt");
+        Files.writeString(pnpath,"#pn\na\nb\nc\nd\ne\nf\ng\nh\ni\nj\nk\nl\n");
+        Files.writeString(bucketFile, "a\t1\nb\t1\nc\t1\nd\t1\ne\t2\nf\t2\ng\t2\nh\t2\ni\t3\nj\t3\nk\t3\nl\t3\n");
+        Files.writeString(variantBucketFile1,"Chrom\tpos\tref\talt\tbucket\tvalues\n"+
+                "chr1\t10\tA\tC\t1\t0011\n"+
+                "chr1\t20\tG\tC\t1\t0201\n"+
+                "chr1\t30\tA\tC\t1\t0011\n"+
+                "chr1\t40\tG\tC\t1\t0201\n");
+        Files.writeString(variantBucketFile2,"Chrom\tpos\tref\talt\tbucket\tvalues\n"+
+                "chr1\t10\tA\tC\t2\t0102\n"+
+                "chr1\t20\tG\tC\t2\t0221\n"+
+                "chr1\t30\tA\tC\t2\t0102\n"+
+                "chr1\t40\tG\tC\t2\t0221\n");
+        Files.writeString(variantBucketFile3,"Chrom\tpos\tref\talt\tbucket\tvalues\n"+
+                "chr1\t10\tA\tC\t3\t0122\n"+
+                "chr1\t20\tG\tC\t3\t1201\n"+
+                "chr1\t30\tA\tC\t3\t1122\n"+
+                "chr1\t40\tG\tC\t3\t0001\n");
+        Files.writeString(variantDictFile,"variants1.gor\t1\tchr1\t0\tchrZ\t1000000000\ta,b,c,d\n"+
+                "variants2.gor\t2\tchr1\t0\tchrZ\t1000000000\te,f,g,h\n"+
+                "variants3.gor\t3\tchr1\t0\tchrZ\t1000000000\ti,j,k,l\n");
+
+        testSparkQuery(
+                "create xxx = spark <(pgor -split <(nor "+variantBucketFile1+" | select chrom,pos | replace pos pos-1 | calc end pos+1) "+variantDictFile +
+                        "| rename Chrom CHROM | rename ref REF | rename alt ALT " +
+                        "| calc ID chrom+'_'+pos+'_'+ref+'_'+alt " +
+                        "| csvsel "+bucketFile+" <(nor pns.txt | select pn) -u 3 -gc id,ref,alt -vs 1 | replace values 'u'+values)" +
+                        "; gor [xxx]","");
+    }
 }
