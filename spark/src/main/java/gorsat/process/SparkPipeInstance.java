@@ -38,6 +38,10 @@ public class SparkPipeInstance extends PipeInstance {
         this.cachePath = cachePath;
     }
 
+    public static SparkPipeInstance createGorIterator(GorContext context) {
+        return new SparkPipeInstance(context);
+    }
+
     public Path getRelativeCachePath() {
         Path p = Paths.get(cachePath);
         if(p.isAbsolute()) {
