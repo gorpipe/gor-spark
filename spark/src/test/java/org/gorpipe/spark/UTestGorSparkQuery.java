@@ -39,6 +39,14 @@ public class UTestGorSparkQuery {
         Assert.assertEquals("Wrong results from spark query: " + query, expectedResult, result);
     }
 
+    private void testSparkGorQuery(String query, String expectedResult) {
+        PipeOptions pipeOptions = new PipeOptions();
+        pipeOptions.query_$eq(query);
+        pi.subProcessArguments(pipeOptions);
+        String result = StreamSupport.stream(Spliterators.spliteratorUnknownSize(pi.getIterator(), 0), false).map(Object::toString).collect(Collectors.joining("\n"));
+        Assert.assertEquals("Wrong results from spark query: " + query, expectedResult, result);
+    }
+
     @Test
     public void testGorzSparkSelectQuery() {
         testSparkQuery("select -p chr1 * from ../tests/data/gor/genes.gorz limit 5", "chr1\t11868\t14412\tDDX11L1\n" +
@@ -195,6 +203,17 @@ public class UTestGorSparkQuery {
         Path pyscript = Paths.get("pass.py");
         Files.writeString(pyscript, pycode);
         testSparkQuery("spark ../tests/data/gor/genes.gorz | top 100 | cmd {python pass.py} | group chrom -count", "chr1\t0\t250000000\t100");
+    }
+
+    @Test
+    public void testWritePassThrough() {
+        Path path = Paths.get("gorfile.gorz");
+        testSparkGorQuery("gor ../tests/data/gor/genes.gor | top 1 | write -p " + path,"chr1\t11868\t14412\tDDX11L1");
+        try {
+            Files.delete(path);
+        } catch (IOException e) {
+            // Ignore
+        }
     }
 
     @After
