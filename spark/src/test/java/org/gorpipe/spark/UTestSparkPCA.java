@@ -4,8 +4,10 @@ import gorsat.process.PipeOptions;
 import gorsat.process.SparkPipeInstance;
 import io.projectglow.Glow;
 import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.types.DataTypes;
 import org.gorpipe.gor.model.Row;
 import org.gorpipe.gor.session.GorSession;
+import org.gorpipe.spark.udfs.CharToDoubleArray;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -17,6 +19,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Spliterators;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 public class UTestSparkPCA {
@@ -27,7 +30,8 @@ public class UTestSparkPCA {
     public void init() {
         spark = SparkSession.builder().master("local[2]").getOrCreate();
         Glow.register(spark, false);
-        SparkSessionFactory sparkSessionFactory = new SparkSessionFactory(spark, Paths.get(".").toAbsolutePath().normalize().toString(), System.getProperty("java.io.tmpdir"), null, null, null);
+        spark.udf().register("chartodoublearray", new CharToDoubleArray(), DataTypes.createArrayType(DataTypes.DoubleType));
+        SparkSessionFactory sparkSessionFactory = new SparkSessionFactory(spark, Paths.get(".").toAbsolutePath().normalize().toString(), "/Users/sigmar/gorproject/result_cache/"/*System.getProperty("java.io.tmpdir")*/, null, null, null);
         GorSession session = sparkSessionFactory.create();
         pi = new SparkPipeInstance(session.getGorContext());
     }
@@ -38,13 +42,16 @@ public class UTestSparkPCA {
         if (spark != null) spark.close();
     }
 
-    private void testSparkQuery(String query, String expectedResult) {
+    private void testSparkQuery(String query, String expectedResult, boolean nor) {
         PipeOptions pipeOptions = new PipeOptions();
         pipeOptions.query_$eq(query);
         pi.subProcessArguments(pipeOptions);
-        String content = StreamSupport.stream(Spliterators.spliteratorUnknownSize(pi.theInputSource(), 0), false).map(Row::otherCols).sorted().collect(Collectors.joining("\n"));
+        Stream<Row> stream = StreamSupport.stream(Spliterators.spliteratorUnknownSize(pi.theInputSource(), 0), false);
+        Stream<String> strstream = nor ? stream.map(Row::otherCols).sorted() : stream.map(Row::toString);
+        String content = strstream.collect(Collectors.joining("\n"));
         String header = pi.getHeader();
-        String result = header.substring(header.indexOf("\t",header.indexOf("\t")+1)+1) + "\n" + content;
+        if(nor) header = header.substring(header.indexOf("\t",header.indexOf("\t")+1)+1);
+        String result = header + "\n" + content;
         Assert.assertEquals("Wrong results from spark query: " + query, expectedResult, result);
     }
 
@@ -105,7 +112,7 @@ public class UTestSparkPCA {
                         "i\t1,,,-0.046658580476841016,-0.7796623742913575\n" +
                         "j\t1,,,-0.05798882734257649,-0.8790037110490492\n" +
                         "k\t1,,,-0.7612452225129875,-0.6442659253692565\n" +
-                        "l\t1,,,-0.39094784691610396,-0.9133126394545222");
+                        "l\t1,,,-0.39094784691610396,-0.9133126394545222", true);
     }
 
     @Test
@@ -122,26 +129,30 @@ public class UTestSparkPCA {
                 "chr1\t10\tA\tC\t1\t0011\n"+
                 "chr1\t20\tG\tC\t1\t0201\n"+
                 "chr1\t30\tA\tC\t1\t0011\n"+
-                "chr1\t40\tG\tC\t1\t0201\n");
+                "chr1\t40\tG\tC\t1\t0201\n"+
+                "chr1\t50\tG\tC\t1\t0000\n");
         Files.writeString(variantBucketFile2,"Chrom\tpos\tref\talt\tbucket\tvalues\n"+
                 "chr1\t10\tA\tC\t2\t0102\n"+
                 "chr1\t20\tG\tC\t2\t0221\n"+
                 "chr1\t30\tA\tC\t2\t0102\n"+
-                "chr1\t40\tG\tC\t2\t0221\n");
+                "chr1\t40\tG\tC\t2\t0221\n"+
+                "chr1\t50\tG\tC\t2\t0000\n");
         Files.writeString(variantBucketFile3,"Chrom\tpos\tref\talt\tbucket\tvalues\n"+
                 "chr1\t10\tA\tC\t3\t0122\n"+
                 "chr1\t20\tG\tC\t3\t1201\n"+
                 "chr1\t30\tA\tC\t3\t1122\n"+
-                "chr1\t40\tG\tC\t3\t0001\n");
+                "chr1\t40\tG\tC\t3\t0001\n"+
+                "chr1\t50\tG\tC\t3\t0000\n");
         Files.writeString(variantDictFile,"variants1.gor\t1\tchr1\t0\tchrZ\t1000000000\ta,b,c,d\n"+
                 "variants2.gor\t2\tchr1\t0\tchrZ\t1000000000\te,f,g,h\n"+
                 "variants3.gor\t3\tchr1\t0\tchrZ\t1000000000\ti,j,k,l\n");
 
         testSparkQuery(
-                "create xxx = spark <(pgor -split <(gor <(nor "+variantBucketFile1+" | select chrom,pos | replace pos pos-1 | calc end pos+1)) "+variantDictFile +
+                "create xxx = spark -schema {`CHROM` STRING,`pos` INT,`ID` STRING,`REF` STRING,`ALT` STRING,`values` STRING} <(pgor -split <(gor <(nor "+variantBucketFile1+" | select chrom,pos | replace pos pos-1 | calc end pos+1)) "+variantDictFile +
                         "| rename Chrom CHROM | rename ref REF | rename alt ALT " +
                         "| calc ID chrom+'_'+pos+'_'+ref+'_'+alt " +
-                        "| csvsel "+bucketFile+" <(nor pns.txt | select pn) -u 3 -gc id,ref,alt -vs 1 | replace values 'u'+values)" +
-                        "; gor [xxx]","");
+                        "| csvsel "+bucketFile+" <(nor pns.txt | select pn) -u 3 -gc id,ref,alt -vs 1) " +
+                        "| withColumn values chartodoublearray(values) | withColumn values mean_substitute(values) | filter size(array_distinct(values)) > 1" +
+                        "; gor [xxx]","", false);
     }
 }
