@@ -29,9 +29,12 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
   var fileAliasMap: java.util.Map[String,String] = _
 
   if (GorInputSources.getInfo("SPARK") == null) {
-      GorInputSources.register()
-      GorInputSources.addInfo(new Spark.Spark)
-      GorInputSources.addInfo(new Spark.Select)
+    GorInputSources.register()
+    GorInputSources.addInfo(new Spark.Spark)
+    GorInputSources.addInfo(new Spark.Select)
+
+    GorPipeCommands.register()
+    GorPipeCommands.addInfo(new gorsat.Commands.WriteSpark)
   }
 
   def getSparkSession: SparkSession = {
