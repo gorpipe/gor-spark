@@ -499,15 +499,23 @@ public class SparkRowSource extends ProcessSource {
             int count = (int)StreamSupport.stream(newIterable.spliterator(), false).count();
             return Collections.singletonList(count).iterator();
         }, Encoders.INT()).first();
-        StructType schema = new StructType().add("values",new VectorUDT());
+        StructType schema = new StructType();
+                if(ds.schema().length()>1) schema = schema.add("pn", DataTypes.StringType);
+                schema = schema.add("values",new VectorUDT());
+        int schemaLen = ds.schema().length();
         ExpressionEncoder<org.apache.spark.sql.Row> vectorEncoder = RowEncoder.apply(schema);
         Dataset<org.apache.spark.sql.Row> dv = ds.mapPartitions((MapPartitionsFunction<org.apache.spark.sql.Row, org.apache.spark.sql.Row>) ir -> {
             double[][] mat = null;
             Iterator<org.apache.spark.sql.Row> it = Collections.emptyIterator();
+            String[] pns = null;
             int start = 0;
             while(ir.hasNext()) {
                 org.apache.spark.sql.Row row = ir.next();
-                String strvec = row.getString(0).substring(1);
+                String strvec;
+                if(schemaLen>1) {
+                    pns = row.getString(0).split(",");
+                    strvec = row.getString(1).substring(1);
+                } else strvec = row.getString(0).substring(1);
                 int len = strvec.length();
                 if(mat==null) {
                     mat = new double[len][];
@@ -523,10 +531,13 @@ public class SparkRowSource extends ProcessSource {
             }
             if(mat!=null) {
                 List<org.apache.spark.sql.Row> lv = new ArrayList<>(mat.length);
+
                 for(int i = 0; i < mat.length; i++) {
                     //org.apache.spark.sql.Row.fromTuple()
                     org.apache.spark.ml.linalg.Vector vector = Vectors.dense(mat[i]);
-                    org.apache.spark.sql.Row row = RowFactory.create(vector);
+                    org.apache.spark.sql.Row row;
+                    if(pns!=null) row = RowFactory.create(pns[i],vector);
+                    else row = RowFactory.create(vector);
                     lv.add(row);
                 }
                 return lv.stream().iterator();
@@ -769,6 +780,7 @@ public class SparkRowSource extends ProcessSource {
             //int c = formula.indexOf(',');
             //String oldcolname = formula.substring(13,formula.length()-1).trim();
             String modelpath = formula.substring(13,formula.length()-1).trim();
+            if(modelpath.startsWith("'")) modelpath = modelpath.substring(1,modelpath.length()-1);
             Dataset<org.apache.spark.sql.Row> ds = (Dataset<org.apache.spark.sql.Row>)dataset;
             dataset = pcatransform(ds, modelpath).withColumnRenamed("pca",colName);
         } else if (formula.toLowerCase().startsWith("chartodoublearray")) {
@@ -902,7 +914,7 @@ public class SparkRowSource extends ProcessSource {
 
     private Dataset<org.apache.spark.sql.Row> pcatransform(Dataset<org.apache.spark.sql.Row> dataset, String modelpath) {
         PCAModel pcamodel = PCAModel.load(modelpath);
-        Dataset<org.apache.spark.sql.Row> pcaresult = pcamodel.transform(dataset).select("pca");
+        Dataset<org.apache.spark.sql.Row> pcaresult = pcamodel.transform(dataset).select("pn","pca");
         return pcaresult;
     }
 

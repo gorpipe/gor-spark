@@ -50,3 +50,9 @@ spec:
     securityContext:
       runAsUser: 3000
       fsGroup: 3000
+  monitoring:
+    exposeDriverMetrics: true
+    exposeExecutorMetrics: true
+    prometheus:
+      jmxExporterJar: "/opt/spark/jars/jmx_prometheus_javaagent-0.15.0.jar"
+      port: 8090

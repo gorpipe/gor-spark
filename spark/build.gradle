@@ -166,6 +166,8 @@ project(':spark') {
         //implementation files('../hail/hail/build/libs/hail-all-spark.jar')
         //implementation files('../../glow/core/target/scala-2.12/glow_2.12-0.3.1-SNAPSHOT.jar')
 
+        runtimeOnly "io.prometheus.jmx:jmx_prometheus_javaagent:0.15.0"
+
         //compile group: 'com.typesafe.scala-logging', name: 'scala-logging_2.12', version: '3.9.2'
         //compile group: 'org.jdbi', name: 'jdbi', version: '2.78'
         /*compile (group: 'org.seqdoop', name: 'hadoop-bam', version: '7.10.0') {
@@ -217,13 +219,6 @@ project(':spark') {
         implementation 'io.kubernetes:client-java:11.0.0'
         //compile group: 'io.fabric8', name: 'kubernetes-client', version: '4.7.1'
 
-        //testImplementation project(':gortools')
-        //testImplementation project(':model')
-        //testImplementation project(':test')
-        //testCompile("${gorArtifactGroupId}:gor-test:${gorVersion}")
-    }
-
-    jar {
-        manifest.attributes 'Main-Class': "gorsat.process.GorPipe"
+        //testImplementation project(":test")
     }
 }

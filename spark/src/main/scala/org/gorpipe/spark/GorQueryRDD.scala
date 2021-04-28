@@ -36,19 +36,25 @@ class GorQueryRDD(sparkSession: SparkSession, commandsToExecute: Array[String], 
 
     // Do this if we have result cache active or if we are running locally and the local cacheFile does not exist.
     val projectPath = Paths.get(projectDirectory)
-    var cacheFilePath = Paths.get(cacheFile)
-    if( !cacheFilePath.isAbsolute ) cacheFilePath = projectPath.resolve(cacheFile)
-    val cacheFileMd5Path = cacheFilePath.getParent.resolve(cacheFilePath.getFileName+".md5")
-    if (!Files.exists(cacheFilePath)) {
-      val temp_cacheFile = if(cacheFilePath.getFileName.toString.startsWith("tmp")) cacheFilePath else cacheFilePath.getParent.resolve("tmp"+UUID.randomUUID()+cacheFilePath.getFileName.toString)
+    val cacheFilePath = Paths.get(cacheFile)
+    val absCacheFilePath = if( !cacheFilePath.isAbsolute ) projectPath.resolve(cacheFile) else cacheFilePath
+    val cacheFileMd5Path = absCacheFilePath.getParent.resolve(absCacheFilePath.getFileName+".md5")
+    if(Files.isDirectory(absCacheFilePath)) {
+      val sparkGorMonitor : GorMonitor = if(SparkGorMonitor.localProgressMonitor!=null) SparkGorMonitor.localProgressMonitor else new SparkGorMonitor(redisUri, jobId)
+      val engine = new SparkGorExecutionEngine(commandToExecute, projectDirectory, cacheDirectory, configFile, aliasFile, cacheFilePath, sparkGorMonitor)
+      engine.execute()
+    } else if (!Files.exists(absCacheFilePath)) {
+      val temp_cacheFile = if(absCacheFilePath.getFileName.toString.startsWith("tmp")) absCacheFilePath else absCacheFilePath.getParent.resolve("tmp"+UUID.randomUUID()+absCacheFilePath.getFileName.toString)
       val temp_cacheMd5File = temp_cacheFile.getParent.resolve(temp_cacheFile.getFileName.toString+".md5")
-      val tempFile_absolutepath = temp_cacheFile.toAbsolutePath.normalize().toString
+      val tempFile_absolutepath = temp_cacheFile.toAbsolutePath.normalize()
       try {
         val sparkGorMonitor : GorMonitor = if(SparkGorMonitor.localProgressMonitor!=null) SparkGorMonitor.localProgressMonitor else new SparkGorMonitor(redisUri, jobId)
         val engine = new SparkGorExecutionEngine(commandToExecute, projectDirectory, cacheDirectory, configFile, aliasFile, tempFile_absolutepath, sparkGorMonitor)
         engine.execute()
-        Files.move(temp_cacheFile, cacheFilePath)
-        if(Files.exists(temp_cacheMd5File)) Files.move(temp_cacheMd5File, cacheFileMd5Path)
+        if (!Files.exists(absCacheFilePath)) {
+          Files.move(temp_cacheFile, absCacheFilePath)
+          if(Files.exists(temp_cacheMd5File) && !Files.exists(cacheFileMd5Path)) Files.move(temp_cacheMd5File, cacheFileMd5Path)
+        }
       } catch {
         case e: Exception => handleException(e, temp_cacheFile)
       }
