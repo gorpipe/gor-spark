@@ -1,6 +1,8 @@
 package gorsat.spark;
 
 import gorsat.process.SparkRowUtilities;
+import org.gorpipe.gor.model.DriverBackedFileReader;
+import org.gorpipe.spark.GorSparkSession;
 import org.gorpipe.spark.SparkGOR;
 import gorsat.process.SparkRowSource;
 import org.apache.hadoop.conf.Configuration;
@@ -33,12 +35,13 @@ import java.util.zip.DataFormatException;
 
 public class GorFileFormat extends CSVFileFormat implements Serializable {
     @Override
-    public Option<StructType> inferSchema(SparkSession sparkSession, Map<String, String> options, Seq<FileStatus> files) {
+    public Option<StructType> inferSchema(SparkSession session, Map<String, String> options, Seq<FileStatus> files) {
         String pathstr = options.get("path").get();
         java.nio.file.Path path = Paths.get(pathstr);
+        var fileReader = new DriverBackedFileReader("", "/", new Object[] {});
         StructType ret = null;
         try {
-            ret = SparkRowUtilities.inferSchema(path, path.getFileName().toString(), false, pathstr.endsWith(".gorz"));
+            ret = SparkRowUtilities.inferSchema(path, fileReader, pathstr, false, pathstr.endsWith(".gorz"));
         } catch (IOException | DataFormatException e) {
             e.printStackTrace();
         }
