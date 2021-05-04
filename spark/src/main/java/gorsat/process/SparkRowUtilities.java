@@ -15,9 +15,6 @@ import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.types.*;
 import org.gorpipe.gor.binsearch.CompressionType;
 import org.gorpipe.gor.binsearch.Unzipper;
-import org.gorpipe.gor.driver.GorDriverFactory;
-import org.gorpipe.gor.driver.meta.SourceReference;
-import org.gorpipe.gor.driver.providers.stream.sources.StreamSource;
 import org.gorpipe.gor.model.FileReader;
 import org.gorpipe.gor.model.ParquetLine;
 import org.gorpipe.gor.model.Row;
@@ -534,15 +531,8 @@ public class SparkRowUtilities {
 
     static byte[] unzipBuffer = new byte[1 << 17];
 
-    public static GorDataType inferDataTypes(Path filePath, String fileName, boolean isGorz, boolean nor) throws IOException, DataFormatException {
-        boolean isUrl = fileName.contains("://");
-        InputStream is = null;
-        if (isUrl) {
-            SourceReference sr = new SourceReference(fileName);
-            is = ((StreamSource) GorDriverFactory.fromConfig().getDataSource(sr)).open();
-        } else if (Files.exists(filePath)) {
-            is = Files.newInputStream(filePath);
-        }
+    public static GorDataType inferDataTypes(FileReader fileReader, Path filePath, String fileName, boolean isGorz, boolean nor) throws IOException, DataFormatException {
+        InputStream is = fileReader.getInputStream(fileName);
 
         String fileLow = filePath.getFileName().toString().toLowerCase();
         boolean isCompressed = fileLow.endsWith(".gz") || fileLow.endsWith(".bgz");
@@ -594,9 +584,9 @@ public class SparkRowUtilities {
                     }
                     Unzipper unzip = new Unzipper();
                     unzip.setType(compressionLibrary);
-                    unzip.setInput(bb, 0, bb.capacity());
-                    int unzipLen = unzip.decompress(0, 1 << 17);
-                    ByteArrayInputStream bais = new ByteArrayInputStream(unzip.out.array(), 0, unzipLen);
+                    unzip.setRawInput(bb, 0, bb.length);
+                    int unzipLen = unzip.decompress(unzipBuffer,0, unzipBuffer.length);
+                    ByteArrayInputStream bais = new ByteArrayInputStream(unzipBuffer, 0, unzipLen);
                     InputStreamReader isr = new InputStreamReader(bais);
                     //String str = new String(unzipBuffer, 0, unzipLen);
                     //StringReader strreader = new StringReader(str);
