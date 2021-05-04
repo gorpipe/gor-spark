@@ -142,7 +142,7 @@ public class SparkRowSource extends ProcessSource {
                 sql = headercommands.stream().filter(p -> p.length() > 0).map(inner).map(gorfunc).map(parqfunc).collect(Collectors.joining(" "));
                 fileNames = Arrays.stream(cmdsplit).flatMap(gorfileflat).filter(gorpred).toArray(String[]::new);
                 for (String fn : fileNames) {
-                    if (gorSparkSession.getSystemContext().getServer()) ProjectContext.validateServerFileName(fn, true);
+                    if (gorSparkSession.getSystemContext().getServer()) ProjectContext.validateServerFileName(fn, fileroot.toString(), true);
                     StructType schema = ddl!=null ? StructType.fromDDL(ddl) : null;
                     SparkRowUtilities.registerFile(new String[]{fn}, profile,null, gpSession, standalone, fileroot, cachepath, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp, tag, schema);
                 }

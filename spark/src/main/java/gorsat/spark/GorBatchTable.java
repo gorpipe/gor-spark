@@ -134,16 +134,16 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
 
     void inferSchema() {
         schema = Encoders.STRING().schema();
+        SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectRoot, cacheDir, configFile, aliasFile, null);
+        GorSparkSession gorPipeSession = (GorSparkSession) sessionFactory.create();
         if(path!=null) {
             Path ppath = Paths.get(path);
             try {
-                schema = SparkRowUtilities.inferSchema(ppath, ppath.getFileName().toString(), false, path.toLowerCase().endsWith(".gorz"));
+                schema = SparkRowUtilities.inferSchema(ppath, gorPipeSession.getProjectContext().getFileReader(), path, false, path.toLowerCase().endsWith(".gorz"));
             } catch (IOException | DataFormatException e) {
-                throw new RuntimeException("Unable to infer schema from "+ppath.toString(), e);
+                throw new RuntimeException("Unable to infer schema from "+ ppath, e);
             }
         } else if(commands!=null) {
-            SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectRoot, cacheDir, configFile, aliasFile, null);
-            GorSparkSession gorPipeSession = (GorSparkSession) sessionFactory.create();
             GorDataType gdt = SparkRowUtilities.gorCmdSchema(commands,gorPipeSession);
 
             String[] headerArray = gdt.header;
