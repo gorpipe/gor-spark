@@ -17,6 +17,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Spliterators;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 public class UTestSparkPCA {
@@ -38,13 +39,16 @@ public class UTestSparkPCA {
         if (spark != null) spark.close();
     }
 
-    private void testSparkQuery(String query, String expectedResult) {
+    private void testSparkQuery(String query, String expectedResult, boolean nor) {
         PipeOptions pipeOptions = new PipeOptions();
         pipeOptions.query_$eq(query);
         pi.subProcessArguments(pipeOptions);
-        String content = StreamSupport.stream(Spliterators.spliteratorUnknownSize(pi.theInputSource(), 0), false).map(Row::otherCols).sorted().collect(Collectors.joining("\n"));
+        Stream<Row> stream = StreamSupport.stream(Spliterators.spliteratorUnknownSize(pi.getIterator(), 0), false);
+        Stream<String> strstream = nor ? stream.map(Row::otherCols).sorted() : stream.map(Row::toString);
+        String content = strstream.collect(Collectors.joining("\n"));
         String header = pi.getHeader();
-        String result = header.substring(header.indexOf("\t",header.indexOf("\t")+1)+1) + "\n" + content;
+        if(nor) header = header.substring(header.indexOf("\t",header.indexOf("\t")+1)+1);
+        String result = header + "\n" + content;
         Assert.assertEquals("Wrong results from spark query: " + query, expectedResult, result);
     }
 
@@ -105,6 +109,6 @@ public class UTestSparkPCA {
                         "i\t1,,,-0.046658580476841016,-0.7796623742913575\n" +
                         "j\t1,,,-0.05798882734257649,-0.8790037110490492\n" +
                         "k\t1,,,-0.7612452225129875,-0.6442659253692565\n" +
-                        "l\t1,,,-0.39094784691610396,-0.9133126394545222");
+                        "l\t1,,,-0.39094784691610396,-0.9133126394545222", true);
     }
 }

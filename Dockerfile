@@ -7,7 +7,7 @@ FROM nextcode/basespark:3.1.1
 # docker push
 
 COPY metrics.properties /etc/metrics/conf/metrics.properties
-COPY prometheous.yaml /etc/metrics/conf/prometheous.yaml
+COPY prometheus.yaml /etc/metrics/conf/prometheous.yaml
 COPY spark/build/install/spark/lib /opt/spark/jars
 
 USER root
