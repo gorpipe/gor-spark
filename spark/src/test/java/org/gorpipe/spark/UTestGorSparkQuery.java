@@ -23,7 +23,18 @@ public class UTestGorSparkQuery {
 
     @Before
     public void init() {
-        spark = SparkSession.builder().master("local[1]").getOrCreate();
+        spark = SparkSession.builder()
+                .config("spark.hadoop.fs.s3a.endpoint","localhost:4566")
+                .config("spark.hadoop.fs.s3a.connection.ssl.enabled","false")
+                .config("spark.hadoop.fs.s3a.path.style.access","true")
+                .config("spark.hadoop.fs.s3a.impl","org.apache.hadoop.fs.s3a.S3AFileSystem")
+                .config("spark.hadoop.fs.s3a.change.detection.mode","warn")
+                .config("spark.hadoop.com.amazonaws.services.s3.enableV4","true")
+                .config("spark.hadoop.fs.s3a.committer.name","partitioned")
+                .config("spark.hadoop.fs.s3a.committer.staging.conflict-mode","replace")
+                .config("spark.delta.logStore.class","org.apache.spark.sql.delta.storage.S3SingleDriverLogStore")
+                .config("spark.hadoop.fs.s3a.aws.credentials.provider","org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider")
+                .master("local[1]").getOrCreate();
         //Glow.register(spark);
         SparkSessionFactory sparkSessionFactory = new SparkSessionFactory(spark, Paths.get(".").toAbsolutePath().normalize().toString(), System.getProperty("java.io.tmpdir"), null, null, null);
         GorSession session = sparkSessionFactory.create();
@@ -51,6 +62,16 @@ public class UTestGorSparkQuery {
     @Test
     public void testGorzSparkSQLQuery() {
         testSparkQuery("spark select * from ../tests/data/gor/genes.gorz limit 5", "chr1\t11868\t14412\tDDX11L1\n" +
+                "chr1\t14362\t29806\tWASH7P\n" +
+                "chr1\t34553\t36081\tFAM138A\n" +
+                "chr1\t53048\t54936\tAL627309.1\n" +
+                "chr1\t62947\t63887\tOR4G11P");
+    }
+
+    @Test
+    @Ignore("Test with localstack")
+    public void testGorzSparkSQLQueryRemoteSource() {
+        testSparkQuery("select * from s3a://my-bucket/test.gorz limit 5", "chr1\t11868\t14412\tDDX11L1\n" +
                 "chr1\t14362\t29806\tWASH7P\n" +
                 "chr1\t34553\t36081\tFAM138A\n" +
                 "chr1\t53048\t54936\tAL627309.1\n" +
@@ -154,6 +175,25 @@ public class UTestGorSparkQuery {
     @Test
     public void testCreateSparkQuery() {
         testSparkQuery("create xxx = spark ../tests/data/parquet/dbsnp_test.parquet | top 5; gor [xxx]", "chr1\t10179\tC\tCC\trs367896724\n" +
+                "chr1\t10250\tA\tC\trs199706086\n" +
+                "chr10\t60803\tT\tG\trs536478188\n" +
+                "chr10\t61023\tC\tG\trs370414480\n" +
+                "chr11\t61248\tG\tA\trs367559610");
+    }
+
+    @Test
+    public void testCreateSparkQueryWithWrite() {
+        testSparkQuery("create xxx = spark ../tests/data/parquet/dbsnp_test.parquet | top 5 | write -d test.gorz; gor [xxx]/dict.gord", "chr1\t10179\tC\tCC\trs367896724\n" +
+                "chr1\t10250\tA\tC\trs199706086\n" +
+                "chr10\t60803\tT\tG\trs536478188\n" +
+                "chr10\t61023\tC\tG\trs370414480\n" +
+                "chr11\t61248\tG\tA\trs367559610");
+    }
+
+    @Test
+    @Ignore("Test with localstack")
+    public void testCreateSparkQueryWithWriteToRemote() {
+        testSparkQuery("create xxx = spark ../tests/data/parquet/dbsnp_test.parquet | top 5 | write -d s3a://my-bucket/test.gorz dict.gord; gor [xxx]", "chr1\t10179\tC\tCC\trs367896724\n" +
                 "chr1\t10250\tA\tC\trs199706086\n" +
                 "chr10\t60803\tT\tG\trs536478188\n" +
                 "chr10\t61023\tC\tG\trs370414480\n" +
