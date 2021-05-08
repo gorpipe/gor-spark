@@ -116,6 +116,16 @@ public class GorSparkUtilities {
         SparkConf sparkConf = new SparkConf();
         sparkConf.set("spark.streaming.stopGracefullyOnShutdown","true");
         sparkConf.set("spark.kubernetes.appKillPodDeletionGracePeriod","20");
+        //sparkConf.set("spark.hadoop.fs.s3a.endpoint","localhost:4566");
+        sparkConf.set("spark.hadoop.fs.s3a.connection.ssl.enabled","false");
+        sparkConf.set("spark.hadoop.fs.s3a.path.style.access","true");
+        sparkConf.set("spark.hadoop.fs.s3a.impl","org.apache.hadoop.fs.s3a.S3AFileSystem");
+        sparkConf.set("spark.hadoop.fs.s3a.change.detection.mode","warn");
+        sparkConf.set("spark.hadoop.com.amazonaws.services.s3.enableV4","true");
+        sparkConf.set("spark.hadoop.fs.s3a.committer.name","partitioned");
+        sparkConf.set("spark.hadoop.fs.s3a.committer.staging.conflict-mode","replace");
+        sparkConf.set("spark.delta.logStore.class","org.apache.spark.sql.delta.storage.S3SingleDriverLogStore");
+        sparkConf.set("spark.hadoop.fs.s3a.aws.credentials.provider","org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider");
         SparkSession.Builder ssb = SparkSession.builder();
         if(!sparkConf.contains("spark.master")) {
             ssb = ssb.master("local[*]");

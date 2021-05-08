@@ -6,11 +6,11 @@ metadata:
 spec:
   type: Java
   mode: cluster
-  image: nextcode/spark:1.3.3
+  image: nextcode/spark:1.3.6
   imagePullPolicy: Never #Always
   imagePullSecrets:
     - dockerhub-nextcode-download-credentials
-  mainApplicationFile: local:///opt/spark/jars/gor-spark-1.3.3.jar
+  mainApplicationFile: local:///opt/spark/jars/gor-spark-1.3.6.jar
   mainClass: org.gorpipe.spark.redis.RedisBatchConsumer
   sparkVersion: 3.1.1
   restartPolicy:
@@ -50,3 +50,9 @@ spec:
     securityContext:
       runAsUser: 3000
       fsGroup: 3000
+  monitoring:
+    exposeDriverMetrics: true
+    exposeExecutorMetrics: true
+    prometheus:
+      jmxExporterJar: "/opt/spark/jars/jmx_prometheus_javaagent-0.15.0.jar"
+      port: 8090

@@ -1,8 +1,9 @@
 package gorsat.spark;
 
 import gorsat.process.SparkRowUtilities;
+import org.apache.hadoop.fs.FileSystem;
+import org.gorpipe.gor.model.DriverBackedFileReader;
 import org.gorpipe.spark.SparkGOR;
-import gorsat.process.SparkRowSource;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
@@ -27,18 +28,39 @@ import scala.collection.Seq;
 import scala.collection.immutable.Map;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.Serializable;
-import java.nio.file.Paths;
 import java.util.zip.DataFormatException;
 
 public class GorFileFormat extends CSVFileFormat implements Serializable {
     @Override
-    public Option<StructType> inferSchema(SparkSession sparkSession, Map<String, String> options, Seq<FileStatus> files) {
+    public Option<StructType> inferSchema(SparkSession session, Map<String, String> options, Seq<FileStatus> files) {
         String pathstr = options.get("path").get();
-        java.nio.file.Path path = Paths.get(pathstr);
+        Option<String> ohadoop = options.get("hadoop");
+        boolean hadoopInfer = ohadoop.isDefined() && Boolean.parseBoolean(ohadoop.get());
         StructType ret = null;
         try {
-            ret = SparkRowUtilities.inferSchema(path, path.getFileName().toString(), false, pathstr.endsWith(".gorz"));
+            InputStream is;
+            if(hadoopInfer) {
+                Path path = new Path(pathstr);
+                Configuration conf = new Configuration();
+                //conf.set("fs.s3a.endpoint","localhost:4566");
+                conf.set("fs.s3a.connection.ssl.enabled","false");
+                conf.set("fs.s3a.path.style.access","true");
+                conf.set("fs.s3a.impl","org.apache.hadoop.fs.s3a.S3AFileSystem");
+                conf.set("fs.s3a.change.detection.mode","warn");
+                conf.set("com.amazonaws.services.s3.enableV4","true");
+                conf.set("fs.s3a.committer.name","partitioned");
+                conf.set("fs.s3a.committer.staging.conflict-mode","replace");
+                conf.set("spark.delta.logStore.class","org.apache.spark.sql.delta.storage.S3SingleDriverLogStore");
+                conf.set("fs.s3a.aws.credentials.provider","org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider");
+                FileSystem fs = path.getFileSystem(conf);
+                is = fs.open(path);
+            } else {
+                var fileReader = new DriverBackedFileReader("", "/", new Object[]{});
+                is = fileReader.getInputStream(pathstr);
+            }
+            ret = SparkRowUtilities.inferSchema(is, pathstr, false, pathstr.endsWith(".gorz"));
         } catch (IOException | DataFormatException e) {
             e.printStackTrace();
         }
