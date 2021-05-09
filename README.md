@@ -18,11 +18,11 @@ spark/build/install/gor-scripts/bin/gorpipe "create xxx = select * from <(select
 ```
 
 ## SDK usage
-#### Scala demo: [gorspark.scala](https://gitlab.com/wuxi-nextcode/wxnc-gor/gor-spark/-/blob/master/pyspark.scala)
+#### Scala demo: [gorspark.scala](pyspark.scala)
 ```bash
-spark-shell --packages org.gorpipe:gor-spark:2.11.10 -I gorspark.scala
+spark-shell --packages org.gorpipe:gor-spark:3.10.2 --exclude-packages "org.apache.logging.log4j:log4j-core,org.apache.logging.log4j:log4j-api" -I gorspark.scala
 ```
-#### Python demo: [gorspark.py](https://gitlab.com/wuxi-nextcode/wxnc-gor/gor-spark/-/blob/master/pyspark.py)
+#### Python demo: [gorspark.py](pyspark.py)
 ```bash
-pyspark --packages org.gorpipe:gor-spark:2.11.10 -I gorspark.py
+pyspark --packages org.gorpipe:gor-spark:3.10.2 --exclude-packages "org.apache.logging.log4j:log4j-core,org.apache.logging.log4j:log4j-api" -I gorspark.py
 ```

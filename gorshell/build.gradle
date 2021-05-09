@@ -139,4 +139,7 @@ project(':gorshell') {
         def t = params.containsKey('override') ? tasks.getByName(params.override) : tasks.create(name: scriptName + 'StartScript', type: CreateStartScripts)
         updateScriptTask("GOR", scriptName, params, t, project)
     }
+
+    tasks.distZip.enabled = true
+    tasks.distZip.archiveClassifier = "dist"
 }
