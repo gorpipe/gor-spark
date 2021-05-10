@@ -168,7 +168,7 @@ project(':spark') {
             exclude group: 'org.freemarker'
         }
 
-        compile group: 'org.apache.avro', name: 'avro-mapred', version: '1.8.2'
+        implementation group: 'org.apache.avro', name: 'avro-mapred', version: '1.8.2'
         implementation group: 'com.google.guava', name: 'guava', version: '29.0-jre'
 
 
@@ -190,7 +190,7 @@ project(':spark') {
 
         //compile group: 'com.typesafe.scala-logging', name: 'scala-logging_2.12', version: '3.9.2'
         //compile group: 'org.jdbi', name: 'jdbi', version: '2.78'
-        compile (group: 'org.seqdoop', name: 'hadoop-bam', version: '7.10.0') {
+        /*compile (group: 'org.seqdoop', name: 'hadoop-bam', version: '7.10.0') {
             exclude group: 'com.google.guava', module: 'guava'
         }*/
         implementation group: 'com.google.protobuf', name: 'protobuf-java', version: '3.13.0'
@@ -208,7 +208,7 @@ project(':spark') {
         compile "org.json4s:json4s-core_2.12:3.6.7"
         compile "org.json4s:json4s-ast_2.12:3.6.7"
         compile "org.json4s:json4s-jackson_2.12:3.6.7"*/
-        compile "org.apache.commons:commons-lang3:3.10"
+        implementation "org.apache.commons:commons-lang3:3.10"
 
         implementation 'io.netty:netty-all:4.1.59.Final'
         implementation 'io.netty:netty-common:4.1.59.Final'
@@ -219,24 +219,25 @@ project(':spark') {
         implementation 'io.netty:netty-transport-native-epoll:4.1.59.Final'
         implementation 'io.netty:netty-transport-native-unix-common:4.1.59.Final'
 
-        compile ('org.apache.hadoop:hadoop-common:3.3.0') {
+        implementation ('org.apache.hadoop:hadoop-common:3.3.0') {
             exclude group: 'com.google.guava', module: 'guava'
         }
-        compile ('org.apache.hadoop:hadoop-client:3.3.0') {
+        implementation ('org.apache.hadoop:hadoop-client:3.3.0') {
 
         }
-        compile ('org.apache.hadoop:hadoop-hdfs:3.3.0') {
+        implementation ('org.apache.hadoop:hadoop-hdfs:3.3.0') {
             exclude group: 'com.google.guava', module: 'guava'
         }
-        compile ('org.apache.hadoop:hadoop-hdfs-client:3.3.0') {
+        implementation ('org.apache.hadoop:hadoop-hdfs-client:3.3.0') {
 
         }
-        compile ('org.apache.hadoop:hadoop-aws:3.3.0') {
+        implementation ('org.apache.hadoop:hadoop-aws:3.3.0') {
 
         }
 
         implementation("redis.clients:jedis:3.5.1")
         implementation 'io.kubernetes:client-java:11.0.0'
+        
         //compile group: 'io.fabric8', name: 'kubernetes-client', version: '4.7.1'
 
         //testImplementation project(':test')
