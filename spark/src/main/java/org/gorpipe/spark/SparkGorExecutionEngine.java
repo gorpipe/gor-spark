@@ -19,6 +19,7 @@ import scala.Option;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.zip.Deflater;
 
@@ -78,7 +79,7 @@ public class SparkGorExecutionEngine extends GorExecutionEngine {
 
     @Override
     public PipeInstance createIterator(GorSession session) {
-        SparkPipeInstance pi = new SparkPipeInstance(session.getGorContext(), outfile.toString());
+        SparkPipeInstance pi = new SparkPipeInstance(session.getGorContext(), outfile != null ? outfile.toString() : null);
         pi.subProcessArguments(query, false, null, false, false, null);
         if(!pi.hasResourceHints()) {
             String theHeader = pi.getIterator().getHeader();
