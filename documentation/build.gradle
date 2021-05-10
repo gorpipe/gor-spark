@@ -1,4 +1,4 @@
-import org.gorpipe.gradle.GenerateGorToolsHelpTask
+import org.gorpipe.gradle.GenerateSparkGorToolsHelpTask
 
 /*
  *  BEGIN_COPYRIGHT
@@ -43,7 +43,7 @@ project(':documentation') {
         outputDirectory = "${project.buildDir}/html"
     }
 
-    task generateGorCommandsToolsHelp( type: GenerateGorToolsHelpTask ){
+    task generateGorCommandsToolsHelp( type: GenerateSparkGorToolsHelpTask ){
         dependsOn generateText
         onlyIf { ! Boolean.getBoolean('skip.documentation') }
 

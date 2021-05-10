@@ -6,6 +6,8 @@ FROM nextcode/basespark:3.1.1
 # docker build --build-arg java_image_tag=15-slim --build-arg spark_uid=3000 -t nextcode/basespark:[version] -f kubernetes/dockerfiles/spark/Dockerfile .
 # docker push
 
+COPY metrics.properties /etc/metrics/conf/metrics.properties
+COPY prometheus.yaml /etc/metrics/conf/prometheus.yaml
 COPY spark/build/install/spark/lib /opt/spark/jars
 
 USER root

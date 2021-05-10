@@ -15,9 +15,9 @@ import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.types.*;
 import org.gorpipe.gor.binsearch.CompressionType;
 import org.gorpipe.gor.binsearch.Unzipper;
-import org.gorpipe.gor.driver.GorDriverFactory;
-import org.gorpipe.gor.driver.meta.SourceReference;
-import org.gorpipe.gor.driver.providers.stream.sources.StreamSource;
+import org.gorpipe.gor.driver.DataSource;
+import org.gorpipe.gor.model.DriverBackedFileReader;
+import org.gorpipe.gor.model.FileReader;
 import org.gorpipe.gor.model.ParquetLine;
 import org.gorpipe.gor.model.Row;
 import org.gorpipe.spark.GorSparkSession;
@@ -85,14 +85,13 @@ public class SparkRowUtilities {
         return new StructType(fields);
     }
 
-    public static StructType inferSchema(Path filePath, String fileName, boolean nor, boolean isGorz) throws IOException, DataFormatException {
-        GorDataType gorDataType = inferDataTypes(filePath, fileName, isGorz, nor);
+    public static StructType gorDataTypeToStructType(GorDataType gorDataType) {
         String[] headerArray = gorDataType.header;
         Map<Integer, DataType> dataTypeMap = gorDataType.dataTypeMap;
 
         DataType[] dataTypes = new DataType[headerArray.length];
         int start = 0;
-        if (!nor) {
+        if (!gorDataType.nor) {
             dataTypes[0] = StringType;
             dataTypes[1] = IntegerType;
             start = 2;
@@ -103,6 +102,11 @@ public class SparkRowUtilities {
 
         StructField[] fields = IntStream.range(0, headerArray.length).mapToObj(i -> new StructField(headerArray[i], dataTypes[i], true, Metadata.empty())).toArray(StructField[]::new);
         return new StructType(fields);
+    }
+
+    public static StructType inferSchema(InputStream fileStream, String fileName, boolean nor, boolean isGorz) throws IOException, DataFormatException {
+        GorDataType gorDataType = inferDataTypes(fileStream, fileName, isGorz, nor);
+        return gorDataTypeToStructType(gorDataType);
     }
 
     public static String translatePath(String fn, Path fileroot, String standalone) {
@@ -337,7 +341,7 @@ public class SparkRowUtilities {
                 } else {
                     boolean isGorz = fileName.toLowerCase().endsWith(".gorz");
                     boolean isGorgz = fileName.toLowerCase().endsWith(".gor.gz") || fileName.toLowerCase().endsWith(".gor.bgz");
-                    GorDataType gorDataType = inferDataTypes(filePath, fileName, isGorz, nor);
+                    GorDataType gorDataType = inferDataTypes(gorSparkSession.getProjectContext().getFileReader(), fileName, isGorz, nor);
                     String[] headerArray = gorDataType.header;
                     dataTypeMap = gorDataType.dataTypeMap;
 
@@ -495,17 +499,15 @@ public class SparkRowUtilities {
         return gor;
     }
 
-    public static GorDataType inferDataTypes(Path filePath, String fileName, boolean isGorz, boolean nor) throws IOException, DataFormatException {
-        boolean isUrl = fileName.contains("://");
-        InputStream is = null;
-        if (isUrl) {
-            SourceReference sr = new SourceReference(fileName);
-            is = ((StreamSource) GorDriverFactory.fromConfig().getDataSource(sr)).open();
-        } else if (Files.exists(filePath)) {
-            is = Files.newInputStream(filePath);
-        }
+    static byte[] unzipBuffer = new byte[1 << 17];
 
-        String fileLow = filePath.getFileName().toString().toLowerCase();
+    public static GorDataType inferDataTypes(FileReader fileReader, String fileName, boolean isGorz, boolean nor) throws IOException, DataFormatException {
+        InputStream is = fileReader.getInputStream(fileName);
+        return inferDataTypes(is, fileName, isGorz, nor);
+    }
+
+    public static GorDataType inferDataTypes(InputStream is, String fileName, boolean isGorz, boolean nor) throws IOException, DataFormatException {
+        String fileLow = fileName.toLowerCase();
         boolean isCompressed = fileLow.endsWith(".gz") || fileLow.endsWith(".bgz");
         if (isCompressed) is = new GZIPInputStream(is);
 
@@ -564,15 +566,17 @@ public class SparkRowUtilities {
                     linestream = new BufferedReader(isr).lines();
                 } else linestream = Stream.empty();
             } else {
-                is.close();
-                if (isUrl) {
+                //is.close();
+                //is = fileReader.getInputStream(fileName);
+                linestream = new BufferedReader(new InputStreamReader(is)).lines();
+                /*if (isUrl) {
                     SourceReference sr = new SourceReference(fileName);
                     is = ((StreamSource) GorDriverFactory.fromConfig().getDataSource(sr)).open();
                     if (isCompressed) is = new GZIPInputStream(is);
                     linestream = new BufferedReader(new InputStreamReader(is)).lines().skip(1);
                 } else if (Files.exists(filePath)) {
                     linestream = isCompressed ? new BufferedReader(new InputStreamReader(new GZIPInputStream(Files.newInputStream(filePath)))).lines().skip(1) : Files.newBufferedReader(filePath).lines().skip(1);
-                }
+                }*/
             }
         }
         return typeFromStream(linestream, withStart, headerArray, nor, base128);

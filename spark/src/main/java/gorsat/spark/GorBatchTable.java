@@ -4,6 +4,8 @@ import gorsat.Script.ScriptEngineFactory;
 import gorsat.Script.ScriptExecutionEngine;
 import gorsat.process.GorDataType;
 import gorsat.process.SparkRowUtilities;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.*;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.connector.write.LogicalWriteInfo;
 import org.apache.spark.sql.types.DataType;
@@ -28,8 +30,8 @@ import org.apache.spark.sql.util.CaseInsensitiveStringMap;
 import org.gorpipe.spark.SparkSessionFactory;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -60,13 +62,16 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
     String cacheDir;
     String configFile;
     String aliasFile;
+    Path ppath;
+    FileSystem fs;
+    boolean hadoopInfer;
 
-    public GorBatchTable(String query, boolean tag, String path, String filter, String filterFile, String filterColumn, String splitFile, String seek, String redisUri, String jobId, String cacheFile, String useCpp) {
-        init(query,tag,path,filter,filterFile,filterColumn,splitFile,seek,redisUri,jobId,cacheFile,useCpp);
+    public GorBatchTable(String query, boolean tag, String path, String filter, String filterFile, String filterColumn, String splitFile, String seek, String redisUri, String jobId, String cacheFile, String useCpp, boolean hadoopInfer) throws IOException {
+        init(query,tag,path,filter,filterFile,filterColumn,splitFile,seek,redisUri,jobId,cacheFile,useCpp,hadoopInfer);
     }
 
-    public GorBatchTable(String query, boolean tag, String path, String filter, String filterFile, String filterColumn, String splitFile, String seek, StructType schema, String redisUri, String jobId, String cacheFile, String useCpp) {
-        init(query,tag,path,filter,filterFile,filterColumn,splitFile,seek,redisUri,jobId,cacheFile,useCpp);
+    public GorBatchTable(String query, boolean tag, String path, String filter, String filterFile, String filterColumn, String splitFile, String seek, StructType schema, String redisUri, String jobId, String cacheFile, String useCpp, boolean hadoopInfer) throws IOException {
+        init(query,tag,path,filter,filterFile,filterColumn,splitFile,seek,redisUri,jobId,cacheFile,useCpp,hadoopInfer);
         this.schema = schema;
     }
 
@@ -100,7 +105,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
         }
     }
 
-    void init(String query, boolean tag, String path, String filter, String filterFile, String filterColumn, String splitFile, String seek, String redisUri, String jobId, String cacheFile, String useCpp) {
+    void init(String query, boolean tag, String path, String filter, String filterFile, String filterColumn, String splitFile, String seek, String redisUri, String jobId, String cacheFile, String useCpp, boolean hadoopInfer) throws IOException {
         this.query = query;
         this.projectRoot = Paths.get(".").toAbsolutePath().normalize().toString();
         this.cacheDir = "result_cache";
@@ -114,6 +119,22 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
         this.jobId = jobId;
         this.cacheFile = cacheFile;
         this.useCpp = useCpp;
+        this.hadoopInfer = hadoopInfer;
+        if(path!=null) {
+            this.ppath = new Path(path);
+            Configuration conf = new Configuration();
+            //conf.set("fs.s3a.endpoint","localhost:4566");
+            conf.set("fs.s3a.connection.ssl.enabled","false");
+            conf.set("fs.s3a.path.style.access","true");
+            conf.set("fs.s3a.impl","org.apache.hadoop.fs.s3a.S3AFileSystem");
+            conf.set("fs.s3a.change.detection.mode","warn");
+            conf.set("com.amazonaws.services.s3.enableV4","true");
+            conf.set("fs.s3a.committer.name","partitioned");
+            conf.set("fs.s3a.committer.staging.conflict-mode","replace");
+            conf.set("spark.delta.logStore.class","org.apache.spark.sql.delta.storage.S3SingleDriverLogStore");
+            conf.set("fs.s3a.aws.credentials.provider","org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider");
+            this.fs = ppath.getFileSystem(conf);
+        }
         checkSeek(seek);
     }
 
@@ -134,16 +155,31 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
 
     void inferSchema() {
         schema = Encoders.STRING().schema();
+        SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectRoot, cacheDir, configFile, aliasFile, null);
+        GorSparkSession gorPipeSession = (GorSparkSession) sessionFactory.create();
         if(path!=null) {
-            Path ppath = Paths.get(path);
+            String endingLowercase = path.substring(path.lastIndexOf(".")).toLowerCase();
+            boolean isGorz = endingLowercase.equals(".gorz");
             try {
-                schema = SparkRowUtilities.inferSchema(ppath, ppath.getFileName().toString(), false, path.toLowerCase().endsWith(".gorz"));
+                InputStream is;
+                if(hadoopInfer) {
+                    var ri = fs.listFiles(ppath, true);
+                    while (ri.hasNext()) {
+                        var lfs = ri.next();
+                        if (!lfs.isDirectory() && lfs.getPath().getName().toLowerCase().endsWith(endingLowercase)) {
+                            ppath = lfs.getPath();
+                            break;
+                        }
+                    }
+                    is = fs.open(ppath);
+                } else {
+                    is = gorPipeSession.getProjectContext().getFileReader().getInputStream(path);
+                }
+                schema = SparkRowUtilities.inferSchema(is, path, false, isGorz);
             } catch (IOException | DataFormatException e) {
-                throw new RuntimeException("Unable to infer schema from "+ppath.toString(), e);
+                throw new RuntimeException("Unable to infer schema from "+ ppath, e);
             }
         } else if(commands!=null) {
-            SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectRoot, cacheDir, configFile, aliasFile, null);
-            GorSparkSession gorPipeSession = (GorSparkSession) sessionFactory.create();
             GorDataType gdt = SparkRowUtilities.gorCmdSchema(commands,gorPipeSession);
 
             String[] headerArray = gdt.header;
@@ -291,7 +327,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
                         String tagstr = null;
                         if(tag) {
                             int i = cmd.indexOf("-p ") + 3;
-                            if (i != -1) {
+                            if (i > 2) {
                                 while (i < cmd.length() && cmd.charAt(i) == ' ') i++;
                                 int k = i + 1;
                                 while (k < cmd.length() && cmd.charAt(k) != ' ') k++;
@@ -313,8 +349,39 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
                     }
 
                     if (partitions == null && path != null) {
-                        Map<String,Integer> buildSizeGeneric = ReferenceBuildDefaults.buildSizeGeneric();
-                        partitions = buildSizeGeneric.entrySet().stream().sorted(Map.Entry.comparingByKey()).map(e -> new GorRangeInputPartition(path, filter, filterFile, filterColumn,e.getKey(), 0, e.getValue(), e.getKey())).toArray(InputPartition[]::new);
+                        try {
+                            Path dict = new Path(ppath,"dict.gord");
+                            if(fs.exists(dict)) {
+                                FSDataInputStream fis = fs.open(dict);
+                                String dictStr = new String(fis.readAllBytes());
+                                fis.close();
+                                String[] dictSplit = dictStr.split("\n");
+                                if(dictSplit[0].split("\t").length > 5) {
+                                    partitions = Arrays.stream(dictSplit).map(f -> f.split("\t")).map(p -> new GorRangeInputPartition(p[0], filter, filterFile, filterColumn, p[2], Integer.parseInt(p[3]), Integer.parseInt(p[5]), p[1])).toArray(GorRangeInputPartition[]::new);
+                                }
+                            } else if(fs.getFileStatus(ppath).isDirectory()) {
+                                String fname = ppath.getName();
+                                RemoteIterator<LocatedFileStatus> ri = fs.listFiles(ppath, false);
+                                List<GorRangeInputPartition> lgorRange = new ArrayList<>();
+                                while(ri.hasNext()) {
+                                    LocatedFileStatus lfs = ri.next();
+                                    Path npath = lfs.getPath();
+                                    if(npath.getName().endsWith(fname.substring(fname.lastIndexOf('.')))) {
+                                        String pathstr = npath.toString();
+                                        if(pathstr.startsWith("file:")) pathstr = pathstr.substring(5);
+                                        lgorRange.add(new GorRangeInputPartition(pathstr, filter, filterFile, filterColumn, null, 0, 250000000, npath.getName()));
+                                    }
+                                }
+                                partitions = lgorRange.toArray(GorRangeInputPartition[]::new);
+                            }
+
+                            if(partitions == null) {
+                                Map<String,Integer> buildSizeGeneric = ReferenceBuildDefaults.buildSizeGeneric();
+                                partitions = buildSizeGeneric.entrySet().stream().sorted(Map.Entry.comparingByKey()).map(e -> new GorRangeInputPartition(path, filter, filterFile, filterColumn,e.getKey(), 0, e.getValue(), e.getKey())).toArray(InputPartition[]::new);
+                            }
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                     } else partitions = new InputPartition[0];
                 }
                 return partitions;

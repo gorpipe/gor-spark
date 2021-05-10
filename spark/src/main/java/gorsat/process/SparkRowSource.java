@@ -1,6 +1,7 @@
 package gorsat.process;
 
 import java.io.*;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -18,12 +19,17 @@ import org.apache.spark.ml.feature.PCA;
 import org.apache.spark.ml.feature.PCAModel;
 import org.apache.spark.ml.linalg.VectorUDT;
 import org.apache.spark.ml.linalg.Vectors;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.spark.sql.*;
 import org.apache.spark.sql.expressions.UserDefinedFunction;
 
 import org.gorpipe.exceptions.GorResourceException;
+import org.gorpipe.gor.driver.DataSource;
 import org.gorpipe.gor.driver.providers.stream.datatypes.bam.BamIterator;
 import org.gorpipe.gor.model.*;
+import org.gorpipe.gor.model.FileReader;
 import org.gorpipe.gor.model.Row;
 import org.gorpipe.gor.session.GorSession;
 import org.gorpipe.gor.session.ProjectContext;
@@ -142,7 +148,7 @@ public class SparkRowSource extends ProcessSource {
                 sql = headercommands.stream().filter(p -> p.length() > 0).map(inner).map(gorfunc).map(parqfunc).collect(Collectors.joining(" "));
                 fileNames = Arrays.stream(cmdsplit).flatMap(gorfileflat).filter(gorpred).toArray(String[]::new);
                 for (String fn : fileNames) {
-                    if (gorSparkSession.getSystemContext().getServer()) ProjectContext.validateServerFileName(fn, true);
+                    if (gorSparkSession.getSystemContext().getServer()) ProjectContext.validateServerFileName(fn, fileroot.toString(), true);
                     StructType schema = ddl!=null ? StructType.fromDDL(ddl) : null;
                     SparkRowUtilities.registerFile(new String[]{fn}, profile,null, gpSession, standalone, fileroot, cachepath, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp, tag, schema);
                 }
@@ -179,6 +185,7 @@ public class SparkRowSource extends ProcessSource {
     Path fileroot = null;
     Path cachepath = null;
     String parquetPath = null;
+    String dictPath = null;
     int pcacomponents = 10;
     String pushdownGorPipe = null;
     GorSparkSession gorSparkSession;
@@ -491,6 +498,33 @@ public class SparkRowSource extends ProcessSource {
         return fields.length == 1 || !(fields[0].name().equalsIgnoreCase("chrom") && fields[1].dataType() == IntegerType);
     }
 
+    void writeDictionary(org.apache.hadoop.fs.Path resolvedPath, org.apache.hadoop.fs.Path dictPath) throws IOException {
+        Dataset<org.apache.spark.sql.Row> ds = gorSparkSession.getSparkSession().read().format("csv").load(resolvedPath +"/*.meta").withColumn("inputFile", org.apache.spark.sql.functions.input_file_name());
+        Dataset<String> dss = ds.selectExpr("inputFile","_c0 as meta").where("meta like '## RANGE%'").map((MapFunction<org.apache.spark.sql.Row, String>) r -> {
+            String first = r.getString(0);
+            int l = first.lastIndexOf('/');
+            String name = first.substring(l+1);
+            if(first.startsWith("file:")) {
+                first = name;
+                l = -1;
+            }
+            return first.substring(0,first.length()-5)+"\t"+first.substring(l+6,l+11)+"\t"+r.getString(1).substring(10);
+        }, Encoders.STRING()).coalesce(1);
+        List<String> lss = dss.collectAsList();
+
+        Configuration conf = new Configuration();
+        FileSystem fs = dictPath.getFileSystem(conf);
+        if(fs.getFileStatus(dictPath).isDirectory()) {
+            dictPath = new org.apache.hadoop.fs.Path(dictPath,"dict.gord");
+        }
+        FSDataOutputStream is = fs.create(dictPath);
+        for(String l : lss) {
+            is.writeBytes(l);
+            is.write('\n');
+        }
+        is.close();
+    }
+
     private RowBuffer rowBuffer = null;
 
     private Dataset<org.apache.spark.sql.Row> gttranspose(Dataset<org.apache.spark.sql.Row> ds) {
@@ -551,25 +585,28 @@ public class SparkRowSource extends ProcessSource {
     public boolean hasNext() {
         if (it == null) {
             if (parquetPath != null) {
-                Path pPath = Paths.get(parquetPath);
-                if (fileroot != null && !pPath.isAbsolute()) {
-                    pPath = fileroot.resolve(pPath);
-                }
-                if (!Files.exists(pPath)) {
-                    if (parquetPath.endsWith(".pca")) {
-                        PCA pca = new PCA();
-                        pca.setK(pcacomponents);
-                        pca.setOutputCol("pca");
-                        pca.setInputCol("values");
-                        PCAModel pcamodel = pca.fit(dataset);
-                        try {
-                            pcamodel.save(parquetPath);
-                        } catch (IOException e) {
-                            throw new GorResourceException("Unable to save pcamodel file", parquetPath, e);
+                try {
+                    boolean exists;
+                    FileReader fileReader = gorSparkSession.getProjectContext().getFileReader();
+                    String resolvedPath;
+                    if(fileReader instanceof DriverBackedFileReader) {
+                        DriverBackedFileReader driverBackedFileReader = (DriverBackedFileReader)fileReader;
+                        DataSource ds = driverBackedFileReader.resolveUrl(parquetPath);
+                        exists = ds.exists();
+                        URI uri = URI.create(ds.getSourceReference().getUrl());
+                        if(!uri.isAbsolute() && fileroot!=null) {
+                            resolvedPath = fileroot.resolve(parquetPath).toAbsolutePath().normalize().toString();
+                        } else {
+                            resolvedPath = ds.getSourceReference().getUrl();
                         }
                     } else {
-                        Arrays.stream(dataset.columns()).filter(c -> c.contains("(")).forEach(c -> dataset = dataset.withColumnRenamed(c, c.replace('(', '_').replace(')', '_')));
-
+                        Path pPath = Paths.get(parquetPath);
+                        if (fileroot != null && !pPath.isAbsolute()) {
+                            pPath = fileroot.resolve(pPath);
+                        }
+                        exists = Files.exists(pPath);
+                        resolvedPath = pPath.toAbsolutePath().normalize().toString();
+                    }
                         /*if (!checkNor(dataset.schema().fields())) {
                             String path = pPath.resolve(pPath.getFileName().toString() + ".gorp").toAbsolutePath().normalize().toString();
                             Encoder<org.apache.spark.sql.Row> enc = (Encoder<org.apache.spark.sql.Row>) dataset.encoder();
@@ -577,16 +614,50 @@ public class SparkRowSource extends ProcessSource {
                             dataset = ((Dataset<org.apache.spark.sql.Row>) dataset).mapPartitions(gorpWriter, enc);
                         }*/
 
-                        DataFrameWriter dfw = dataset.write();
-                        if (parts != null) {
-                            if (buckets != null) {
-                                dfw = dfw.bucketBy(buckets, parts);
-                            } else {
-                                dfw = dfw.partitionBy(parts.split(","));
+                    if(!exists) {
+                        if (parquetPath.endsWith(".pca")) {
+                            PCA pca = new PCA();
+                            pca.setK(pcacomponents);
+                            pca.setOutputCol("pca");
+                            pca.setInputCol("values");
+                            PCAModel pcamodel = pca.fit(dataset);
+                            try {
+                                pcamodel.save(parquetPath);
+                            } catch (IOException e) {
+                                throw new GorResourceException("Unable to save pcamodel file", parquetPath, e);
+                            }
+                        } else {
+                            Arrays.stream(dataset.columns()).filter(c -> c.contains("(")).forEach(c -> dataset = dataset.withColumnRenamed(c, c.replace('(', '_').replace(')', '_')));
+                            DataFrameWriter dfw = dataset.write();
+                            if (parts != null) {
+                                if (buckets != null) {
+                                    dfw = dfw.bucketBy(buckets, parts);
+                                } else {
+                                    dfw = dfw.partitionBy(parts.split(","));
+                                }
+                            }
+                            boolean gorformat = parquetPath.toLowerCase().endsWith(".gorz");
+                            dfw = gorformat ? dfw.format("gor") : dfw.format("parquet");
+                            dfw.mode(SaveMode.Overwrite).save(resolvedPath);
+
+                            if (gorformat) {
+                                org.apache.hadoop.fs.Path hp = new org.apache.hadoop.fs.Path(resolvedPath);
+                                if (parquetPath.equals(dictPath)) {
+                                    writeDictionary(hp, hp);
+                                } else {
+                                    Path dPath = Paths.get(dictPath);
+                                    if (fileroot != null && !dPath.isAbsolute()) {
+                                        dPath = fileroot.resolve(dPath);
+                                    }
+                                    String dictPathStr = dPath.toAbsolutePath().normalize().toString();
+                                    org.apache.hadoop.fs.Path dp = new org.apache.hadoop.fs.Path(dictPathStr);
+                                    writeDictionary(hp, dp);
+                                }
                             }
                         }
-                        dfw.format("parquet").mode(SaveMode.Overwrite).save(pPath.toAbsolutePath().normalize().toString());
                     }
+                } catch (IOException e) {
+                    throw new GorResourceException("Unable to get datasource", parquetPath, e);
                 }
                 return false;
             } else {
@@ -826,20 +897,31 @@ public class SparkRowSource extends ProcessSource {
 
     @Override
     public boolean pushdownWrite(String filename) {
-        int id = filename.indexOf("-pca");
-        if(id!=-1) {
-            int k = id+5;
-            char c = filename.charAt(k);
-            while(c==' ') c = filename.charAt(++k);
-            while(k < filename.length() && c!=' ') c = filename.charAt(k++);
-            String pcompstr = filename.substring(id+5,k).trim();
-            pcacomponents = Integer.parseInt(pcompstr);
-            this.parquetPath = filename.substring(k).trim();
-            if(this.parquetPath.length()==0) {
-                this.parquetPath = gorSparkSession.getProjectContext().getFileCache().tempLocation(jobId,CommandParseUtilities.getExtensionForQuery(sql.startsWith("<(") ? "spark "+sql : sql, false));
+        if(parquetPath==null) {
+            int id = filename.indexOf("-pca");
+            if (id != -1) {
+                int k = id + 5;
+                char c = filename.charAt(k);
+                while (c == ' ') c = filename.charAt(++k);
+                while (k < filename.length() && c != ' ') c = filename.charAt(k++);
+                String pcompstr = filename.substring(id + 5, k).trim();
+                pcacomponents = Integer.parseInt(pcompstr);
+                this.parquetPath = filename.substring(k).trim();
+                if (this.parquetPath.length() == 0) {
+                    this.parquetPath = gorSparkSession.getProjectContext().getFileCache().tempLocation(jobId, CommandParseUtilities.getExtensionForQuery(sql.startsWith("<(") ? "spark " + sql : sql, false));
+                }
+            } else {
+                id = filename.indexOf("-d");
+                if(id>=0) {
+                    int li = filename.indexOf(' ', id+3);
+                    if(li==-1) li = filename.length();
+                    this.parquetPath = filename.substring(id+3,li).trim();
+                    this.dictPath = li==filename.length() ? parquetPath : filename.substring(li+1).trim();
+                } else {
+                    this.parquetPath = filename;
+                    this.dictPath = filename;
+                }
             }
-        } else {
-            this.parquetPath = filename;
         }
         it = null;
         return true;
