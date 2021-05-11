@@ -35,10 +35,9 @@ class WriteSpark extends CommandInfo("WRITE",
   CommandArguments("-r -c -m -d -p -noheader", "-f -i -t -l -card -prefix -format -option -mode", 1),
   CommandOptions(gorCommand = true, norCommand = true, verifyCommand = true)) {
   override def processArguments(context: GorContext, argString: String, iargs: Array[String], args: Array[String], executeNor: Boolean, forcedInputHeader: String): CommandParsingResult = {
-    var fileName = replaceSingleQuotes(iargs.mkString(" "))
+    val fileName = replaceSingleQuotes(iargs.mkString(" "))
     if (context.getSession.getSystemContext.getServer) {
       context.getSession.getProjectContext.validateWriteAllowed(fileName)
-      fileName = context.getSession.getProjectContext.getWritePath(fileName)
     }
 
     var forkCol = -1
