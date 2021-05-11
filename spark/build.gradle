@@ -64,11 +64,13 @@ project(':spark') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
+            exclude group: 'com.google.guava', module: 'guava'
         }
         implementation ('org.apache.spark:spark-hive-thriftserver_2.12:3.1.1') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
+            exclude group: 'com.google.guava', module: 'guava'
         }
         implementation group: 'io.delta', name: 'delta-core_2.12', version: '0.8.0'
 
