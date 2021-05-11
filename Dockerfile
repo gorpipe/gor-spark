@@ -19,5 +19,6 @@ RUN rm -rf /opt/spark/jars/jersey-server-1.19.jar
 RUN rm -rf /opt/spark/jars/log4j-over-slf4j-1.7.30.jar
 RUN rm -rf /opt/spark/jars/logback-core-1.2.3.jar
 RUN rm -rf /opt/spark/jars/logback-classic-1.2.3.jar
+RUN rm -rf /opt/spark/jars/guava-14.0.1.jar
 
 USER 3000
