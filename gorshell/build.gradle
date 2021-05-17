@@ -18,11 +18,22 @@ project(':gorshell') {
     dependencies {
         implementation project(":spark")
 
-        implementation("${gorArtifactGroupId}:gor-base:${gorVersion}")
-        implementation("${gorArtifactGroupId}:gor-model:${gorVersion}")
-        implementation("${gorArtifactGroupId}:gor-gortools:${gorVersion}")
-        implementation("${gorArtifactGroupId}:gor-gorscripts:${gorVersion}")
-        implementation("${gorArtifactGroupId}:gor-util:${gorVersion}")
+        implementation("${gorArtifactGroupId}:gor-base:${gorVersion}") {
+            exclude group: 'ch.qos.logback', module: 'logback-classic'
+            exclude group: 'ch.qos.logback', module: 'logback-core'
+        }
+        implementation("${gorArtifactGroupId}:gor-model:${gorVersion}") {
+            exclude group: 'ch.qos.logback', module: 'logback-classic'
+        }
+        implementation("${gorArtifactGroupId}:gor-gortools:${gorVersion}") {
+            exclude group: 'ch.qos.logback', module: 'logback-classic'
+        }
+        implementation("${gorArtifactGroupId}:gor-gorscripts:${gorVersion}") {
+            exclude group: 'ch.qos.logback', module: 'logback-classic'
+        }
+        implementation("${gorArtifactGroupId}:gor-util:${gorVersion}") {
+            exclude group: 'ch.qos.logback', module: 'logback-classic'
+        }
 
         implementation ('org.apache.spark:spark-core_2.12:3.1.1') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
@@ -95,7 +106,9 @@ project(':gorshell') {
 
         implementation 'io.kubernetes:client-java:11.0.0'
 
-        testImplementation("${gorArtifactGroupId}:gor-test:${gorVersion}")
+        testImplementation("${gorArtifactGroupId}:gor-test:${gorVersion}") {
+            exclude group: 'ch.qos.logback', module: 'logback-classic'
+        }
     }
 
     jar {

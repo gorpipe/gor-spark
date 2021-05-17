@@ -307,8 +307,8 @@ public class SparkRowUtilities {
                     DataFrameReader dfr = gorSparkSession.getSparkSession().read().format(gordatasourceClassname);
                     dfr.option("query", fileName);
                     if (tag) dfr.option("tag", true);
-                    dfr.option("projectroot", fileroot.toString());
-                    dfr.option("cachedir", cacheDir.toString());
+                    if (fileroot != null) dfr.option("projectroot", fileroot.toString());
+                    if (cacheDir != null) dfr.option("cachedir", cacheDir.toString());
                     dfr.option("aliasfile", gorSparkSession.getProjectContext().getGorAliasFile());
                     dfr.option("configfile", gorSparkSession.getProjectContext().getGorConfigFile());
                     if(schema!=null) dfr.schema(schema);

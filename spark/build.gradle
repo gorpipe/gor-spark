@@ -16,10 +16,19 @@ project(':spark') {
     sourceSets.main.java.srcDirs = []
 
     dependencies {
-        implementation("${gorArtifactGroupId}:gor-base:${gorVersion}")
-        implementation("${gorArtifactGroupId}:gor-model:${gorVersion}")
-        implementation("${gorArtifactGroupId}:gor-gortools:${gorVersion}")
-        implementation("${gorArtifactGroupId}:gor-util:${gorVersion}")
+        implementation("${gorArtifactGroupId}:gor-base:${gorVersion}") {
+            exclude group: 'ch.qos.logback', module: 'logback-classic'
+            exclude group: 'ch.qos.logback', module: 'logback-core'
+        }
+        implementation("${gorArtifactGroupId}:gor-model:${gorVersion}") {
+            exclude group: 'ch.qos.logback', module: 'logback-classic'
+        }
+        implementation("${gorArtifactGroupId}:gor-gortools:${gorVersion}") {
+            exclude group: 'ch.qos.logback', module: 'logback-classic'
+        }
+        implementation("${gorArtifactGroupId}:gor-util:${gorVersion}") {
+            exclude group: 'ch.qos.logback', module: 'logback-classic'
+        }
 
         annotationProcessor 'com.google.auto.service:auto-service:1.0'
         implementation 'com.google.auto.service:auto-service:1.0'
@@ -143,6 +152,8 @@ project(':spark') {
 
         implementation 'io.kubernetes:client-java:11.0.0'
 
-        testImplementation("${gorArtifactGroupId}:gor-test:${gorVersion}")
+        testImplementation("${gorArtifactGroupId}:gor-test:${gorVersion}") {
+            exclude group: 'ch.qos.logback', module: 'logback-classic'
+        }
     }
 }

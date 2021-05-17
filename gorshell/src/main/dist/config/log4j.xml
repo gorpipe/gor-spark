@@ -21,7 +21,7 @@
   ~ * END_COPYRIGHT
   -->
 
-<Configuration status="WARN">
+<Configuration status="OFF">
     <!--
     This is a minimal default configuration that is bundled with any GOR build.
 
