@@ -558,7 +558,7 @@ public class SparkRowUtilities {
                     Unzipper unzip = new Unzipper(false);
                     unzip.setType(compressionLibrary);
                     unzip.setInput(bb, 0, bb.capacity());
-                    int unzipLen = unzip.decompress(0, 1 << 17);
+                    int unzipLen = unzip.decompress(0);
                     ByteArrayInputStream bais = new ByteArrayInputStream(unzip.out.array(), 0, unzipLen);
                     InputStreamReader isr = new InputStreamReader(bais);
                     //String str = new String(unzipBuffer, 0, unzipLen);

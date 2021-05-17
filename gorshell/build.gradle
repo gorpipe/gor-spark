@@ -18,11 +18,13 @@ project(':gorshell') {
     dependencies {
         implementation project(":spark")
 
-        implementation("${gorArtifactGroupId}:gor-base:${gorVersion}")
-        implementation("${gorArtifactGroupId}:gor-model:${gorVersion}")
-        implementation("${gorArtifactGroupId}:gor-gortools:${gorVersion}")
-        implementation("${gorArtifactGroupId}:gor-gorscripts:${gorVersion}")
-        implementation("${gorArtifactGroupId}:gor-util:${gorVersion}")
+        implementation project(':base')
+        implementation project(':util')
+        implementation project(':model')
+        implementation(project(':gortools')) {
+            exclude group: 'net.sourceforge.f2j', module: 'arpack_combined_all'
+        }
+        implementation project(':scripts')
 
         implementation ('org.apache.spark:spark-core_2.12:3.1.1') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
@@ -95,7 +97,7 @@ project(':gorshell') {
 
         implementation 'io.kubernetes:client-java:11.0.0'
 
-        testImplementation("${gorArtifactGroupId}:gor-test:${gorVersion}")
+        //testImplementation("${gorArtifactGroupId}:gor-test:${gorVersion}")
     }
 
     jar {

@@ -4,6 +4,7 @@ rootProject.buildFileName = "build.gradle"
 include 'spark'
 
 //include 'querydialogs'
+include 'gorscripts'
 include 'gortools'
 include 'model'
 //include 'gordrivers'
@@ -15,6 +16,7 @@ include 'util'
 
 //include 'documentation'
 
+project(":gorscripts").projectDir = file("../gor/gorscipts")
 project(":gortools").projectDir = file("../gor/gortools")
 project(":model").projectDir = file("../gor/model")
 //project(":gordrivers").projectDir = file("../gor/drivers")
