@@ -37,7 +37,7 @@ class GorQueryRDD(sparkSession: SparkSession, commandsToExecute: Array[String], 
     // Do this if we have result cache active or if we are running locally and the local cacheFile does not exist.
     val projectPath = Paths.get(projectDirectory)
     val cacheFilePath = Paths.get(cacheFile)
-    val absCacheFilePath = if( !cacheFilePath.isAbsolute ) projectPath.resolve(cacheFile) else cacheFilePath
+    val absCacheFilePath = if( projectDirectory.nonEmpty && !cacheFilePath.isAbsolute ) projectPath.resolve(cacheFile) else cacheFilePath
     val cacheFileMd5Path = absCacheFilePath.getParent.resolve(absCacheFilePath.getFileName+".md5")
     if(Files.isDirectory(absCacheFilePath)) {
       val sparkGorMonitor : GorMonitor = if(SparkGorMonitor.localProgressMonitor!=null) SparkGorMonitor.localProgressMonitor else new SparkGorMonitor(redisUri, jobId)
@@ -59,7 +59,7 @@ class GorQueryRDD(sparkSession: SparkSession, commandsToExecute: Array[String], 
         case e: Exception => handleException(e, temp_cacheFile)
       }
     }
-    val relCachePath = if(cacheFilePath.isAbsolute) {
+    val relCachePath = if(projectDirectory.nonEmpty && cacheFilePath.isAbsolute) {
       projectPath.relativize(cacheFilePath).toString
     } else {
       cacheFile
