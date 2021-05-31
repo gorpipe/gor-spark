@@ -31,12 +31,13 @@ public class SparkSessionFactory extends GorSessionFactory {
     private SparkSession sparkSession;
     private GorMonitor sparkGorMonitor;
     private GorParallelQueryHandler queryHandler;
+    private int workers;
 
     public SparkSessionFactory(String root, String cacheDir, String configFile, String aliasFile, SparkGorMonitor sparkMonitor) {
        this(GorSparkUtilities.getSparkSession(), root, cacheDir, configFile, aliasFile, sparkMonitor);
     }
 
-    public SparkSessionFactory(SparkSession sparkSession, String root, String cacheDir, String configFile, String aliasFile, GorMonitor sparkMonitor) {
+    public SparkSessionFactory(SparkSession sparkSession, String root, String cacheDir, String configFile, String aliasFile, GorMonitor sparkMonitor, int workers) {
         this.root = root;
         this.cacheDir = cacheDir;
         Path rootPath = Paths.get(root);
@@ -52,17 +53,22 @@ public class SparkSessionFactory extends GorSessionFactory {
         } else this.aliasFile = Optional.empty();
         this.sparkSession = sparkSession;
         this.sparkGorMonitor = sparkMonitor;
+        this.workers = workers;
+    }
+
+    public SparkSessionFactory(SparkSession sparkSession, String root, String cacheDir, String configFile, String aliasFile, GorMonitor sparkMonitor) {
+        this(sparkSession, root, cacheDir, configFile, aliasFile, sparkMonitor, 0);
     }
 
     public SparkSessionFactory(SparkSession sparkSession, String root, String cacheDir, String configFile, String aliasFile, GorMonitor sparkMonitor, GorParallelQueryHandler queryHandler) {
-        this(sparkSession, root, cacheDir, configFile, aliasFile, sparkMonitor);
+        this(sparkSession, root, cacheDir, configFile, aliasFile, sparkMonitor, 0);
         this.queryHandler = queryHandler;
     }
 
     @Override
     public GorSession create() {
         String requestId = UUID.randomUUID().toString();
-        GorSparkSession session = new GorSparkSession(requestId);
+        GorSparkSession session = new GorSparkSession(requestId, workers);
         session.setSparkSession(sparkSession);
         String sparkRedisUri = null;
         if(sparkGorMonitor instanceof SparkGorMonitor) {

@@ -19,7 +19,7 @@ import org.gorpipe.gor.session.{EventLogger, GorSession, GorSessionCache, Projec
 
 import scala.collection.JavaConverters
 
-class GorSparkSession(requestId: String) extends GorSession(requestId) with AutoCloseable {
+class GorSparkSession(requestId: String, workers: Int = 0) extends GorSession(requestId) with AutoCloseable {
   var sparkSession: SparkSession = _
   val createMap = new java.util.HashMap[String,String]
   val defMap = new java.util.HashMap[String,String]
@@ -38,7 +38,7 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
   }
 
   def getSparkSession: SparkSession = {
-    if(sparkSession == null) sparkSession = GorSparkUtilities.getSparkSession
+    if(sparkSession == null) sparkSession = GorSparkUtilities.getSparkSession(workers)
     sparkSession
   }
 

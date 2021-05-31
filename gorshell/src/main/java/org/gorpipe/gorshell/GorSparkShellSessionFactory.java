@@ -33,6 +33,7 @@ import org.gorpipe.gor.model.DriverBackedFileReader;
 import org.gorpipe.gor.session.*;
 import org.gorpipe.spark.GorSparkSession;
 
+import java.nio.ByteBuffer;
 import java.nio.file.Paths;
 import java.util.UUID;
 
@@ -69,7 +70,7 @@ public class GorSparkShellSessionFactory extends GorShellSessionFactory {
     public GorSession create() {
         String requestId = UUID.randomUUID().toString();
 
-        GorSession session = new GorSparkSession(requestId);
+        GorSession session = new GorSparkSession(requestId, 0);
 
         ProjectContext.Builder projectContextBuilder = new ProjectContext.Builder();
 

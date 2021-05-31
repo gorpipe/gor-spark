@@ -112,7 +112,7 @@ public class GorSparkUtilities {
         return sparkRedisHost != null && sparkRedisHost.length() > 0 ? constructRedisUri(sparkRedisHost) : "";
     }
 
-    private static SparkSession newSparkSession() {
+    private static SparkSession newSparkSession(int workers) {
         SparkConf sparkConf = new SparkConf();
         //sparkConf.set("spark.hadoop.fs.s3a.endpoint","localhost:4566");
         sparkConf.set("spark.hadoop.fs.s3a.connection.ssl.enabled","false");
@@ -126,7 +126,7 @@ public class GorSparkUtilities {
         sparkConf.set("spark.hadoop.fs.s3a.aws.credentials.provider","org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider");
         SparkSession.Builder ssb = SparkSession.builder();
         if(!sparkConf.contains("spark.master")) {
-            ssb = ssb.master("local[*]");
+            ssb = workers>0 ? ssb.master("local["+workers+"]") : ssb.master("local[*]");
         }
         SparkSession spark = ssb.config(sparkConf).getOrCreate();
 
@@ -143,13 +143,17 @@ public class GorSparkUtilities {
     }
 
     public static SparkSession getSparkSession() {
+        return getSparkSession(0);
+    }
+
+    public static SparkSession getSparkSession(int workers) {
         if(spark==null) {
             if (!SparkSession.getDefaultSession().isEmpty()) {
                 log.info("SparkSession from default");
                 spark = SparkSession.getDefaultSession().get();
             } else {
                 log.info("Starting a new SparkSession");
-                spark = newSparkSession();
+                spark = newSparkSession(workers);
             }
             Optional<String> standaloneRoot = GorStandalone.isStandalone() ? Optional.of(GorStandalone.getStandaloneRoot()) : Optional.empty();
             initPySpark(standaloneRoot);
