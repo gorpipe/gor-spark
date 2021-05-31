@@ -69,7 +69,7 @@ public class GorSparkShellSessionFactory extends GorShellSessionFactory {
     public GorSession create() {
         String requestId = UUID.randomUUID().toString();
 
-        GorSession session = new GorSparkSession(requestId);
+        GorSession session = new GorSparkSession(requestId, 0);
 
         ProjectContext.Builder projectContextBuilder = new ProjectContext.Builder();
 

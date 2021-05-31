@@ -44,7 +44,7 @@ public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long>, Au
     public RedisBatchConsumer(SparkSession sparkSession, String redisUri) {
         log.info("Starting RedisBatchConsumer on redisUri "+ redisUri);
 
-        gss = new GorSparkSession("");
+        gss = new GorSparkSession("", 0);
         gss.setSparkSession(sparkSession);
         gss.redisUri_$eq(redisUri);
 

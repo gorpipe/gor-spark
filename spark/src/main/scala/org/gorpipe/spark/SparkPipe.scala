@@ -55,7 +55,7 @@ object SparkPipe extends GorPipeFirstOrderCommands {
 
     val sparkGorRedisUri = GorSparkUtilities.getSparkGorRedisUri()
     val sparkMonitor = new SparkGorMonitor(sparkGorRedisUri,"-1")
-    val executionEngine = new SparkGorExecutionEngine(commandlineOptions.query, commandlineOptions.gorRoot, commandlineOptions.cacheDir, null, null,null, sparkMonitor)
+    val executionEngine = new SparkGorExecutionEngine(commandlineOptions.query, commandlineOptions.gorRoot, commandlineOptions.cacheDir, null, null,null, sparkMonitor, commandlineOptions.workers)
 
     try {
       executionEngine.execute()

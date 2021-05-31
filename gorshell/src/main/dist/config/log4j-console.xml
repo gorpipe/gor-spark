@@ -21,7 +21,7 @@
   ~ * END_COPYRIGHT
   -->
 
-<Configuration status="DEBUG">
+<Configuration status="OFF">
     <!--This is a minimal default configuration that is bundled with any GOR build.-->
     <Appenders>
         <Console name="Console" target="SYSTEM_ERR">
