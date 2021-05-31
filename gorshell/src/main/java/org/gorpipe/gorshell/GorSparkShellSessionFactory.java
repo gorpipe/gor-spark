@@ -33,7 +33,6 @@ import org.gorpipe.gor.model.DriverBackedFileReader;
 import org.gorpipe.gor.session.*;
 import org.gorpipe.spark.GorSparkSession;
 
-import java.nio.ByteBuffer;
 import java.nio.file.Paths;
 import java.util.UUID;
 
