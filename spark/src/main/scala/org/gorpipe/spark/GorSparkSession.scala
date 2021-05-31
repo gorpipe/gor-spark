@@ -118,7 +118,7 @@ class GorSparkSession(requestId: String, workers: Int = 0) extends GorSession(re
 
   def replaceAliases(gorcmd: String): String = {
     val qryspl = CommandParseUtilities.quoteSafeSplit(gorcmd, ';')
-    if(fileAliasMap!=null) {
+    if(gorcmd.nonEmpty && fileAliasMap!=null) {
       val tmpFileAliasMap = new util.HashMap[String, String](fileAliasMap)
       AnalysisUtilities.checkAliasNameReplacement(qryspl, tmpFileAliasMap) //needs a test
       replaceAllAliases(gorcmd, tmpFileAliasMap)
@@ -127,7 +127,7 @@ class GorSparkSession(requestId: String, workers: Int = 0) extends GorSession(re
 
   def getCreateQueries(increates: String): String = {
     val allcreates = SparkRowUtilities.createMapString(createMap, defMap, creates + increates)
-    replaceAliases(allcreates)
+    if(allcreates.nonEmpty) replaceAliases(allcreates) else allcreates
   }
 
   def showCreateAndDefs(): List[String] = {
