@@ -16,14 +16,14 @@ project(':spark') {
     sourceSets.main.java.srcDirs = []
 
     dependencies {
-        implementation project(':base') {
+        implementation(project(':base')) {
             exclude group: 'ch.qos.logback', module: 'logback-classic'
             exclude group: 'ch.qos.logback', module: 'logback-core'
         }
-        implementation project(':util') {
+        implementation(project(':util')) {
             exclude group: 'ch.qos.logback', module: 'logback-classic'
         }
-        implementation project(':model') {
+        implementation(project(':model')) {
             exclude group: 'ch.qos.logback', module: 'logback-classic'
         }
         implementation(project(':gortools')) {
