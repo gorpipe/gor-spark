@@ -141,8 +141,8 @@ class GorSparkSession(requestId: String, workers: Int = 0) extends GorSession(re
     val query = if(!lastqry.toLowerCase.startsWith("spark ") && !lastqry.toLowerCase.startsWith("select ")) {
       (if(sc!=null) "spark -schema {"+sc.toDDL+"} " else "spark ") + "{"+lastqry+"}"
     } else lastqry
-    val createQueries = getCreateQueries(increates)
-    val fullQuery = if (createQueries.length > 0) createQueries + query else query
+    val createQueries = if(increates.nonEmpty) getCreateQueries(increates) else ""
+    val fullQuery = if (createQueries.nonEmpty) createQueries + query else query
 
     val args = Array[String](fullQuery)
     val options = new PipeOptions

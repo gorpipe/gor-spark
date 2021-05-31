@@ -149,8 +149,7 @@ project(':spark') {
         compile "org.apache.commons:commons-lang3:3.9"*/
 
         implementation("redis.clients:jedis:3.5.1")
-
-        implementation 'io.kubernetes:client-java:11.0.0'
+        implementation 'io.kubernetes:client-java:12.0.1'
 
         testImplementation("${gorArtifactGroupId}:gor-test:${gorVersion}") {
             exclude group: 'ch.qos.logback', module: 'logback-classic'
