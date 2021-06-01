@@ -122,6 +122,7 @@ public class UTestGorDictionaryFolder {
     }
 
     @Test
+    @Ignore("Same tests in gor")
     public void testPgorWriteFolder() {
         Path folderpath = Paths.get("folder.gord");
         try {
@@ -160,6 +161,7 @@ public class UTestGorDictionaryFolder {
     }
 
     @Test
+    @Ignore("Same tests in gor")
     public void testPgorWriteFolderWithCardinality() throws IOException {
         Path folderpath = Paths.get("folder.gord");
         try {
