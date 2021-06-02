@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gor-spark-redisrunner
+  namespace: gorkube
+  labels:
+    lord: spark
+data:
+  gor-spark-redisrunner: |
+{{ .Files.Get "resources/sparkoperator.yaml" | indent 6 }}
