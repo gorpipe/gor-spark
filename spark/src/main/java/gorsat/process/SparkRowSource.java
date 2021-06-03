@@ -89,13 +89,18 @@ public class SparkRowSource extends ProcessSource {
             dataset = gpSession.getSparkSession().read().parquet(parquet);
         } else if(format != null) {
             var dataFrameReader = gpSession.getSparkSession().read().format(format);
+            var options = new HashSet<String>();
             if(option!=null) {
                 if(option.startsWith("'")) {
                     option = option.substring(1,option.length()-1);
                 }
                 for(String split : option.split(";")) {
-                    String[] subsplit = CommandParseUtilities.quoteSafeSplit(split.trim(),'=');
-                    dataFrameReader = dataFrameReader.option(subsplit[0],subsplit[1]);
+                    String splittrim = split.trim();
+                    int ie = splittrim.indexOf('=');
+                    String key = splittrim.substring(0,ie);
+                    String val = splittrim.substring(ie+1);
+                    options.add(key);
+                    dataFrameReader = dataFrameReader.option(key,val);
                 }
             }
             if(ddl!=null) {
@@ -108,7 +113,7 @@ public class SparkRowSource extends ProcessSource {
                 } else {
                     dataset = dataFrameReader.option("dbtable",sql).load();
                 }
-            } else if(format.equals("redis")) {
+            } else if(format.contains("redis")) {
                 var sqlow = sql.toLowerCase();
                 if (sqlow.startsWith("select ")) {
                     int i = sqlow.indexOf(" from ")+6;
@@ -118,7 +123,7 @@ public class SparkRowSource extends ProcessSource {
                     dataFrameReader.option("table",table).load().createOrReplaceTempView(sqlhash);
                     dataset = gorSparkSession.getSparkSession().sql(sql);
                 } else {
-                    dataset = dataFrameReader.option("table",sql).load();
+                    dataset = sql.equals("dummy") || options.contains("table") ? dataFrameReader.load() : dataFrameReader.option("table",sql).load();
                 }
             } else if(sql.toLowerCase().startsWith("select ")) {
                 dataset = dataFrameReader.load();
