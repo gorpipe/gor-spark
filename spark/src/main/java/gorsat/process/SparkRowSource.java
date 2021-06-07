@@ -74,7 +74,7 @@ public class SparkRowSource extends ProcessSource {
         return nor;
     }
 
-    public SparkRowSource(String sql, String profile, String parquet, String type, boolean nor, GorSparkSession gpSession, final String filter, final String filterFile, final String filterColumn, final String splitFile, final String chr, final int pos, final int end, boolean usestreaming, String jobId, boolean useCpp, String parts, int buckets, boolean tag, String ddl) throws IOException, DataFormatException {
+    public SparkRowSource(String sql, String profile, String parquet, String type, boolean nor, GorSparkSession gpSession, final String filter, final String filterFile, final String filterColumn, final String splitFile, final String chr, final int pos, final int end, boolean usestreaming, String jobId, boolean useCpp, String parts, int buckets, boolean tag, String ddl, String format, String option) throws IOException, DataFormatException {
         init();
         this.sql = sql;
         this.jobId = jobId;
@@ -87,6 +87,49 @@ public class SparkRowSource extends ProcessSource {
         this.nor = nor;
         if (parquet != null && Files.exists(Paths.get(parquet))) {
             dataset = gpSession.getSparkSession().read().parquet(parquet);
+        } else if(format != null) {
+            var dataFrameReader = gpSession.getSparkSession().read().format(format);
+            var options = new HashSet<String>();
+            if(option!=null) {
+                if(option.startsWith("'")) {
+                    option = option.substring(1,option.length()-1);
+                }
+                for(String split : option.split(";")) {
+                    String splittrim = split.trim();
+                    int ie = splittrim.indexOf('=');
+                    String key = splittrim.substring(0,ie);
+                    String val = splittrim.substring(ie+1);
+                    options.add(key);
+                    dataFrameReader = dataFrameReader.option(key,val);
+                }
+            }
+            if(ddl!=null) {
+                StructType schema = StructType.fromDDL(ddl);
+                dataFrameReader = dataFrameReader.schema(schema);
+            }
+            if(format.equals("jdbc")) {
+                if (sql.toLowerCase().startsWith("select ")) {
+                    dataset = dataFrameReader.option("query",sql).load();
+                } else {
+                    dataset = dataFrameReader.option("dbtable",sql).load();
+                }
+            } else if(format.contains("redis")) {
+                var sqlow = sql.toLowerCase();
+                if (sqlow.startsWith("select ")) {
+                    int i = sqlow.indexOf(" from ")+6;
+                    String table = sql.substring(i,sql.indexOf(' ',i)).trim();
+                    var sqlhash = "g"+sql.hashCode();
+                    sql = sql.replace(" from "+table," from "+sqlhash);
+                    dataFrameReader.option("table",table).load().createOrReplaceTempView(sqlhash);
+                    dataset = gorSparkSession.getSparkSession().sql(sql);
+                } else {
+                    dataset = sql.equals("dummy") || options.contains("table") ? dataFrameReader.load() : dataFrameReader.option("table",sql).load();
+                }
+            } else if(sql.toLowerCase().startsWith("select ")) {
+                dataset = dataFrameReader.load();
+            } else {
+                dataset = dataFrameReader.load(sql);
+            }
         } else {
             this.type = type;
             commands = new ArrayList<>();
@@ -119,7 +162,7 @@ public class SparkRowSource extends ProcessSource {
                     return Arrays.stream(cmdspl).map(inner).map(gorfunc).map(parqfunc).collect(Collectors.joining(" ", "(", ")"));
                 } else return p;
             };
-            gorpred = p -> p.toLowerCase().endsWith(".tsv") || p.toLowerCase().endsWith(".gor") || p.toLowerCase().endsWith(".gorz") || p.toLowerCase().endsWith(".gor.gz") || p.toLowerCase().endsWith(".gord") || p.toLowerCase().endsWith(".txt") || p.toLowerCase().endsWith(".vcf") || p.toLowerCase().endsWith(".bgen") || p.startsWith("<(");
+            gorpred = p -> p.toLowerCase().endsWith(".json") || p.toLowerCase().endsWith(".tsv") || p.toLowerCase().endsWith(".gor") || p.toLowerCase().endsWith(".gorz") || p.toLowerCase().endsWith(".gor.gz") || p.toLowerCase().endsWith(".gord") || p.toLowerCase().endsWith(".txt") || p.toLowerCase().endsWith(".vcf") || p.toLowerCase().endsWith(".bgen") || p.startsWith("<(");
             gorfunc = p -> {
                 if (gorpred.test(p)) {
                     boolean nestedQuery = p.startsWith("<(");

@@ -316,6 +316,13 @@ public class SparkRowUtilities {
                     if(schema!=null) dfr.schema(schema);
                     gor = dfr.load();
                     dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
+                } else if (fileName.toLowerCase().endsWith(".json")) {
+                    var dfr = gorSparkSession.getSparkSession().read().format("json");
+                    if(schema!=null) {
+                        dfr = dfr.schema(schema);
+                    }
+                    gor = dfr.load(fileName);
+                    dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
                 } else if (fileName.toLowerCase().endsWith(".parquet")) {
                     gor = gorSparkSession.getSparkSession().read().format("org.apache.spark.sql.execution.datasources.v2.parquet.ParquetDataSourceV2").load(fileName);
                     dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);

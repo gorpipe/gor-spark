@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sparkgor-redis-runner
+  namespace: gorkube
+  labels:
+    resque: spark
+data:
+  sparkgor-redis-runner: |
+{{ .Files.Get "resources/sparkoperator.yaml" | indent 6 }}

@@ -7,7 +7,7 @@ spec:
   type: Java
   mode: cluster
   image: nextcode/spark:1.4.1
-  imagePullPolicy: Never #Always
+  imagePullPolicy: Always
   imagePullSecrets:
     - dockerhub-nextcode-download-credentials
   mainApplicationFile: local:///opt/spark/jars/gor-spark-1.4.1.jar
