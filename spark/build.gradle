@@ -74,13 +74,16 @@ project(':spark') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
             exclude group: 'com.google.guava', module: 'guava'
+            exclude group: 'org.apache.thrift', module: 'libthrift'
         }
         implementation ("org.apache.spark:spark-hive-thriftserver_2.12:${sparkVersion}") {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
             exclude group: 'com.google.guava', module: 'guava'
+            exclude group: 'org.apache.thrift', module: 'libthrift'
         }
+        implementation group: 'org.apache.thrift', name: 'libthrift', version: '0.14.1'
         implementation group: 'io.delta', name: 'delta-core_2.12', version: '0.8.0'
 
         implementation group: 'com.redislabs', name: 'spark-redis_2.12', version: '2.6.0'
