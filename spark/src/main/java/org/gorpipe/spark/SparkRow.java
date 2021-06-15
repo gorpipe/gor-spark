@@ -223,6 +223,11 @@ public class SparkRow extends GorSparkRowBase implements Serializable {
     }
 
     @Override
+    public void writeNorRowToStream(OutputStream outputStream) throws IOException {
+        writeRowToStream(outputStream);
+    }
+
+    @Override
     public int length() {
         return row.length();
     }
