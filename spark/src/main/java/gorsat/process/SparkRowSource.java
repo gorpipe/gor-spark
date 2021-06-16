@@ -945,7 +945,7 @@ public class SparkRowSource extends ProcessSource {
     @Override
     public boolean pushdownWrite(String filename) {
         if(parquetPath==null) {
-            int id = filename.indexOf("-pca");
+            int id = filename.indexOf("-pca ");
             if (id != -1) {
                 int k = id + 5;
                 char c = filename.charAt(k);
@@ -958,7 +958,7 @@ public class SparkRowSource extends ProcessSource {
                     this.parquetPath = gorSparkSession.getProjectContext().getFileCache().tempLocation(jobId, CommandParseUtilities.getExtensionForQuery(sql.startsWith("<(") ? "spark " + sql : sql, false));
                 }
             } else {
-                id = filename.indexOf("-d");
+                id = filename.indexOf("-d ");
                 if(id>=0) {
                     int li = filename.indexOf(' ', id+3);
                     if(li==-1) li = filename.length();
