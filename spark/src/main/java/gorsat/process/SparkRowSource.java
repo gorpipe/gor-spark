@@ -923,6 +923,17 @@ public class SparkRowSource extends ProcessSource {
             if (pushdownGorPipe != null) gor();
             String[] split = gor.substring("rename".length()).trim().split(" ");
             dataset = dataset.withColumnRenamed(split[0], split[1]);
+        } else if (gor.toLowerCase().startsWith("withcolumn")) {
+            if (pushdownGorPipe != null) gor();
+            String cmd = gor.substring("withcolumn".length()).trim();
+            int i = cmd.indexOf(' ');
+            String col = cmd.substring(0,i);
+            String fun = cmd.substring(i+1).trim();
+            dataset = dataset.withColumn(col, org.apache.spark.sql.functions.expr(fun));
+        } else if (gor.toLowerCase().startsWith("filter")) {
+            if (pushdownGorPipe != null) gor();
+            String filter = gor.substring("filter".length()).trim();
+            dataset = dataset.filter(org.apache.spark.sql.functions.expr(filter));
         } else if (gor.startsWith("repatition")) {
             if (pushdownGorPipe != null) gor();
             String[] split = gor.substring("repatition".length()).trim().split(" ");
