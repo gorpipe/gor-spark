@@ -335,9 +335,16 @@ public class SparkRowUtilities {
                     gor = gorSparkSession.getSparkSession().read().format(bgenDataSource).load(fileName);
                     dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
                 } else if (splitFile == null && (fileName.toLowerCase().endsWith(".gor") || fileName.toLowerCase().endsWith(".nor") || fileName.toLowerCase().endsWith(".tsv") || fileName.toLowerCase().endsWith(".csv"))) {
-                    DataFrameReader dfr = gorSparkSession.getSparkSession().read().format("csv").option("header",true).option("inferSchema",true);
+                    DataFrameReader dfr = gorSparkSession.getSparkSession().read().format("csv").option("header",true);
+                    if(schema==null) {
+                        dfr = dfr.option("inferSchema", true);
+                    } else {
+                        dfr = dfr.schema(schema);
+                    }
                     if(!fileName.toLowerCase().endsWith(".csv")) dfr = dfr.option("delimiter","\t");
                     gor = dfr.load(fileName);
+                    var firstCol = gor.columns()[0];
+                    if (firstCol.startsWith("#")) gor = gor.withColumnRenamed(firstCol,firstCol.substring(1));
                     dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
                 } else {
                     boolean isGorz = fileName.toLowerCase().endsWith(".gorz");

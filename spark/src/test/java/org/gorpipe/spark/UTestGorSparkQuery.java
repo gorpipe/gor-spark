@@ -50,6 +50,18 @@ public class UTestGorSparkQuery {
         Assert.assertEquals("Wrong results from spark query: " + query, expectedResult, result);
     }
 
+    private void testSparkQueryWithHeader(String query, String expectedResult) {
+        PipeOptions pipeOptions = new PipeOptions();
+        pipeOptions.query_$eq(query);
+        pi.subProcessArguments(pipeOptions);
+        var header = pi.getHeader();
+        if(header.startsWith("chrNOR")) {
+            header = header.substring(header.indexOf('\t',header.indexOf('\t')+1)+1);
+        }
+        String result = header + "\n" + StreamSupport.stream(Spliterators.spliteratorUnknownSize(pi.theInputSource(), 0), false).map(Object::toString).collect(Collectors.joining("\n"));
+        Assert.assertEquals("Wrong results from spark query: " + query, expectedResult, result);
+    }
+
     @Test
     public void testSelectFromRedis() {
         testSparkQuery("select -p chr1 * from ../tests/data/gor/genes.gorz limit 5", "chr1\t11868\t14412\tDDX11L1\n" +
@@ -65,6 +77,28 @@ public class UTestGorSparkQuery {
         try {
             Files.writeString(p, "{\"ok\":\"simmi\"}");
             testSparkQuery("select * from my.json", "simmi");
+        } finally {
+            Files.delete(p);
+        }
+    }
+
+    @Test
+    public void testSelectFromTsvWithSchema() throws IOException {
+        var p = Paths.get("my.tsv");
+        try {
+            Files.writeString(p, "#ho\tmo\none\t1\n");
+            testSparkQueryWithHeader("select -schema {ok string,lo string} * from my.tsv", "ok\tlo\none\t1");
+        } finally {
+            Files.delete(p);
+        }
+    }
+
+    @Test
+    public void testSelectFromTsvWithPound() throws IOException {
+        var p = Paths.get("my.tsv");
+        try {
+            Files.writeString(p, "#ho\tmo\none\t1\n");
+            testSparkQueryWithHeader("select ho,mo from my.tsv", "ho\tmo\none\t1");
         } finally {
             Files.delete(p);
         }
