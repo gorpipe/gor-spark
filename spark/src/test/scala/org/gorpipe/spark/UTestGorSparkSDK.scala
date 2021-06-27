@@ -1,8 +1,9 @@
 package org.gorpipe.spark
 
+import org.apache.spark.sql.types.StructType
+
 import java.nio.file.{Files, Path, Paths}
 import java.util.stream.Collectors
-
 import org.apache.spark.sql.{Encoders, SparkSession}
 import org.gorpipe.gor.model.Row
 import org.gorpipe.spark.GorDatasetFunctions.addCustomFunctions
@@ -30,6 +31,14 @@ class UTestGorSparkSDK {
     def testSelectNorrows(): Unit = {
         val res = sparkGorSession.dataframe("select * from <(norrows 2)")
         val res2 = res.collect().mkString("\n")
+        Assert.assertEquals("Wrong results from select norrows","[0]\n[1]",res2)
+    }
+
+    @Test
+    def testSelectWithSchema(): Unit = {
+        val res = sparkGorSession.dataframe("select * from <(norrows 2)",StructType.fromDDL("hey int"))
+        val res2 = res.collect().mkString("\n")
+        Assert.assertEquals("StructField(hey,IntegerType,true)",res.schema.mkString)
         Assert.assertEquals("Wrong results from select norrows","[0]\n[1]",res2)
     }
 

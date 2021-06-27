@@ -138,8 +138,12 @@ class GorSparkSession(requestId: String, workers: Int = 0) extends GorSession(re
     val lastqry : String = replaceAllAliases(qryspl.last.trim, fileAliasMap)
     val slicecreates = qryspl.slice(0,qryspl.length-1)
     val increates = if(slicecreates.length > 0) slicecreates.mkString("",";",";") else ""
-    val query = if(!lastqry.toLowerCase.startsWith("spark ") && !lastqry.toLowerCase.startsWith("select ")) {
+    val lastqrylwr = lastqry.toLowerCase
+    val query = if(!lastqrylwr.startsWith("spark ") && !lastqrylwr.startsWith("select ")) {
       (if(sc!=null) "spark -schema {"+sc.toDDL+"} " else "spark ") + "{"+lastqry+"}"
+    } else if(sc!=null && !lastqrylwr.contains(" -schema ")) {
+      val li = lastqry.indexOf(' ')
+      lastqry.substring(0,li) + " -schema {"+sc.toDDL+"}" + lastqry.substring(li)
     } else lastqry
     val createQueries = getCreateQueries(increates)
     val fullQuery = if (createQueries.nonEmpty) createQueries + query else query
