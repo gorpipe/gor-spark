@@ -62,6 +62,14 @@ public class UTestGorSparkQuery {
         Assert.assertEquals("Wrong results from spark query: " + query, expectedResult, result);
     }
 
+    private void testSparkQueryWithPipe(String query, String expectedResult) {
+        PipeOptions pipeOptions = new PipeOptions();
+        pipeOptions.query_$eq(query);
+        pi.subProcessArguments(pipeOptions);
+        String result = StreamSupport.stream(Spliterators.spliteratorUnknownSize(pi.getIterator(), 0), false).map(Object::toString).collect(Collectors.joining("\n"));
+        Assert.assertEquals("Wrong results from spark query: " + query, expectedResult, result);
+    }
+
     @Test
     public void testSelectFromRedis() {
         testSparkQuery("select -p chr1 * from ../tests/data/gor/genes.gorz limit 5", "chr1\t11868\t14412\tDDX11L1\n" +
