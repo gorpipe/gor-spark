@@ -74,6 +74,18 @@ public class SparkRowSource extends ProcessSource {
         return nor;
     }
 
+    private void initFileRoot(GorSession gpSession) {
+        String root = gpSession.getProjectContext().getRoot();
+        String cachedir = gpSession.getProjectContext().getCacheDir();
+        if (root != null && root.length() > 0) {
+            int i = root.indexOf(' ');
+            if (i == -1) i = root.length();
+            fileroot = Paths.get(root.substring(0, i));
+            cachepath = Paths.get(cachedir != null && cachedir.length() > 0 ? cachedir : "result_cache");
+            if(!cachepath.isAbsolute()) cachepath = fileroot.resolve(cachepath);
+        }
+    }
+
     public SparkRowSource(String sql, String profile, String parquet, String type, boolean nor, GorSparkSession gpSession, final String filter, final String filterFile, final String filterColumn, final String splitFile, final String chr, final int pos, final int end, boolean usestreaming, String jobId, boolean useCpp, String parts, int buckets, boolean tag, String ddl, String format, String option) throws IOException, DataFormatException {
         init();
         this.sql = sql;
@@ -88,6 +100,7 @@ public class SparkRowSource extends ProcessSource {
         if (parquet != null && Files.exists(Paths.get(parquet))) {
             dataset = gpSession.getSparkSession().read().parquet(parquet);
         } else if(format != null) {
+            initFileRoot(gpSession);
             var dataFrameReader = gpSession.getSparkSession().read().format(format);
             var options = new HashSet<String>();
             if(option!=null) {
@@ -138,15 +151,7 @@ public class SparkRowSource extends ProcessSource {
             this.start = pos;
             this.end = end;
 
-            String root = gpSession.getProjectContext().getRoot();
-            String cachedir = gpSession.getProjectContext().getCacheDir();
-            if (root != null && root.length() > 0) {
-                int i = root.indexOf(' ');
-                if (i == -1) i = root.length();
-                fileroot = Paths.get(root.substring(0, i));
-                cachepath = Paths.get(cachedir != null && cachedir.length() > 0 ? cachedir : "result_cache");
-                if(!cachepath.isAbsolute()) cachepath = fileroot.resolve(cachepath);
-            }
+            initFileRoot(gpSession);
 
             String[] cmdsplit = CommandParseUtilities.quoteCurlyBracketsSafeSplit(sql, ' ');
             commands.addAll(Arrays.asList(cmdsplit));
@@ -941,7 +946,7 @@ public class SparkRowSource extends ProcessSource {
     @Override
     public boolean pushdownWrite(String filename) {
         if(parquetPath==null) {
-            int id = filename.indexOf("-pca");
+            int id = filename.indexOf("-pca ");
             if (id != -1) {
                 int k = id + 5;
                 char c = filename.charAt(k);
@@ -954,7 +959,7 @@ public class SparkRowSource extends ProcessSource {
                     this.parquetPath = gorSparkSession.getProjectContext().getFileCache().tempLocation(jobId, CommandParseUtilities.getExtensionForQuery(sql.startsWith("<(") ? "spark " + sql : sql, false));
                 }
             } else {
-                id = filename.indexOf("-d");
+                id = filename.indexOf("-d ");
                 if(id>=0) {
                     int li = filename.indexOf(' ', id+3);
                     if(li==-1) li = filename.length();

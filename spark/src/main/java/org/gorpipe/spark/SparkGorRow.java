@@ -154,6 +154,11 @@ public class SparkGorRow extends GorSparkRowBase implements Serializable {
     }
 
     @Override
+    public void writeNorRowToStream(OutputStream outputStream) throws IOException {
+        row.writeNorRowToStream(outputStream);
+    }
+
+    @Override
     public Object apply(int i) {
         return row.colAsString(i);
     }

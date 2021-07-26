@@ -136,8 +136,3 @@ publish:
 include:
   - project: wuxi-nextcode/sdev/gitlab-ci-scripts
     file: /auto-ci-workflow.yml
-  - template: Jobs/Code-Quality.gitlab-ci.yml
-  - template: Security/Container-Scanning.gitlab-ci.yml
-  - template: License-Scanning.gitlab-ci.yml
-  - template: SAST.gitlab-ci.yml
-  - template: Dependency-Scanning.gitlab-ci.yml

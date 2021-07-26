@@ -21,4 +21,16 @@ RUN rm -rf /opt/spark/jars/logback-core-1.2.3.jar
 RUN rm -rf /opt/spark/jars/logback-classic-1.2.3.jar
 RUN rm -rf /opt/spark/jars/guava-14.0.1.jar
 
+RUN apt install -y \
+    apt-transport-https \
+    ca-certificates \
+    curl \
+    gnupg \
+    lsb-release
+
+RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+RUN echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+RUN apt update
+RUN apt install -y docker-ce-cli
+
 USER 3000
