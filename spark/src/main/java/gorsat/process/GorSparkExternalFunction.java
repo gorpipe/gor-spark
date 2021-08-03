@@ -1,10 +1,12 @@
 package gorsat.process;
 
 import org.apache.spark.api.java.function.MapPartitionsFunction;
+import org.apache.spark.sql.types.StructType;
 import org.gorpipe.gor.model.Row;
 import org.gorpipe.gor.model.RowBase;
 import org.gorpipe.gor.session.GorSession;
 import org.gorpipe.model.gor.RowObj;
+import org.gorpipe.spark.SparkGorRow;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -19,6 +21,7 @@ public class GorSparkExternalFunction implements MapPartitionsFunction<Row, Row>
     String cmd;
     String goroot;
     boolean fetchHeader = false;
+    StructType schema;
     
     public GorSparkExternalFunction(String header, String cmd, String goroot) {
         this.header = header;
@@ -28,6 +31,10 @@ public class GorSparkExternalFunction implements MapPartitionsFunction<Row, Row>
 
     public void setFetchHeader(boolean fetchHeader) {
         this.fetchHeader = fetchHeader;
+    }
+
+    public void setSchema(StructType schema) {
+        this.schema = schema;
     }
 
     @Override
@@ -43,16 +50,16 @@ public class GorSparkExternalFunction implements MapPartitionsFunction<Row, Row>
             Row gorrow = new RowBase("chrN", 0, rowstr, sa, null);
             return Collections.singletonList(gorrow).iterator();
         } else {
-            return new Iterator<Row>() {
+            return new Iterator<>() {
                 Row last;
                 boolean closed = false;
 
                 @Override
                 public boolean hasNext() {
-                    if(it.hasNext()) {
-                        last = it.next();
+                    if (it.hasNext()) {
+                        last = new SparkGorRow(it.next(),schema);
                         return true;
-                    } else if(!closed) {
+                    } else if (!closed) {
                         it.close();
                         closed = true;
                     }
@@ -61,7 +68,7 @@ public class GorSparkExternalFunction implements MapPartitionsFunction<Row, Row>
 
                 @Override
                 public Row next() {
-                    if(last==null) hasNext();
+                    if (last == null) hasNext();
                     return last;
                 }
             };

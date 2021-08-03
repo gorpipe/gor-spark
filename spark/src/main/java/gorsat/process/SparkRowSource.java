@@ -993,6 +993,7 @@ public class SparkRowSource extends ProcessSource {
         if (row.chr != null) row = gi.infer(row, row);
         StructType schema = schemaFromRow(r.toString().split("\t"), row);
 
+        gsef.setSchema(schema);
         this.setHeader(correctHeader(schema.fieldNames()));
         ExpressionEncoder encoder = RowEncoder.apply(schema);
         dataset = ((Dataset<Row>) dr).mapPartitions(gsef, encoder);

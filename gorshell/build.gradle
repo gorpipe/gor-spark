@@ -96,6 +96,23 @@ project(':gorshell') {
         implementation group: 'org.apache.logging.log4j', name: 'log4j-slf4j-impl', version: '2.13.3'
         implementation group: 'org.apache.logging.log4j', name: 'log4j-1.2-api', version: '2.13.3'
 
+        implementation ('org.apache.hadoop:hadoop-common:3.3.1') {
+            exclude group: 'com.google.guava', module: 'guava'
+        }
+        implementation ('org.apache.hadoop:hadoop-client:3.3.1') {
+
+        }
+        implementation ('org.apache.hadoop:hadoop-hdfs:3.3.1') {
+            exclude group: 'com.google.guava', module: 'guava'
+        }
+        implementation ('org.apache.hadoop:hadoop-hdfs-client:3.3.1') {
+
+        }
+        implementation ('org.apache.hadoop:hadoop-aws:3.3.1') {
+
+        }
+        implementation 'org.apache.commons:commons-compress:1.21'
+
         implementation('io.projectglow:glow-spark3_2.12:1.0.0') {
             exclude group: 'org.freemarker'
         }

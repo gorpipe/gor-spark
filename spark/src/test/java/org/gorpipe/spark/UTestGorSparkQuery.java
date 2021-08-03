@@ -367,6 +367,12 @@ public class UTestGorSparkQuery {
         testSparkQuery("spark ../tests/data/gor/genes.gorz | top 100 | cmd {python pass.py} | group chrom -count", "chr1\t0\t250000000\t100");
     }
 
+    @Test
+    @Ignore("Test freeze")
+    public void testExternalCommandWithCmd() {
+        testSparkQuery("select * from ../tests/data/gor/genes.gorz limit 10 | cmd {head -2}", "chr1\t11868\t14412\tDDX11L1");
+    }
+
     @After
     public void close() {
         if (pi != null) pi.close();

@@ -20,6 +20,8 @@ public class SparkGorRow extends GorSparkRowBase implements Serializable {
 
     public SparkGorRow(org.gorpipe.gor.model.Row row, StructType schema) {
         this(schema);
+        this.chr = row.chr;
+        this.pos = row.pos;
         this.row = row;
     }
 

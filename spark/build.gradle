@@ -152,21 +152,22 @@ project(':spark') {
 
         implementation "org.aeonbits.owner:owner:1.0.12"
 
-        implementation ('org.apache.hadoop:hadoop-common:3.3.0') {
+        implementation ('org.apache.hadoop:hadoop-common:3.3.1') {
             exclude group: 'com.google.guava', module: 'guava'
         }
-        implementation ('org.apache.hadoop:hadoop-client:3.3.0') {
+        implementation ('org.apache.hadoop:hadoop-client:3.3.1') {
 
         }
-        implementation ('org.apache.hadoop:hadoop-hdfs:3.3.0') {
+        implementation ('org.apache.hadoop:hadoop-hdfs:3.3.1') {
             exclude group: 'com.google.guava', module: 'guava'
         }
-        implementation ('org.apache.hadoop:hadoop-hdfs-client:3.3.0') {
+        implementation ('org.apache.hadoop:hadoop-hdfs-client:3.3.1') {
 
         }
-        implementation ('org.apache.hadoop:hadoop-aws:3.3.0') {
+        implementation ('org.apache.hadoop:hadoop-aws:3.3.1') {
 
         }
+        implementation 'org.apache.commons:commons-compress:1.21'
 
         implementation('io.projectglow:glow-spark3_2.12:1.0.1') {
             exclude group: 'org.freemarker'
