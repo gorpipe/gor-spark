@@ -1,4 +1,4 @@
-FROM nextcode/basespark:3.1.2
+FROM nextcode/ubuntuspark:3.1.2
 
 # To build nextcode/basespark:[version] base image on mac
 # brew install apache-spark
@@ -21,4 +21,9 @@ RUN rm -rf /opt/spark/jars/logback-core-1.2.3.jar
 RUN rm -rf /opt/spark/jars/logback-classic-1.2.3.jar
 RUN rm -rf /opt/spark/jars/guava-14.0.1.jar
 
-USER 3000
+RUN useradd -m -u 3000 -s /bin/bash app
+RUN chown -R app:app /opt/spark
+
+WORKDIR /opt/spark/work-dir
+
+USER app

@@ -25,16 +25,17 @@ package gorsat.Commands
 import gorsat.Analysis.{ForkWrite, OutputOptions, PassthroughForkWrite}
 import gorsat.Commands.CommandParseUtilities._
 import org.apache.commons.io.FilenameUtils
-import org.gorpipe.exceptions.GorParsingException
+import org.gorpipe.exceptions.{GorParsingException, GorResourceException}
 import org.gorpipe.gor.binsearch.GorIndexType
 import org.gorpipe.gor.session.GorContext
 
 import java.util.zip.Deflater
 
 class WriteSpark extends CommandInfo("WRITE",
-  CommandArguments("-r -c -m -d -p -noheader", "-f -i -t -l -card -prefix -format -option -mode", 1),
+  CommandArguments("-r -c -m -p -noheader", "-d -f -i -t -l -card -prefix -format -option -mode -link", 0),
   CommandOptions(gorCommand = true, norCommand = true, verifyCommand = true)) {
   override def processArguments(context: GorContext, argString: String, iargs: Array[String], args: Array[String], executeNor: Boolean, forcedInputHeader: String): CommandParsingResult = {
+
     val fileName = replaceSingleQuotes(iargs.mkString(" "))
     if (context.getSession.getSystemContext.getServer) {
       context.getSession.getProjectContext.validateWriteAllowed(fileName)
@@ -46,17 +47,19 @@ class WriteSpark extends CommandInfo("WRITE",
     var md5 = false
     var idx = GorIndexType.NONE
     var compressionLevel = Deflater.BEST_SPEED
-    var useFolder = false
     var skipHeader = false
     var passthrough = false
 
     if (hasOption(args, "-f")) forkCol = columnOfOption(args, "-f", forcedInputHeader, executeNor)
     remove = hasOption(args, "-r")
-    useFolder = hasOption(args, "-d")
+    val useFolder = if (hasOption(args, "-d")) Option.apply(stringValueOfOption(args, "-d")) else Option.empty
     columnCompress = hasOption(args, "-c")
     md5 = hasOption(args, "-m")
     passthrough = hasOption(args, "-p")
     if (hasOption(args, "-l")) compressionLevel = stringValueOfOptionWithErrorCheck(args, "-l", Array("0", "1", "2", "3", "4", "5", "6", "7", "8", "9")).toInt
+    val link = stringValueOfOptionWithDefault(args,"-link","")
+
+    if(fileName.isEmpty && useFolder.isEmpty) throw new GorResourceException("No file or folder specified","");
 
     var indexing = "NONE"
 
@@ -72,10 +75,6 @@ class WriteSpark extends CommandInfo("WRITE",
       val prfx = stringValueOfOption(args, "-prefix")
       if (prfx.startsWith("'")) prefix = Option(prfx.substring(1, prfx.length - 1).replace("\\n", "\n").replace("\\t", "\t"))
       else prefixFile = Option(prfx)
-    }
-
-    if (hasOption(args, "-t") && !hasOption(args, "-f")) {
-      throw new GorParsingException("Option -t is only valid with the -f option.", "-t")
     }
 
     val tagArray = replaceSingleQuotes(stringValueOfOptionWithDefault(args, "-t", "")).split(",", -1).map(x => x.trim).distinct
@@ -97,8 +96,9 @@ class WriteSpark extends CommandInfo("WRITE",
     val forkWrite = if(passthrough) {
       PassthroughForkWrite(forkCol, fileName, context.getSession, forcedInputHeader, OutputOptions(remove, columnCompress, true, md5, executeNor || (forkCol == 0 && remove), idx, tagArray, prefix, prefixFile, compressionLevel, useFolder, skipHeader, cardCol = card))
     } else {
-      ForkWrite(forkCol, fileName, context.getSession, forcedInputHeader, OutputOptions(remove, columnCompress, true, md5, executeNor || (forkCol == 0 && remove), idx, tagArray, prefix, prefixFile, compressionLevel, useFolder, skipHeader, cardCol = card))
+      ForkWrite(forkCol, fileName, context.getSession, forcedInputHeader, OutputOptions(remove, columnCompress, true, md5, executeNor || (forkCol == 0 && remove), idx, tagArray, prefix, prefixFile, compressionLevel, useFolder, skipHeader, cardCol = card, linkFile = link))
     }
     CommandParsingResult(forkWrite, fixedHeader)
   }
 }
+

@@ -146,7 +146,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
                 SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectRoot, cacheDir, configFile, aliasFile, null, receiveQueryHandler);
                 GorSparkSession gorPipeSession = (GorSparkSession) sessionFactory.create();
                 ScriptExecutionEngine see = ScriptEngineFactory.create(gorPipeSession.getGorContext());
-                see.execute(new String[]{query}, false);
+                see.execute(new String[]{query}, false, false, "");
                 commands = receiveQueryHandler.getCommandsToExecute();
             } else commands = new String[] {query};
         }
