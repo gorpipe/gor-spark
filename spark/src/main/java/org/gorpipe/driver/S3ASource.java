@@ -33,6 +33,7 @@ import org.gorpipe.gor.driver.providers.stream.sources.StreamSourceMetadata;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 
 /**
  * Represents an object in Amazon S3.
@@ -107,6 +108,16 @@ public class S3ASource implements StreamSource {
             meta = new StreamSourceMetadata(this, getName(), fileStatus.getModificationTime(), fileStatus.getLen(), null, false);
         }
         return meta;
+    }
+
+    @Override
+    public OutputStream getOutputStream(boolean append) throws IOException {
+        return fs.create(path);
+    }
+
+    @Override
+    public boolean supportsWriting() {
+        return true;
     }
 
     @Override

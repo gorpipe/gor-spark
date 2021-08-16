@@ -2,7 +2,6 @@ package org.gorpipe.spark;
 
 import gorsat.process.PipeOptions;
 import gorsat.process.SparkPipeInstance;
-import io.projectglow.Glow;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.gorpipe.gor.session.GorSession;
@@ -35,7 +34,6 @@ public class UTestGorSparkQuery {
                 .config("spark.delta.logStore.class","org.apache.spark.sql.delta.storage.S3SingleDriverLogStore")
                 .config("spark.hadoop.fs.s3a.aws.credentials.provider","org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider")
                 .master("local[1]").getOrCreate();
-        //Glow.register(spark);
         SparkSessionFactory sparkSessionFactory = new SparkSessionFactory(spark, Paths.get(".").toAbsolutePath().normalize().toString(), System.getProperty("java.io.tmpdir"), null, null, null);
         GorSession session = sparkSessionFactory.create();
         sparkGorSession = (GorSparkSession) session;
@@ -166,6 +164,12 @@ public class UTestGorSparkQuery {
                 "chr1\t34553\t36081\tFAM138A\n" +
                 "chr1\t53048\t54936\tAL627309.1\n" +
                 "chr1\t62947\t63887\tOR4G11P");
+    }
+
+    @Test
+    @Ignore("Test with localstack")
+    public void testGorQueryS3ASource() {
+        testSparkQuery("gor ../tests/data/gor/genes.gorz | write s3a://my-bucket/test.gorz", "");
     }
 
     @Test

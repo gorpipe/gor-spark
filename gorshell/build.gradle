@@ -112,7 +112,7 @@ project(':gorshell') {
         }
         implementation 'org.apache.commons:commons-compress:1.21'
 
-        implementation('io.projectglow:glow-spark3_2.12:1.0.0') {
+        implementation('io.projectglow:glow-spark3_2.12:1.0.1') {
             exclude group: 'org.freemarker'
         }
 
