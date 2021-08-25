@@ -14,11 +14,11 @@ import scala.collection.mutable.ArrayBuffer
 
 case class PassthroughForkWrite(forkCol:Int, fullFileName: String, session:GorSession, inHeader: String, options: OutputOptions) extends Analysis {
   case class FileHolder(forkValue: String) {
-    if (forkCol >= 0 && !options.useFolder && !(fullFileName.contains("#{fork}") || fullFileName.contains("""${fork}"""))) {
+    if (forkCol >= 0 && options.useFolder.isEmpty && !(fullFileName.contains("#{fork}") || fullFileName.contains("""${fork}"""))) {
       throw new GorResourceException("WRITE error: #{fork} of ${fork}missing from filename.", fullFileName)
     }
     var fileName : String = _
-    if(forkCol >= 0 && options.useFolder) {
+    if(options.useFolder.nonEmpty) {
       val dir = Paths.get(fullFileName)
       val cols = inHeader.split("\t")
       val forkdir = dir.resolve(cols(forkCol)+"="+forkValue)
@@ -73,7 +73,7 @@ case class PassthroughForkWrite(forkCol:Int, fullFileName: String, session:GorSe
     * @return
     */
   def createOutFile(name: String, skipHeader: Boolean): Output = {
-    if (options.useFolder && !name.toLowerCase.endsWith(".parquet")) {
+    if (options.useFolder.nonEmpty && !name.toLowerCase.endsWith(".parquet")) {
       val p = Paths.get(name)
       if(Files.exists(p) && !Files.isDirectory(p) && Files.size(p) == 0) {
         Files.delete(p);
@@ -159,7 +159,7 @@ case class PassthroughForkWrite(forkCol:Int, fullFileName: String, session:GorSe
   def outFinish(sh : FileHolder): Unit = {
     sh.out.finish()
     val name = sh.out.getName
-    if(options.useFolder && name != null && !name.toLowerCase.endsWith(".parquet")) {
+    if(options.useFolder.nonEmpty && name != null && !name.toLowerCase.endsWith(".parquet")) {
       val meta = sh.out.getMeta
       appendToDictionary(name, meta)
     }
@@ -178,7 +178,7 @@ case class PassthroughForkWrite(forkCol:Int, fullFileName: String, session:GorSe
         sh.fileOpen = false
       }
     })
-    if (!options.useFolder && !somethingToWrite && !useFork) {
+    if (options.useFolder.isEmpty && !somethingToWrite && !useFork) {
       val out = createOutFile(fullFileName, false)
       out.setup()
       out.finish()

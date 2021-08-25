@@ -86,7 +86,7 @@ public class SparkGorExecutionEngine extends GorExecutionEngine {
     @Override
     public PipeInstance createIterator(GorSession session) {
         SparkPipeInstance pi = new SparkPipeInstance(session.getGorContext(), outfile != null ? outfile.toString() : null);
-        pi.subProcessArguments(query, false, null, false, false, null);
+        pi.init(query, false, null, false, null);
         if(!pi.hasResourceHints()) {
             String theHeader = pi.getIterator().getHeader();
             if (outfile != null) {
