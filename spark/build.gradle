@@ -224,22 +224,6 @@ project(':spark') {
         implementation 'io.netty:netty-transport-native-epoll:4.1.59.Final'
         implementation 'io.netty:netty-transport-native-unix-common:4.1.59.Final'
 
-        implementation ('org.apache.hadoop:hadoop-common:3.3.0') {
-            exclude group: 'com.google.guava', module: 'guava'
-        }
-        implementation ('org.apache.hadoop:hadoop-client:3.3.0') {
-
-        }
-        implementation ('org.apache.hadoop:hadoop-hdfs:3.3.0') {
-            exclude group: 'com.google.guava', module: 'guava'
-        }
-        implementation ('org.apache.hadoop:hadoop-hdfs-client:3.3.0') {
-
-        }
-        implementation ('org.apache.hadoop:hadoop-aws:3.3.0') {
-
-        }
-
         implementation("redis.clients:jedis:3.5.1")
         implementation 'io.kubernetes:client-java:12.0.1'
 
