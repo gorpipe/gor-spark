@@ -41,9 +41,10 @@ public class GorPartitionReader implements PartitionReader<InternalRow> {
     String cacheDir;
     String configFile;
     String aliasFile;
+    String securityContext;
     boolean nor = false;
 
-    public GorPartitionReader(StructType schema, GorRangeInputPartition gorRangeInputPartition, String redisUri, String jobId, String projectRoot, String cacheDir, String configFile, String aliasFile, String useCpp) {
+    public GorPartitionReader(StructType schema, GorRangeInputPartition gorRangeInputPartition, String redisUri, String jobId, String projectRoot, String cacheDir, String configFile, String aliasFile, String securityContext, String useCpp) {
         ExpressionEncoder<Row> encoder = RowEncoder.apply(schema);
         serializer = encoder.createSerializer();
         sparkRow = new SparkGorRow(schema);
@@ -55,6 +56,7 @@ public class GorPartitionReader implements PartitionReader<InternalRow> {
         this.cacheDir = cacheDir;
         this.configFile = configFile;
         this.aliasFile = aliasFile;
+        this.securityContext = securityContext;
     }
 
     private String parseMultiplePaths(Path epath) {
@@ -107,7 +109,7 @@ public class GorPartitionReader implements PartitionReader<InternalRow> {
             }
         };
 
-        SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectRoot, cacheDir, configFile, aliasFile, sparkGorMonitor);
+        SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectRoot, cacheDir, configFile, aliasFile, securityContext, sparkGorMonitor);
         GorSparkSession gorPipeSession = (GorSparkSession) sessionFactory.create();
         SparkPipeInstance pi = new SparkPipeInstance(gorPipeSession.getGorContext());
 

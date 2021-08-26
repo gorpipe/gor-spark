@@ -31,13 +31,14 @@ public class SparkGorExecutionEngine extends GorExecutionEngine {
     private String configFile;
     private String aliasFile;
     private GorMonitor sparkMonitor;
+    private String securityContext;
     private int workers;
 
-    public SparkGorExecutionEngine(String query, String projectDirectory, String cacheDirectory, String configFile, String aliasFile, Path outfile, GorMonitor sparkMonitor) {
-        this(query, projectDirectory, cacheDirectory, configFile, aliasFile, outfile, sparkMonitor, 0);
+    public SparkGorExecutionEngine(String query, String projectDirectory, String cacheDirectory, String configFile, String aliasFile, Path outfile, String securityContext, GorMonitor sparkMonitor) {
+        this(query, projectDirectory, cacheDirectory, configFile, aliasFile, outfile, securityContext, sparkMonitor, 0);
     }
 
-    public SparkGorExecutionEngine(String query, String projectDirectory, String cacheDirectory, String configFile, String aliasFile, Path outfile, GorMonitor sparkMonitor, int workers) {
+    public SparkGorExecutionEngine(String query, String projectDirectory, String cacheDirectory, String configFile, String aliasFile, Path outfile, String securityContext, GorMonitor sparkMonitor, int workers) {
         this.query = query;
         this.projectDirectory = projectDirectory;
         this.cacheDirectory = cacheDirectory;
@@ -46,6 +47,7 @@ public class SparkGorExecutionEngine extends GorExecutionEngine {
         this.outfile = outfile;
         this.sparkMonitor = sparkMonitor;
         this.workers = workers;
+        this.securityContext = securityContext;
     }
 
     @Override
@@ -79,7 +81,7 @@ public class SparkGorExecutionEngine extends GorExecutionEngine {
 
     @Override
     public GorSession createSession() {
-        SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectDirectory, cacheDirectory, configFile, aliasFile, sparkMonitor, workers);
+        SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectDirectory, cacheDirectory, configFile, aliasFile, securityContext, sparkMonitor, workers);
         return sessionFactory.create();
     }
 

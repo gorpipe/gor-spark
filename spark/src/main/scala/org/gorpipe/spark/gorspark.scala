@@ -611,8 +611,8 @@ object SparkGOR {
 
   def createSession(sparkSession: SparkSession, root: String, cache: String, gorconfig: String, goralias: String): GorSparkSession = {
     val standalone = System.getProperty("sm.standalone")
-    if (standalone == null || standalone.length == 0) System.setProperty("sm.standalone", root)
-    val sessionFactory = new SparkSessionFactory(sparkSession, root, cache, gorconfig, goralias, null)
+    if (standalone == null || standalone.isEmpty) System.setProperty("sm.standalone", root)
+    val sessionFactory = new SparkSessionFactory(sparkSession, root, cache, gorconfig, goralias, null, null)
     val sparkGorSession = sessionFactory.create().asInstanceOf[GorSparkSession]
     sparkGorSession
   }
