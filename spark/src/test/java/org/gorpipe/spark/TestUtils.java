@@ -255,7 +255,7 @@ public class TestUtils {
     }
 
     private static GorSession createSession(SparkSession spark) {
-        SparkSessionFactory sparkSessionFactory = new SparkSessionFactory(spark, Paths.get(".").toAbsolutePath().normalize().toString(), System.getProperty("java.io.tmpdir"), null, null, null);
+        SparkSessionFactory sparkSessionFactory = new SparkSessionFactory(spark, Paths.get(".").toAbsolutePath().normalize().toString(), System.getProperty("java.io.tmpdir"), null, null, null, null);
         return sparkSessionFactory.create();
     }
 

@@ -36,6 +36,8 @@ public class GorFileFormat extends CSVFileFormat implements Serializable {
     @Override
     public Option<StructType> inferSchema(SparkSession session, Map<String, String> options, Seq<FileStatus> files) {
         String pathstr = options.get("path").get();
+        Option<String> osec = options.get("securityContext");
+        String securityContext = osec.isDefined() ? osec.get() : "";
         Option<String> ohadoop = options.get("hadoop");
         boolean hadoopInfer = ohadoop.isDefined() && Boolean.parseBoolean(ohadoop.get());
         StructType ret = null;
@@ -57,7 +59,7 @@ public class GorFileFormat extends CSVFileFormat implements Serializable {
                 FileSystem fs = path.getFileSystem(conf);
                 is = fs.open(path);
             } else {
-                var fileReader = new DriverBackedFileReader("", "/", new Object[]{});
+                var fileReader = new DriverBackedFileReader(securityContext, "/", new Object[]{});
                 is = fileReader.getInputStream(pathstr);
             }
             ret = SparkRowUtilities.inferSchema(is, pathstr, false, pathstr.endsWith(".gorz"));

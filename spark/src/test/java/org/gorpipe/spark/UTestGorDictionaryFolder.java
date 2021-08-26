@@ -35,7 +35,7 @@ public class UTestGorDictionaryFolder {
         System.setProperty("org.gorpipe.gor.driver.gord.folders","true");
         spark = SparkSession.builder().master("local[1]").getOrCreate();
         //Glow.register(spark);
-        SparkSessionFactory sparkSessionFactory = new SparkSessionFactory(spark, Paths.get(".").toAbsolutePath().normalize().toString(), System.getProperty("java.io.tmpdir"), null, null, null);
+        SparkSessionFactory sparkSessionFactory = new SparkSessionFactory(spark, Paths.get(".").toAbsolutePath().normalize().toString(), System.getProperty("java.io.tmpdir"), null, null,null, null);
         GorSession session = sparkSessionFactory.create();
         sparkGorSession = (GorSparkSession) session;
         pi = new SparkPipeInstance(session.getGorContext());

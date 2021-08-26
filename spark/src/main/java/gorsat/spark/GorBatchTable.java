@@ -55,6 +55,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
     String redisUri;
     String jobId;
     String cacheFile;
+    String securityContext;
     String useCpp;
     StructType schema;
     boolean tag;
@@ -66,12 +67,12 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
     FileSystem fs;
     boolean hadoopInfer;
 
-    public GorBatchTable(String query, boolean tag, String path, String filter, String filterFile, String filterColumn, String splitFile, String seek, String redisUri, String jobId, String cacheFile, String useCpp, boolean hadoopInfer) throws IOException {
-        init(query,tag,path,filter,filterFile,filterColumn,splitFile,seek,redisUri,jobId,cacheFile,useCpp,hadoopInfer);
+    public GorBatchTable(String query, boolean tag, String path, String filter, String filterFile, String filterColumn, String splitFile, String seek, String redisUri, String jobId, String cacheFile, String securityContext, String useCpp, boolean hadoopInfer) throws IOException {
+        init(query,tag,path,filter,filterFile,filterColumn,splitFile,seek,redisUri,jobId,cacheFile,securityContext,useCpp,hadoopInfer);
     }
 
-    public GorBatchTable(String query, boolean tag, String path, String filter, String filterFile, String filterColumn, String splitFile, String seek, StructType schema, String redisUri, String jobId, String cacheFile, String useCpp, boolean hadoopInfer) throws IOException {
-        init(query,tag,path,filter,filterFile,filterColumn,splitFile,seek,redisUri,jobId,cacheFile,useCpp,hadoopInfer);
+    public GorBatchTable(String query, boolean tag, String path, String filter, String filterFile, String filterColumn, String splitFile, String seek, StructType schema, String redisUri, String jobId, String cacheFile, String securityContext, String useCpp, boolean hadoopInfer) throws IOException {
+        init(query,tag,path,filter,filterFile,filterColumn,splitFile,seek,redisUri,jobId,cacheFile,securityContext,useCpp,hadoopInfer);
         this.schema = schema;
     }
 
@@ -105,7 +106,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
         }
     }
 
-    void init(String query, boolean tag, String path, String filter, String filterFile, String filterColumn, String splitFile, String seek, String redisUri, String jobId, String cacheFile, String useCpp, boolean hadoopInfer) throws IOException {
+    void init(String query, boolean tag, String path, String filter, String filterFile, String filterColumn, String splitFile, String seek, String redisUri, String jobId, String cacheFile, String securityContext, String useCpp, boolean hadoopInfer) throws IOException {
         this.query = query;
         this.projectRoot = Paths.get(".").toAbsolutePath().normalize().toString();
         this.cacheDir = "result_cache";
@@ -118,6 +119,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
         this.redisUri = redisUri;
         this.jobId = jobId;
         this.cacheFile = cacheFile;
+        this.securityContext = securityContext;
         this.useCpp = useCpp;
         this.hadoopInfer = hadoopInfer;
         if(path!=null) {
@@ -143,7 +145,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
         if(query!=null) {
             if(query.toLowerCase().startsWith("pgor") || query.toLowerCase().startsWith("partgor") || query.toLowerCase().startsWith("parallel")) {
                 ReceiveQueryHandler receiveQueryHandler = new ReceiveQueryHandler();
-                SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectRoot, cacheDir, configFile, aliasFile, null, receiveQueryHandler);
+                SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectRoot, cacheDir, configFile, aliasFile, securityContext, null, receiveQueryHandler);
                 GorSparkSession gorPipeSession = (GorSparkSession) sessionFactory.create();
                 ScriptExecutionEngine see = ScriptEngineFactory.create(gorPipeSession.getGorContext());
                 see.execute(new String[]{query}, false, false, "");
@@ -155,7 +157,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
 
     void inferSchema() {
         schema = Encoders.STRING().schema();
-        SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectRoot, cacheDir, configFile, aliasFile, null);
+        SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectRoot, cacheDir, configFile, aliasFile, securityContext,null);
         GorSparkSession gorPipeSession = (GorSparkSession) sessionFactory.create();
         if(path!=null) {
             String endingLowercase = path.substring(path.lastIndexOf(".")).toLowerCase();
@@ -240,7 +242,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
     @Override
     public ScanBuilder newScanBuilder(CaseInsensitiveStringMap caseInsensitiveStringMap) {
         if(schema==null) schema();
-        return new GorScanBuilder(schema, redisUri, jobId, cacheFile, projectRoot, cacheDir, configFile, aliasFile, useCpp) {
+        return new GorScanBuilder(schema, redisUri, jobId, cacheFile, projectRoot, cacheDir, configFile, aliasFile, securityContext, useCpp) {
             Filter[] pushedFilters = new Filter[0];
             String filterChrom = fchrom;
             int start = fstart;

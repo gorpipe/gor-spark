@@ -31,13 +31,14 @@ public class SparkSessionFactory extends GorSessionFactory {
     private SparkSession sparkSession;
     private GorMonitor sparkGorMonitor;
     private GorParallelQueryHandler queryHandler;
+    private String securityContext;
     private int workers;
 
-    public SparkSessionFactory(String root, String cacheDir, String configFile, String aliasFile, SparkGorMonitor sparkMonitor) {
-       this(GorSparkUtilities.getSparkSession(), root, cacheDir, configFile, aliasFile, sparkMonitor);
+    public SparkSessionFactory(String root, String cacheDir, String configFile, String aliasFile, String securityContext, SparkGorMonitor sparkMonitor) {
+       this(GorSparkUtilities.getSparkSession(), root, cacheDir, configFile, aliasFile, securityContext, sparkMonitor);
     }
 
-    public SparkSessionFactory(SparkSession sparkSession, String root, String cacheDir, String configFile, String aliasFile, GorMonitor sparkMonitor, int workers) {
+    public SparkSessionFactory(SparkSession sparkSession, String root, String cacheDir, String configFile, String aliasFile, String securityContext, GorMonitor sparkMonitor, int workers) {
         this.root = root;
         this.cacheDir = cacheDir;
         Path rootPath = Paths.get(root);
@@ -54,14 +55,15 @@ public class SparkSessionFactory extends GorSessionFactory {
         this.sparkSession = sparkSession;
         this.sparkGorMonitor = sparkMonitor;
         this.workers = workers;
+        this.securityContext = securityContext;
     }
 
-    public SparkSessionFactory(SparkSession sparkSession, String root, String cacheDir, String configFile, String aliasFile, GorMonitor sparkMonitor) {
-        this(sparkSession, root, cacheDir, configFile, aliasFile, sparkMonitor, 0);
+    public SparkSessionFactory(SparkSession sparkSession, String root, String cacheDir, String configFile, String aliasFile, String securityContext, GorMonitor sparkMonitor) {
+        this(sparkSession, root, cacheDir, configFile, aliasFile, securityContext, sparkMonitor, 0);
     }
 
-    public SparkSessionFactory(SparkSession sparkSession, String root, String cacheDir, String configFile, String aliasFile, GorMonitor sparkMonitor, GorParallelQueryHandler queryHandler) {
-        this(sparkSession, root, cacheDir, configFile, aliasFile, sparkMonitor, 0);
+    public SparkSessionFactory(SparkSession sparkSession, String root, String cacheDir, String configFile, String aliasFile, String securityContext, GorMonitor sparkMonitor, GorParallelQueryHandler queryHandler) {
+        this(sparkSession, root, cacheDir, configFile, aliasFile, securityContext, sparkMonitor, 0);
         this.queryHandler = queryHandler;
     }
 
@@ -85,7 +87,7 @@ public class SparkSessionFactory extends GorSessionFactory {
         projectContextBuilder = projectContextBuilder
             .setRoot(root)
             .setCacheDir(cacheDir)
-            .setFileReader(new DriverBackedFileReader("", root, null))
+            .setFileReader(new DriverBackedFileReader(securityContext, root, null))
             .setFileCache(new LocalFileCacheClient(cachePath.isAbsolute() ? cachePath : Paths.get(root).resolve(cacheDir)))
             .setQueryHandler(sparkQueryHandler)
             .setQueryEvaluator(new SessionBasedQueryEvaluator(session));

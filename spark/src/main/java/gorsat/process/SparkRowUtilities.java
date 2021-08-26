@@ -311,6 +311,8 @@ public class SparkRowUtilities {
                     if (tag) dfr.option("tag", true);
                     if (fileroot != null) dfr.option("projectroot", fileroot.toString());
                     if (cacheDir != null) dfr.option("cachedir", cacheDir.toString());
+                    var securityContext = gorSparkSession.getProjectContext().getFileReader().getSecurityContext();
+                    if (securityContext!=null) dfr.option("securityContext", securityContext);
                     dfr.option("aliasfile", gorSparkSession.getProjectContext().getGorAliasFile());
                     dfr.option("configfile", gorSparkSession.getProjectContext().getGorConfigFile());
                     if(schema!=null) dfr.schema(schema);
@@ -396,6 +398,8 @@ public class SparkRowUtilities {
                                 if (fileroot != null) dfr.option("projectroot", fileroot.toString());
                                 dfr.option("aliasfile", gorSparkSession.getProjectContext().getGorAliasFile());
                                 dfr.option("configfile", gorSparkSession.getProjectContext().getGorConfigFile());
+                                var securityContext = gorSparkSession.getProjectContext().getFileReader().getSecurityContext();
+                                if (securityContext != null) dfr = dfr.option("securityContext", securityContext);
                                 if (filter != null) dfr = dfr.option("f", filter);
                                 if (filterFile != null) dfr = dfr.option("ff", filterFile);
                                 if (splitFile != null) dfr = dfr.option("split", splitFile);

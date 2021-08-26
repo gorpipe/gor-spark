@@ -53,6 +53,7 @@ public class SparkOperatorRunner {
     String namespace;
     boolean hostMount = false;
     SparkSession sparkSession;
+    String securityContext;
 
     private static final boolean debug = true;
 
@@ -63,6 +64,7 @@ public class SparkOperatorRunner {
         core = new CoreV1Api(client);
         objectMapper = new ObjectMapper(new YAMLFactory());
         sparkSession = gorSparkSession.getSparkSession();
+        securityContext = gorSparkSession.getProjectContext().getFileReader().getSecurityContext();
     }
 
     Map<String, Object> loadBody(String query, String project, String result_dir, Map<String, Object> parameters) throws IOException {
@@ -76,7 +78,7 @@ public class SparkOperatorRunner {
             Path queryRoot = Paths.get(project);
             Path yamlPath = Paths.get(yamlPathString);
             yamlPath = queryRoot.resolve(yamlPath);
-            DriverBackedFileReader driverBackedGorServerFileReader = new DriverBackedFileReader("", project, null);
+            DriverBackedFileReader driverBackedGorServerFileReader = new DriverBackedFileReader(securityContext, project, null);
             DataSource yamlDataSource = driverBackedGorServerFileReader.resolveUrl(yamlPath.toString());
             String yamlContent = driverBackedGorServerFileReader.readFile(yamlDataSource.getSourceReference().getUrl()).collect(Collectors.joining("\n"));
 

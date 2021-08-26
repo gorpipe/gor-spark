@@ -7,8 +7,8 @@ import org.apache.spark.sql.types.StructType;
 public class GorStringPartitionReader extends GorPartitionReader {
     String stringRow;
 
-    public GorStringPartitionReader(StructType schema, GorRangeInputPartition gorRangeInputPartition, String redisUri, String jobId, String projectRoot, String cacheDir, String configFile, String aliasFile, String useCpp) {
-        super(schema,gorRangeInputPartition,redisUri,jobId,projectRoot,cacheDir,configFile,aliasFile,useCpp);
+    public GorStringPartitionReader(StructType schema, GorRangeInputPartition gorRangeInputPartition, String redisUri, String jobId, String projectRoot, String cacheDir, String configFile, String aliasFile, String securityContext, String useCpp) {
+        super(schema,gorRangeInputPartition,redisUri,jobId,projectRoot,cacheDir,configFile,aliasFile,securityContext,useCpp);
     }
 
     @Override

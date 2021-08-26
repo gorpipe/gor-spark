@@ -149,7 +149,7 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
                 newCacheFiles[k] = cacheFiles[i];
                 k++;
             }
-            GorQueryRDD queryRDD = new GorQueryRDD(sparkSession, newCommands, newFingerprints, newCacheFiles, projectDir, cacheDir, session.getProjectContext().getGorConfigFile(), session.getProjectContext().getGorAliasFile(), newJobIds, redisUri);
+            GorQueryRDD queryRDD = new GorQueryRDD(sparkSession, newCommands, newFingerprints, newCacheFiles, projectDir, cacheDir, session.getProjectContext().getGorConfigFile(), session.getProjectContext().getGorAliasFile(), newJobIds, null, redisUri);
             return (String[]) queryRDD.collect();
         };
 

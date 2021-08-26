@@ -91,6 +91,13 @@ class UTestGorSparkSDK {
     }
 
     @Test
+    def testWriteGorrows(): Unit = {
+        val res = sparkGorSession.dataframe("gorows -p chr1:1-5").gor("write simmi.gorz")(sparkGorSession)
+        val res2 = res.collect().mkString("\n")
+        Assert.assertEquals("Wrong results from nested gorrows","0\tx\n1\tx",res2)
+    }
+
+    @Test
     def testGorAlias() {
         sparkGorSession.setCreate("test","gor #genesalias# | top 1")
         val res = sparkGorSession.dataframe("gor #genesalias# [test] | top 1").gor("join -segseg #genesalias#")(sparkGorSession)

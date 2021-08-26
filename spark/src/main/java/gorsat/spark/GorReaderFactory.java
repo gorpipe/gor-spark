@@ -18,8 +18,9 @@ public class GorReaderFactory implements PartitionReaderFactory {
     String cacheDir;
     String configFile;
     String aliasFile;
+    String securityContext;
 
-    public GorReaderFactory(StructType schema, String redisUri, String jobId, String cacheFile, String projectRoot, String cacheDir, String configFile, String aliasFile, String useCpp) {
+    public GorReaderFactory(StructType schema, String redisUri, String jobId, String cacheFile, String projectRoot, String cacheDir, String configFile, String aliasFile, String securityContext, String useCpp) {
         this.schema = schema;
         this.redisUri = redisUri;
         this.jobId = jobId;
@@ -29,6 +30,7 @@ public class GorReaderFactory implements PartitionReaderFactory {
         this.cacheDir = cacheDir;
         this.configFile = configFile;
         this.aliasFile = aliasFile;
+        this.securityContext = securityContext;
     }
 
     @Override
@@ -39,15 +41,15 @@ public class GorReaderFactory implements PartitionReaderFactory {
         if(useCpp != null && useCpp.equalsIgnoreCase("blue")) {
             partitionReader = new NativePartitionReader(fields,p);
         } else if(fields.length>1) {
-            partitionReader = new GorPartitionReader(schema,p,redisUri,jobId,projectRoot,cacheDir,configFile,aliasFile,useCpp);
+            partitionReader = new GorPartitionReader(schema,p,redisUri,jobId,projectRoot,cacheDir,configFile,aliasFile,securityContext,useCpp);
         } else if(fields[0].dataType().equals(DataTypes.IntegerType)) {
-            partitionReader = new GorIntegerPartitionReader(schema,p,redisUri,jobId,projectRoot,cacheDir,configFile,aliasFile,useCpp);
+            partitionReader = new GorIntegerPartitionReader(schema,p,redisUri,jobId,projectRoot,cacheDir,configFile,aliasFile,securityContext,useCpp);
         } else if(fields[0].dataType().equals(DataTypes.LongType)) {
-            partitionReader = new GorLongPartitionReader(schema,p,redisUri,jobId,projectRoot,cacheDir,configFile,aliasFile,useCpp);
+            partitionReader = new GorLongPartitionReader(schema,p,redisUri,jobId,projectRoot,cacheDir,configFile,aliasFile,securityContext,useCpp);
         } else if(fields[0].dataType().equals(DataTypes.DoubleType)) {
-            partitionReader = new GorDoublePartitionReader(schema,p,redisUri,jobId,projectRoot,cacheDir,configFile,aliasFile,useCpp);
+            partitionReader = new GorDoublePartitionReader(schema,p,redisUri,jobId,projectRoot,cacheDir,configFile,aliasFile,securityContext,useCpp);
         } else {
-            partitionReader = new GorStringPartitionReader(schema,p,redisUri,jobId,projectRoot,cacheDir,configFile,aliasFile,useCpp);
+            partitionReader = new GorStringPartitionReader(schema,p,redisUri,jobId,projectRoot,cacheDir,configFile,aliasFile,securityContext,useCpp);
         }
         return partitionReader;
     }

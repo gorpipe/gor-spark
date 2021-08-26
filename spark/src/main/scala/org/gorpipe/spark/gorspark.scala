@@ -21,7 +21,8 @@ import org.apache.spark.{Partition, TaskContext}
 import org.gorpipe.gor.session.GorContext
 import org.gorpipe.gor.function.{GorRowFilterFunction, GorRowMapFunction}
 import org.gorpipe.gor.binsearch.GorIndexType
-import org.gorpipe.gor.model.{GenomicIterator, GenomicIteratorBase, RowBase}
+import org.gorpipe.gor.model.{DriverBackedFileReader, GenomicIterator, GenomicIteratorBase, RowBase}
+import org.gorpipe.gor.table.TableHeader
 import org.gorpipe.model.gor.iterators.RowSource
 
 import scala.collection.mutable.ListBuffer
@@ -374,6 +375,9 @@ class QueryRDD(private val sparkSession: SparkSession, private val sqlContext: S
         // We are using absolute paths here
         val startTime = System.currentTimeMillis
         var extension: String = null
+        val fileReader = new DriverBackedFileReader(null, projectDirectory, null)
+        val tableHeader = new TableHeader
+        tableHeader.setTableColumns(TableHeader.DEFULT_RANGE_TABLE_HEADER)
         if (commandToExecute.startsWith("gordictpart")) {
           overheadTime = 1000 * 60 * 10 // 10 minutes
           val w = commandToExecute.split(" ")
@@ -391,7 +395,9 @@ class QueryRDD(private val sparkSession: SparkSession, private val sqlContext: S
             // file, alias
             f + "\t" + part
           })
-          AnalysisUtilities.writeList(cpath, dictList)
+          val header = fileReader.readHeaderLine(dictFiles.head).split("\t")
+          tableHeader.setColumns(header)
+          AnalysisUtilities.writeList(cpath, tableHeader.formatHeader(), dictList)
           extension = ".gord"
         } else if (commandToExecute.startsWith("gordict")) {
           overheadTime = 1000 * 60 * 10 // 10 minutes
@@ -414,7 +420,9 @@ class QueryRDD(private val sparkSession: SparkSession, private val sqlContext: S
             // file, alias, chrom, startpos, chrom, endpos
             f + "\t" + chrI + "\t" + c + "\t" + sp + "\t" + c + "\t" + ep
           })
-          AnalysisUtilities.writeList(cpath, dictList)
+          val header = fileReader.readHeaderLine(dictFiles.head).split("\t")
+          tableHeader.setColumns(header)
+          AnalysisUtilities.writeList(cpath, tableHeader.formatHeader(), dictList)
           extension = ".gord"
         } else {
           val temp_cacheFile = AnalysisUtilities.getTempFileName(cacheFile)
@@ -603,8 +611,8 @@ object SparkGOR {
 
   def createSession(sparkSession: SparkSession, root: String, cache: String, gorconfig: String, goralias: String): GorSparkSession = {
     val standalone = System.getProperty("sm.standalone")
-    if (standalone == null || standalone.length == 0) System.setProperty("sm.standalone", root)
-    val sessionFactory = new SparkSessionFactory(sparkSession, root, cache, gorconfig, goralias, null)
+    if (standalone == null || standalone.isEmpty) System.setProperty("sm.standalone", root)
+    val sessionFactory = new SparkSessionFactory(sparkSession, root, cache, gorconfig, goralias, null, null)
     val sparkGorSession = sessionFactory.create().asInstanceOf[GorSparkSession]
     sparkGorSession
   }
