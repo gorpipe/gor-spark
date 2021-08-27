@@ -1,5 +1,7 @@
 package org.gorpipe.spark
 
+import gorsat.Commands.CommandParseUtilities.quoteSafeSplit
+
 import java.nio.file.{Files, Paths}
 import gorsat.Commands.{Analysis, CommandParseUtilities}
 import org.gorpipe.model.gor.RowObj
@@ -8,9 +10,7 @@ import gorsat.Outputs.OutFile
 import gorsat.QueryHandlers.GeneralQueryHandler
 import gorsat.Script.{ScriptEngineFactory, ScriptExecutionEngine}
 import gorsat.Utilities.AnalysisUtilities
-import gorsat.Utilities.MacroUtilities.replaceAllAliases
 import gorsat.process._
-import gorsat.spark.ReceiveQueryHandler
 import gorsat.{BatchedPipeStepIteratorAdaptor, DynIterator}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
@@ -21,9 +21,8 @@ import org.apache.spark.{Partition, TaskContext}
 import org.gorpipe.gor.session.GorContext
 import org.gorpipe.gor.function.{GorRowFilterFunction, GorRowMapFunction}
 import org.gorpipe.gor.binsearch.GorIndexType
-import org.gorpipe.gor.model.{DriverBackedFileReader, GenomicIterator, GenomicIteratorBase, RowBase}
+import org.gorpipe.gor.model.{DriverBackedFileReader, GenomicIteratorBase, RowBase}
 import org.gorpipe.gor.table.TableHeader
-import org.gorpipe.model.gor.iterators.RowSource
 
 import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
@@ -108,7 +107,8 @@ class GorDatasetFunctions[T: ClassTag](ds: Dataset[T])(implicit tag: ClassTag[T]
     val fixedCommands = CommandParseUtilities.quoteSafeSplitAndTrim(fixedQuery, ';')
     val cmd = fixedCommands.last
 
-    if (inferschema) {
+    val lastcmdwrite = quoteSafeSplit(gorcmd,'|').last.trim.toLowerCase.startsWith("write ")
+    if (inferschema && !lastcmdwrite) {
       val gs = new GorSpark(header, nor, SparkGOR.gorrowEncoder.schema, cmd, sgs.getProjectContext.getRoot)
       val gr = new GorSparkRowInferFunction()
 
