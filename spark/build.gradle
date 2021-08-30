@@ -132,6 +132,7 @@ project(':spark') {
         implementation 'info.picocli:picocli-shell-jline3:4.1.4'
 
         runtimeOnly "io.prometheus.jmx:jmx_prometheus_javaagent:0.15.0"
+        runtimeOnly "${gorArtifactGroupId}:gor-drivers:${gorVersion}"
 
         /*compile group: 'com.typesafe.scala-logging', name: 'scala-logging_2.12', version: '3.9.2'
         compile group: 'org.jdbi', name: 'jdbi', version: '2.78'
