@@ -108,7 +108,7 @@ public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long>, Au
 
         ProjectContext.Builder projectContextBuilder = new ProjectContext.Builder();
         ProjectContext prjctx = projectContextBuilder
-                .setRoot(projectDirStr)
+                .setRoot(projectDirStr+securityContext)
                 .setCacheDir(cacheDir)
                 .setFileReader(new DriverBackedFileReader(securityContext, projectDirStr, null))
                 .setConfigFile(configFile)
