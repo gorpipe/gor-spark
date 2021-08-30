@@ -1,6 +1,6 @@
 package org.gorpipe.spark
 
-import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.types.{DoubleType, IntegerType, StringType, StructField, StructType}
 
 import java.nio.file.{Files, Path, Paths}
 import java.util.stream.Collectors
@@ -8,6 +8,8 @@ import org.apache.spark.sql.{Encoders, SparkSession}
 import org.gorpipe.gor.model.Row
 import org.gorpipe.spark.GorDatasetFunctions.addCustomFunctions
 import org.junit.{After, Assert, Before, Ignore, Test}
+
+import java.util
 
 class UTestGorSparkSDK {
     var sparkGorSession : GorSparkSession = _
@@ -70,6 +72,53 @@ class UTestGorSparkSDK {
         val res = sparkGorSession.dataframe("nor <(norrows 2)").gor("calc x 'x'")(sparkGorSession)
         val res2 = res.collect().mkString("\n")
         Assert.assertEquals("Wrong results from nested norrows","0\tx\n1\tx",res2)
+    }
+
+    @Test
+    def testGorrowsWithSchema(): Unit = {
+        val df = sparkGorSession.dataframe("gorrows -p chr1:1-5")
+        val res = df.gorschema("where pos > 3",df.schema)(sparkGorSession)
+        val res2 = res.collect().mkString("\n")
+        Assert.assertEquals("Wrong results from nested gorrows", "[chr1,4]", res2)
+    }
+
+    @Test
+    def testAdjustCommandWithSchema(): Unit = {
+        val wanted = "CHROM\tPOS\tP_VAlUES\tGC\tQQ\tBONF\tHOLM\tSS\tSD\tBH\tBY\n" +
+          "chr1\t1\t0.02\t0.40413\t0.1\t0.1\t0.1\t0.096079\t0.096079\t0.1\t0.22833\n" +
+          "chr1\t2\t0.04\t0.46142\t0.3\t0.2\t0.16\t0.18463\t0.15065\t0.1\t0.22833\n" +
+          "chr1\t3\t0.06\t0.5\t0.5\t0.3\t0.18\t0.2661\t0.16942\t0.1\t0.22833\n" +
+          "chr1\t4\t0.08\t0.53011\t0.7\t0.4\t0.18\t0.34092\t0.16942\t0.1\t0.22833\n" +
+          "chr1\t5\t0.1\t0.55527\t0.9\t0.5\t0.18\t0.40951\t0.16942\t0.1\t0.22833\n"
+        val cont = "CHROM\tPOS\tP_VAlUES\nchr1\t1\t0.02\n" +
+          "chr1\t2\t0.04\n" +
+          "chr1\t3\t0.06\n" +
+          "chr1\t4\t0.08\n" +
+          "chr1\t5\t0.1\n"
+
+        val p = Paths.get("basic.gor")
+        try {
+            Files.writeString(p, cont)
+
+            val schema = StructType(
+                Array(StructField("CHROM", StringType, nullable = true),
+                    StructField("POS", IntegerType, nullable = true),
+                    StructField("P_VALUES", DoubleType, nullable = true),
+                    StructField("GC", DoubleType, nullable = true),
+                    StructField("QQ", DoubleType, nullable = true),
+                    StructField("BONF", DoubleType, nullable = true),
+                    StructField("HOLM", DoubleType, nullable = true),
+                    StructField("SS", DoubleType, nullable = true),
+                    StructField("SD", DoubleType, nullable = true),
+                    StructField("BH", DoubleType, nullable = true),
+                    StructField("BY", DoubleType, nullable = true)))
+            val df = sparkGorSession.dataframe("gor "+p.toAbsolutePath.toString).gorschema("adjust -pc 3 -gcc -bonf -holm -ss -sd -bh -by -qq", schema)(sparkGorSession)
+            val res2 = df.collect().mkString("\n")
+            val expected: String = wanted.split("\n").drop(1).map(s => '['+s.replace("\t",",")+']').mkString("\n")
+            Assert.assertEquals("Wrong results from nested gorrows", expected, res2)
+        } finally {
+            Files.deleteIfExists(p)
+        }
     }
 
     @Test
