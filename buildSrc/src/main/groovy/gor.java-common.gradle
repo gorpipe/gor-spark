@@ -27,11 +27,9 @@ plugins {
     id 'java-library'
 
     id 'jacoco'
-    id "org.sonarqube"
     id 'nebula.lint'
     id "com.github.hierynomus.license"
     id "org.owasp.dependencycheck"
-    id 'com.github.ben-manes.versions'
     id "com.adarshr.test-logger"
 }
 
@@ -255,15 +253,6 @@ dependencyLocking {
 
 licenseMain.onlyIf { rootProject.file('LICENSE ').exists() }
 licenseTest.onlyIf { rootProject.file('LICENSE ').exists() }
-
-
-sonarqube {
-    properties {
-        // Setting the following properties in the Jenkins.SonarQubeAnalysis file.
-        //property "sonar.dependencyCheck.xmlReportPath", "build/reports/dependency-check-report.xml"
-        //property "sonar.dependencyCheck.htmlReportPath", "build/reports/dependency-check-report.html"
-    }
-}
 
 
 

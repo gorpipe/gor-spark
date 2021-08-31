@@ -30,36 +30,26 @@ buildscript {
         maven { url "https://plugins.gradle.org/m2/" }
     }
     dependencies {
-        classpath "gradle.plugin.com.gitlab.stfs.gradle.dependencygraph:gradle-dependency-graph-plugin:latest.release"
-
-        // TODO:  Do we use those:
-        classpath "org.jfrog.buildinfo:build-info-extractor-gradle:4.10.0"
-        classpath 'de.undercouch:gradle-download-task:4.0.4'
+        classpath "gradle.plugin.com.gitlab.stfs.gradle.dependencygraph:gradle-dependency-graph-plugin:_"
 
         // For GitLab licences scanning
-        classpath "gradle.plugin.nl.javadude.gradle.plugins:license-gradle-plugin:latest.release"
+        classpath "gradle.plugin.nl.javadude.gradle.plugins:license-gradle-plugin:_"
     }
 }
 
 plugins {
     id 'idea'
-    id "org.ajoberstar.grgit" version "3.1.1"
-    id "kr.motd.sphinx" version "2.9.0" apply false
+    id "org.ajoberstar.grgit"
+    id "kr.motd.sphinx" apply false
 
     // Plugins not applied everywhere.
-    id "com.jfrog.artifactory" version "4.10.0" apply false
-    id "org.sonarqube" version "3.0" apply false
-    id "com.github.hierynomus.license" version "0.15.0" apply false
-    id "com.google.protobuf" version "0.8.13" apply false
-    id 'com.github.johnrengelman.shadow' version '6.1.0' apply false
+    id "com.github.hierynomus.license" apply false
 
     // The following plugins are support plugins that don't effect the build directly.
-    id 'nebula.lint' version "16.9.1"
-    id "com.autonomousapps.dependency-analysis" version "0.64.0"
-    id "com.adarshr.test-logger" version "2.1.1" apply false
-    id "org.owasp.dependencycheck" version "6.0.2"  apply false
-    id "com.github.ben-manes.versions" version "0.28.0" apply false
-    // TODO: Add   classpath "gradle.plugin.com.gitlab.stfs.gradle.dependencygraph:gradle-dependency-graph-plugin:latest.release"
+    id 'nebula.lint'
+    id "com.autonomousapps.dependency-analysis"
+    id "com.adarshr.test-logger" apply false
+    id "org.owasp.dependencycheck"  apply false
 }
 
 apply plugin: "com.gitlab.stfs.gradle.dependency-graph-plugin"
