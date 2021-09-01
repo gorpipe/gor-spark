@@ -2,10 +2,31 @@ plugins {
     id 'gor.java-library'
     id 'gor.java-application'
     id 'antlr'
+    id 'gor.common'
     id 'gor.scala-common'
+    id 'com.google.cloud.tools.jib'
 }
 
 project(':spark') {
+    jib {
+        from {
+            image = 'nextcode/ubuntuspark:3.1.2'
+        }
+        to {
+            image = project.findProperty('APPLICATION_REPOSITORY') ?: "nextcode/spark"
+            credHelper = 'osxkeychain'
+            tags = [project.findProperty('APPLICATION_TAG') ?: "${version}"]
+        }
+        container {
+            format = 'OCI'
+            user = 'app'
+            entrypoint = '/opt/entrypoint.sh'
+            workingDirectory = '/opt/spark/work-dir/'
+            appRoot = '/opt/spark/'
+            environment = [SPARK_EXTRA_CLASSPATH:'/opt/spark/libs/*']
+        }
+    }
+
     configurations.all {
         if (name.startsWith("incrementalScalaAnalysis")) {
             extendsFrom = []
