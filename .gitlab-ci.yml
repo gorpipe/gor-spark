@@ -20,6 +20,7 @@ variables:
   KUBERNETES_MEMORY_LIMIT: 4Gi
 
 stages:
+  - buildJava
   - build
   - test
   - publish
@@ -32,9 +33,9 @@ before_script:
   - export GRADLE_USER_HOME=`pwd`/.gradle
 
 
-build:
+buildJava:
   extends: .on-branches
-  stage: build
+  stage: buildJava
   image: "$JAVA_BUILDER_IMAGE"
   script: ./gradlew assemble
   tags:
@@ -49,7 +50,7 @@ build:
 
 
 .build_cache:
-  extends: build
+  extends: buildJava
   cache:
     key: "$CI_COMMIT_REF_NAME"
     policy: pull
