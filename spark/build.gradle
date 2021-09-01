@@ -16,6 +16,10 @@ project(':spark') {
             image = project.findProperty('APPLICATION_REPOSITORY') ?: "nextcode/spark"
             //credHelper = 'osxkeychain'
             tags = [project.findProperty('APPLICATION_TAG') ?: "${version}"]
+            auth {
+                username = project.findProperty('REGISTRY_USER')
+                password = project.findProperty('REGISTRY_PASSWORD')
+            }
         }
         container {
             format = 'OCI'
