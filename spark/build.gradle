@@ -14,7 +14,7 @@ project(':spark') {
         }
         to {
             image = project.findProperty('APPLICATION_REPOSITORY') ?: "nextcode/spark"
-            credHelper = 'osxkeychain'
+            //credHelper = 'osxkeychain'
             tags = [project.findProperty('APPLICATION_TAG') ?: "${version}"]
         }
         container {
