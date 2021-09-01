@@ -24,7 +24,6 @@ project(':spark') {
             }
         }
         container {
-            format = 'OCI'
             user = 'app'
             entrypoint = '/opt/entrypoint.sh'
             workingDirectory = '/opt/spark/work-dir/'
