@@ -10,7 +10,7 @@ plugins {
 project(':spark') {
     jib {
         from {
-            image = 'nextcode/ubuntuspark:3.1.2'
+            image = 'nextcode/ubuntubasespark:3.1.2'
         }
         to {
             image = project.findProperty('APPLICATION_REPOSITORY') ?: "nextcode/spark"
@@ -23,12 +23,26 @@ project(':spark') {
                 }
             }
         }
+        containerizingMode = 'packaged'
+        pluginExtensions {
+            pluginExtension {
+                implementation = 'com.google.cloud.tools.jib.gradle.extension.ownership.JibOwnershipExtension'
+                configuration {
+                    rules {
+                        rule {
+                            glob = '/opt/spark/**'
+                            ownership = 'app:app'
+                        }
+                    }
+                }
+            }
+        }
         container {
             user = 'app'
             entrypoint = '/opt/entrypoint.sh'
             workingDirectory = '/opt/spark/work-dir/'
             appRoot = '/opt/spark/'
-            environment = [SPARK_EXTRA_CLASSPATH:'/opt/spark/libs/*']
+            environment = [SPARK_EXTRA_CLASSPATH:'/opt/spark/classpath/*']
         }
     }
 
