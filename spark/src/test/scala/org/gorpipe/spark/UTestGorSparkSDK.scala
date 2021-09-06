@@ -209,6 +209,15 @@ class UTestGorSparkSDK {
     }
 
     @Test
+    def testSparkReadWithGorSchema(): Unit = {
+        val spark = sparkGorSession.sparkSession
+        val dbsnpDf = spark.read.parquet("../tests/data/parquet/dbsnp_test.parquet")
+        val myVars = dbsnpDf.gorschema("where Chrom = 'chr1'",dbsnpDf.schema)(sparkGorSession)
+        val str = myVars.schema
+        System.err.println(str.toString())
+    }
+
+    @Test
     @Ignore("Timeout")
     def testPaperQuery(): Unit = {
         val spark = sparkGorSession.sparkSession

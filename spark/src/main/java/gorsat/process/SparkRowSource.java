@@ -14,6 +14,8 @@ import java.util.zip.DataFormatException;
 
 import gorsat.commands.PysparkAnalysis;
 import io.projectglow.transformers.blockvariantsandsamples.VariantSampleBlockMaker;
+import org.apache.spark.ml.classification.LogisticRegression;
+import org.apache.spark.ml.classification.LogisticRegressionModel;
 import org.apache.spark.ml.feature.Normalizer;
 import org.apache.spark.ml.feature.PCA;
 import org.apache.spark.ml.feature.PCAModel;
@@ -674,6 +676,15 @@ public class SparkRowSource extends ProcessSource {
                             } catch (IOException e) {
                                 throw new GorResourceException("Unable to save pcamodel file", parquetPath, e);
                             }
+                        } else if (parquetPath.endsWith(".logreg")) {
+                            var logreg = new LogisticRegression().setMaxIter(10).setRegParam(0.3).setElasticNetParam(0.8);
+                            LogisticRegressionModel logregmodel = logreg.fit(dataset);
+                            try {
+                                System.err.println("hey " + logregmodel.binarySummary().toString());
+                                logregmodel.save(parquetPath);
+                            } catch (IOException e) {
+                                throw new GorResourceException("Unable to save logregmodel file", parquetPath, e);
+                            }
                         } else {
                             Arrays.stream(dataset.columns()).filter(c -> c.contains("(")).forEach(c -> dataset = dataset.withColumnRenamed(c, c.replace('(', '_').replace(')', '_')));
                             DataFrameWriter dfw = dataset.write();
@@ -902,6 +913,11 @@ public class SparkRowSource extends ProcessSource {
             if(modelpath.startsWith("'")) modelpath = modelpath.substring(1,modelpath.length()-1);
             Dataset<org.apache.spark.sql.Row> ds = (Dataset<org.apache.spark.sql.Row>)dataset;
             dataset = pcatransform(ds, modelpath).withColumnRenamed("pca",colName);
+        } else if (formula.toLowerCase().startsWith("logreg")) {
+            var phenopath = formula.substring(7,formula.length()-1).trim();
+            if(phenopath.startsWith("'")) phenopath = phenopath.substring(1,phenopath.length()-1);
+            Dataset<org.apache.spark.sql.Row> ds = (Dataset<org.apache.spark.sql.Row>)dataset;
+            dataset = logregfit(ds, phenopath);
         } else if (formula.toLowerCase().startsWith("chartodoublearray")) {
             if (pushdownGorPipe != null) gor();
             CharToDoubleArray cda = new CharToDoubleArray();
@@ -1044,6 +1060,12 @@ public class SparkRowSource extends ProcessSource {
     }
 
     private Dataset<org.apache.spark.sql.Row> pcatransform(Dataset<org.apache.spark.sql.Row> dataset, String modelpath) {
+        PCAModel pcamodel = PCAModel.load(modelpath);
+        Dataset<org.apache.spark.sql.Row> pcaresult = pcamodel.transform(dataset).select("pn","pca");
+        return pcaresult;
+    }
+
+    private Dataset<org.apache.spark.sql.Row> logregfit(Dataset<org.apache.spark.sql.Row> dataset, String modelpath) {
         PCAModel pcamodel = PCAModel.load(modelpath);
         Dataset<org.apache.spark.sql.Row> pcaresult = pcamodel.transform(dataset).select("pn","pca");
         return pcaresult;
