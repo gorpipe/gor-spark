@@ -6,8 +6,8 @@ FROM nextcode/ubuntuspark:3.1.2
 # docker build --build-arg java_image_tag=15-slim --build-arg spark_uid=3000 -t nextcode/basespark:[version] -f kubernetes/dockerfiles/spark/Dockerfile .
 # docker push
 
-COPY metrics.properties /etc/metrics/conf/metrics.properties
-COPY prometheus.yaml /etc/metrics/conf/prometheus.yaml
+COPY spark/src/main/jib/etc/metrics/conf/metrics.properties /etc/metrics/conf/metrics.properties
+COPY spark/src/main/jib/etc/metrics/conf/prometheus.yaml /etc/metrics/conf/prometheus.yaml
 COPY spark/build/install/spark/lib /opt/spark/jars
 
 USER root
@@ -19,10 +19,6 @@ RUN rm -rf /opt/spark/jars/jersey-server-1.19.jar
 RUN rm -rf /opt/spark/jars/log4j-over-slf4j-1.7.30.jar
 RUN rm -rf /opt/spark/jars/logback-core-1.2.3.jar
 RUN rm -rf /opt/spark/jars/logback-classic-1.2.3.jar
-RUN rm -rf /opt/spark/jars/guava-14.0.1.jar
-
-RUN useradd -m -u 3000 -s /bin/bash app
-RUN chown -R app:app /opt/spark
 
 WORKDIR /opt/spark/work-dir
 

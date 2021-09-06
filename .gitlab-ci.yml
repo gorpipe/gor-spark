@@ -36,7 +36,13 @@ build:
   extends: .on-branches
   stage: build
   image: "$JAVA_BUILDER_IMAGE"
-  script: ./gradlew assemble
+  script:
+    - |
+      if [[ -z "$CI_COMMIT_TAG" ]]; then
+        ./gradlew -PREGISTRY_USER=${CI_REGISTRY_USER} -PREGISTRY_PASSWORD=${CI_REGISTRY_PASSWORD} -PAPPLICATION_REPOSITORY=${CI_APPLICATION_REPOSITORY:-$CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG} -PAPPLICATION_TAG=${CI_APPLICATION_TAG:-$CI_COMMIT_SHA} assemble jib
+      else
+        ./gradlew -PREGISTRY_USER=${CI_REGISTRY_USER} -PREGISTRY_PASSWORD=${CI_REGISTRY_PASSWORD} -PAPPLICATION_REPOSITORY=${CI_APPLICATION_REPOSITORY:-$CI_REGISTRY_IMAGE} -PAPPLICATION_TAG=${CI_APPLICATION_TAG:-$CI_COMMIT_TAG} assemble jib
+      fi
   tags:
     - gitlab-build-01
   cache:
