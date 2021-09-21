@@ -77,7 +77,9 @@ class WriteSpark extends CommandInfo("WRITE",
       else prefixFile = Option(prfx)
     }
 
-    val tagArray = replaceSingleQuotes(stringValueOfOptionWithDefault(args, "-t", "")).split(",", -1).map(x => x.trim).distinct
+    val forkTagArray = replaceSingleQuotes(stringValueOfOptionWithDefault(args, "-t", "")).split(",", -1).map(x => x.trim).distinct
+
+    val dictTagArray = replaceSingleQuotes(stringValueOfOptionWithDefault(args, "-tags", "")).split(",", -1).map(x => x.trim).distinct
 
     indexing match {
       case "NONE" => idx = GorIndexType.NONE
@@ -94,9 +96,9 @@ class WriteSpark extends CommandInfo("WRITE",
 
     val fixedHeader = if(passthrough) forcedInputHeader else forcedInputHeader.split("\t").slice(0,2).mkString("\t")
     val forkWrite = if(passthrough) {
-      PassthroughForkWrite(forkCol, fileName, context.getSession, forcedInputHeader, OutputOptions(remove, columnCompress, true, md5, executeNor || (forkCol == 0 && remove), idx, tagArray, prefix, prefixFile, compressionLevel, useFolder, skipHeader, cardCol = card))
+      PassthroughForkWrite(forkCol, fileName, context.getSession, forcedInputHeader, OutputOptions(remove, columnCompress, true, md5, executeNor || (forkCol == 0 && remove), idx, forkTagArray, dictTagArray, prefix, prefixFile, compressionLevel, useFolder, skipHeader, cardCol = card))
     } else {
-      ForkWrite(forkCol, fileName, context.getSession, forcedInputHeader, OutputOptions(remove, columnCompress, true, md5, executeNor || (forkCol == 0 && remove), idx, tagArray, prefix, prefixFile, compressionLevel, useFolder, skipHeader, cardCol = card, linkFile = link))
+      ForkWrite(forkCol, fileName, context.getSession, forcedInputHeader, OutputOptions(remove, columnCompress, true, md5, executeNor || (forkCol == 0 && remove), idx, forkTagArray, dictTagArray, prefix, prefixFile, compressionLevel, useFolder, skipHeader, cardCol = card, linkFile = link))
     }
     CommandParsingResult(forkWrite, fixedHeader)
   }

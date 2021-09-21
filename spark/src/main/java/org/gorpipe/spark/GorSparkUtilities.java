@@ -53,17 +53,27 @@ public class GorSparkUtilities {
     }
 
     public static void closePySpark() {
-        if(py4jServer!=null) py4jServer.shutdown();
+        shutdownPy4jServer();
         jupyterProcess.ifPresent(Process::destroy);
         if(es!=null) es.shutdown();
     }
 
-    public static void initPySpark(Optional<String> standaloneRoot) {
-        String pyspark = System.getenv("PYSPARK_PIN_THREAD");
-        if(py4jServer==null&&pyspark!=null&&pyspark.length()>0) {
+    public static void shutdownPy4jServer() {
+        if(py4jServer!=null) py4jServer.shutdown();
+    }
+
+    public static Py4JServer initPy4jServer() {
+        if (py4jServer==null) {
             py4jServer = new Py4JServer(spark.sparkContext().conf());
             py4jServer.start();
+        }
+        return py4jServer;
+    }
 
+    public static void initPySpark(Optional<String> standaloneRoot) {
+        var pyspark = System.getenv("PYSPARK_PIN_THREAD");
+        if (py4jServer==null&&pyspark!=null&&pyspark.length()>0) {
+            initPy4jServer();
             GorSparkUtilities.getSparkSession();
 
             ProcessBuilder pb = new ProcessBuilder("jupyter","notebook","--NotebookApp.allow_origin='https://colab.research.google.com'","--port=8888","--NotebookApp.port_retries=0");
@@ -81,7 +91,9 @@ public class GorSparkUtilities {
                     try (InputStream is = p.getInputStream()) {
                         InputStreamReader isr = new InputStreamReader(is);
                         BufferedReader br = new BufferedReader(isr);
-                        jupyterPath = br.lines().map(String::trim).filter(s -> s.startsWith("http://localhost:8888/?token=")).findFirst();
+                        jupyterPath = br.lines().peek(System.err::println).map(String::trim).filter(s -> {
+                            return s.startsWith("http://localhost:8888/?token=");
+                        }).findFirst();
                     }
                     return null;
                 });
@@ -114,6 +126,8 @@ public class GorSparkUtilities {
 
     private static SparkSession newSparkSession(int workers) {
         SparkConf sparkConf = new SparkConf();
+        sparkConf.set("spark.sql.execution.arrow.pyspark.enabled","true");
+        sparkConf.set("spark.sql.execution.arrow.pyspark.fallback.enabled","false");
         sparkConf.set("spark.streaming.stopGracefullyOnShutdown","true");
         sparkConf.set("spark.kubernetes.appKillPodDeletionGracePeriod","20");
         //sparkConf.set("spark.hadoop.fs.s3a.endpoint","localhost:4566");

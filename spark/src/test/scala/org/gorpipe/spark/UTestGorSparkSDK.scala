@@ -151,18 +151,6 @@ class UTestGorSparkSDK {
         }
     }
 
-    @Test
-    def testWriteGorrows(): Unit = {
-        val path = Files.createTempFile("gor",".gorz");
-        try {
-            val res = sparkGorSession.dataframe("gorrows -p chr1:1-5").gor("write " + path)(sparkGorSession)
-            val res2 = res.collect().mkString("\n")
-            Assert.assertEquals("Wrong results from nested gorrows", "", res2)
-        } finally {
-            Files.deleteIfExists(path);
-        }
-    }
-
 
     @Test
     def testGorAlias() {

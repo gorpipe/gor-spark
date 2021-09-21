@@ -253,6 +253,8 @@ public class SparkRowSource extends ProcessSource {
     String parts;
     boolean tag;
 
+    List<PysparkAnalysis> pysparkAnalyses = new ArrayList<>();
+
     java.util.function.Function<String, String> inner;
     java.util.function.Function<String, String> gorfunc;
     java.util.function.Predicate<String> gorpred;
@@ -754,7 +756,7 @@ public class SparkRowSource extends ProcessSource {
 
     @Override
     public void close() {
-
+        pysparkAnalyses.forEach(PysparkAnalysis::close);
     }
 
     private List<String> seekCmd(String seekChr, int startPos, int endPos) {
@@ -1106,7 +1108,9 @@ public class SparkRowSource extends ProcessSource {
             if (pushdownGorPipe != null) gor();
             String cmd = gor.substring("pyspark".length());
             try {
-                dataset = PysparkAnalysis.pyspark(dataset, cmd);
+                var pyspark = new PysparkAnalysis();
+                pysparkAnalyses.add(pyspark);
+                dataset = pyspark.pyspark("simmi", dataset, cmd);
             } catch (IOException | InterruptedException e) {
                 e.printStackTrace();
             }
