@@ -91,9 +91,7 @@ public class GorSparkUtilities {
                     try (InputStream is = p.getInputStream()) {
                         InputStreamReader isr = new InputStreamReader(is);
                         BufferedReader br = new BufferedReader(isr);
-                        jupyterPath = br.lines().peek(System.err::println).map(String::trim).filter(s -> {
-                            return s.startsWith("http://localhost:8888/?token=");
-                        }).findFirst();
+                        jupyterPath = br.lines().peek(System.err::println).map(String::trim).filter(s -> s.startsWith("http://localhost:8888/?token=")).findFirst();
                     }
                     return null;
                 });

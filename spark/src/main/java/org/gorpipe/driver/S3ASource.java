@@ -131,8 +131,13 @@ public class S3ASource implements StreamSource {
     }
 
     @Override
-    public boolean exists() throws IOException {
-        boolean exists = fs.exists(path);
+    public boolean exists() {
+        boolean exists = false;
+        try {
+            exists = fs.exists(path);
+        } catch (IOException e) {
+            throw new GorResourceException("Hadoop s3 exists failed",path.toString(),e);
+        }
         return exists;
     }
 

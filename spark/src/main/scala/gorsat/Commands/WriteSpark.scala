@@ -32,7 +32,7 @@ import org.gorpipe.gor.session.GorContext
 import java.util.zip.Deflater
 
 class WriteSpark extends CommandInfo("WRITE",
-  CommandArguments("-r -c -m -p -noheader", "-d -f -i -t -l -card -prefix -format -option -mode -link", 0),
+  CommandArguments("-r -c -m -p -noheader", "-d -f -i -t -l -card -tags -prefix -format -option -mode -link", 0),
   CommandOptions(gorCommand = true, norCommand = true, verifyCommand = true)) {
   override def processArguments(context: GorContext, argString: String, iargs: Array[String], args: Array[String], executeNor: Boolean, forcedInputHeader: String): CommandParsingResult = {
 
@@ -78,7 +78,6 @@ class WriteSpark extends CommandInfo("WRITE",
     }
 
     val forkTagArray = replaceSingleQuotes(stringValueOfOptionWithDefault(args, "-t", "")).split(",", -1).map(x => x.trim).distinct
-
     val dictTagArray = replaceSingleQuotes(stringValueOfOptionWithDefault(args, "-tags", "")).split(",", -1).map(x => x.trim).distinct
 
     indexing match {

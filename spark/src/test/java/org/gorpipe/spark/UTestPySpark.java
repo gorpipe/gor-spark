@@ -99,6 +99,7 @@ public class UTestPySpark {
     }
 
     @Test
+    @Ignore("Needs python on test machine")
     public void testGlow() throws IOException {
         var regpy = "import sys\n" +
                 "from pyspark.mllib.common import _py2java, _java2py\n" +
