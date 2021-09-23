@@ -74,6 +74,10 @@ public class PysparkAnalysis implements AutoCloseable {
         return getDataset();
     }
 
+    public String cmdString() {
+        return String.join(" ", cmds);
+    }
+
     @Override
     public void close() {
         if (pythonProcess!=null) {
@@ -81,7 +85,7 @@ public class PysparkAnalysis implements AutoCloseable {
                 latch.countDown();
                 int exitCode = pythonProcess.waitFor();
                 if (exitCode!=0) {
-                    throw new GorResourceException("Non zero exit code "+exitCode+"\n"+baOutput+"\n"+baError, String.join(" ", cmds));
+                    throw new GorResourceException("Non zero exit code "+exitCode+"\n"+baOutput+"\n"+baError, cmdString());
                 }
             } catch (InterruptedException e) {
                 throw new GorSystemException(e);

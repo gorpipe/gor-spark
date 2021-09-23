@@ -251,6 +251,8 @@ public class SparkRowSource extends ProcessSource {
     String parts;
     boolean tag;
 
+    List<PysparkAnalysis> pysparkAnalyses = new ArrayList<>();
+
     java.util.function.Function<String, String> inner;
     java.util.function.Function<String, String> gorfunc;
     java.util.function.Predicate<String> gorpred;
@@ -743,7 +745,7 @@ public class SparkRowSource extends ProcessSource {
 
     @Override
     public void close() {
-
+        pysparkAnalyses.forEach(PysparkAnalysis::close);
     }
 
     private List<String> seekCmd(String seekChr, int startPos, int endPos) {
@@ -1078,14 +1080,15 @@ public class SparkRowSource extends ProcessSource {
             normalizer.setInputCol(colname);
             normalizer.setOutputCol("normalized_"+colname);
             dataset = normalizer.transform(ds);
-            System.err.println();
         } else if (gor.startsWith("pyspark")) {
             if (pushdownGorPipe != null) gor();
             String cmd = gor.substring("pyspark".length());
+            var pyspark = new PysparkAnalysis();
             try {
-                dataset = PysparkAnalysis.pyspark(dataset, cmd);
+                pysparkAnalyses.add(pyspark);
+                dataset = pyspark.pyspark(UUID.randomUUID().toString(), dataset, cmd);
             } catch (IOException | InterruptedException e) {
-                e.printStackTrace();
+                throw new GorResourceException("Unable to run spark python command",pyspark.cmdString(),e);
             }
         } else {
             if (pushdownGorPipe == null) {
