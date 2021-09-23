@@ -10,7 +10,7 @@ plugins {
 project(':spark') {
     jib {
         from {
-            image = 'nextcode/ubuntubasespark:3.1.2'
+            image = 'nextcode/ubuntubasespypark:3.1.2'
         }
         to {
             image = project.findProperty('APPLICATION_REPOSITORY') ?: "nextcode/spark"

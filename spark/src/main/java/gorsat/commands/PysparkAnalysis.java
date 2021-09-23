@@ -1,14 +1,17 @@
 package gorsat.commands;
 
-import gorsat.Commands.Analysis;
-import org.apache.spark.api.python.Py4JServer;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SparkSession;
+import org.gorpipe.exceptions.GorResourceException;
+import org.gorpipe.exceptions.GorSystemException;
 import org.gorpipe.spark.GorSparkUtilities;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -37,10 +40,9 @@ public class PysparkAnalysis implements AutoCloseable {
         latch.await();
     }
 
-public class PysparkAnalysis extends Analysis {
-    public static Dataset<Row> pyspark(Dataset<? extends Row> ds, String cmd) throws IOException, InterruptedException {
-        SparkSession spark = GorSparkUtilities.getSparkSession();
-        Py4JServer py4JServer = GorSparkUtilities.getPyServer();
+    public void waitFor() throws InterruptedException {
+        latch.await();
+    }
 
     public Dataset<Row> pyspark(String signature, Dataset<? extends Row> ds, String cmd) throws IOException, InterruptedException {
         datasetMap.put(signature,this);
@@ -50,29 +52,44 @@ public class PysparkAnalysis extends Analysis {
         var py4JServer = GorSparkUtilities.initPy4jServer();
 
         var cmdsplit = cmd.trim().split(" ");
-        var pysparkDriverPython = System.getenv("PYSPARK_DRIVER_PYTHON");
-        var pysparkDriverPythonOpts = "";
-        if (pysparkDriverPython!=null) {
-            pysparkDriverPythonOpts = System.getenv("PYSPARK_DRIVER_PYTHON_OPTS");
-        } else {
-            pysparkDriverPython = System.getenv("PYSPARK_PYTHON");
-        }
-        cmds.add(pysparkDriverPython != null ? pysparkDriverPython : "python3");
-        if (pysparkDriverPythonOpts!=null&&pysparkDriverPythonOpts.length()>0) {
-            Arrays.stream(pysparkDriverPythonOpts.split(" ")).map(String::trim).forEach(cmds::add);
-        }
+        var pysparkPython = System.getenv("PYSPARK_PYTHON");
+        cmds.add(pysparkPython != null ? pysparkPython : "python3");
         cmds.add(cmdsplit[0]);
         cmds.add(signature);
         for (int i = 1; i < cmdsplit.length; i++) cmds.add(cmdsplit[i]);
         ProcessBuilder pb = new ProcessBuilder(cmds);
         Map<String,String> env = pb.environment();
-        env.put("PYSPARK_GATEWAY_PORT",Integer.toString(py4JServer.getListeningPort()));
-        env.put("PYSPARK_GATEWAY_SECRET",py4JServer.secret());
+
+        var port = Integer.toString(py4JServer.getListeningPort());
+        var secret = py4JServer.secret();
+
+        env.put("PYSPARK_GATEWAY_PORT",port);
+        env.put("PYSPARK_GATEWAY_SECRET",secret);
         env.put("PYSPARK_PIN_THREAD","true");
 
-        Process p = pb.start();
-        p.waitFor();
+        pythonProcess = pb.start();
 
-        return spark.sql("select * from input");
+        es = Executors.newFixedThreadPool(2);
+        es.submit(() -> pythonProcess.getErrorStream().transferTo(baOutput));
+        es.submit(() -> pythonProcess.getInputStream().transferTo(baError));
+
+        waitFor();
+        return getDataset();
+    }
+
+    @Override
+    public void close() {
+        if (pythonProcess!=null) {
+            try {
+                latch.countDown();
+                int exitCode = pythonProcess.waitFor();
+                if (exitCode!=0) {
+                    throw new GorResourceException("Non zero exit code "+exitCode+"\n"+baOutput+"\n"+baError, String.join(" ", cmds));
+                }
+            } catch (InterruptedException e) {
+                throw new GorSystemException(e);
+            }
+        }
+        if (es!=null) es.shutdown();
     }
 }
