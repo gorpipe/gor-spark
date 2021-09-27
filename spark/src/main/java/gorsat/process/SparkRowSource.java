@@ -1103,16 +1103,15 @@ public class SparkRowSource extends ProcessSource {
             normalizer.setInputCol(colname);
             normalizer.setOutputCol("normalized_"+colname);
             dataset = normalizer.transform(ds);
-            System.err.println();
         } else if (gor.startsWith("pyspark")) {
             if (pushdownGorPipe != null) gor();
             String cmd = gor.substring("pyspark".length());
+            var pyspark = new PysparkAnalysis();
             try {
-                var pyspark = new PysparkAnalysis();
                 pysparkAnalyses.add(pyspark);
-                dataset = pyspark.pyspark("simmi", dataset, cmd);
+                dataset = pyspark.pyspark(UUID.randomUUID().toString(), dataset, cmd);
             } catch (IOException | InterruptedException e) {
-                e.printStackTrace();
+                throw new GorResourceException("Unable to run spark python command",pyspark.cmdString(),e);
             }
         } else {
             if (pushdownGorPipe == null) {
