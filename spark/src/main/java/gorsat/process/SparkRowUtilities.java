@@ -30,6 +30,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -62,10 +63,14 @@ public class SparkRowUtilities {
     }
 
     public static String generateTempViewName(String fileName, boolean usegorpipe, String filter, String chr, int pos, int end) {
-        String fixName = fileName;
-        String prekey = usegorpipe + fixName;
+        return generateTempViewName(fileName, usegorpipe, filter, chr, pos, end, null);
+    }
+
+    public static String generateTempViewName(String fileName, boolean usegorpipe, String filter, String chr, int pos, int end, Instant instant) {
+        String prekey = usegorpipe + fileName;
         String key = filter == null ? prekey : filter + prekey;
         String ret = chr == null ? key : chr + pos + end + key;
+        if (instant!=null) ret += instant.toString();
         return "g" + Math.abs(ret.hashCode());
     }
 
@@ -164,13 +169,15 @@ public class SparkRowUtilities {
         boolean nestedQuery = fn.startsWith("<(") || curlyQuery;
         Path filePath = null;
         String fileName;
+        String tempViewName;
         if (nestedQuery) {
             fileName = fn.substring(curlyQuery ? 1 : 2, fn.length() - 1);
+            tempViewName = generateTempViewName(fileName, usestreaming, filter, chr, pos, end);
         } else {
             fileName = translatePath(fn, fileroot, standalone);
             filePath = Paths.get(fileName);
+            tempViewName = generateTempViewName(fileName, usestreaming, filter, chr, pos, end, Files.getLastModifiedTime(filePath).toInstant());
         }
-        String tempViewName = generateTempViewName(fileName, usestreaming, filter, chr, pos, end);
 
         Map<Integer, DataType> dataTypeMap;
         DataType[] dataTypes;

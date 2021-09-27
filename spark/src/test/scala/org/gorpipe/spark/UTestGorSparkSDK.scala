@@ -9,8 +9,6 @@ import org.gorpipe.gor.model.Row
 import org.gorpipe.spark.GorDatasetFunctions.addCustomFunctions
 import org.junit.{After, Assert, Before, Ignore, Test}
 
-import java.util
-
 class UTestGorSparkSDK {
     var sparkGorSession : GorSparkSession = _
     var genesPath : String = _
@@ -26,7 +24,7 @@ class UTestGorSparkSDK {
         val sparkSession = SparkSession.builder().master("local[2]").getOrCreate()
         Files writeString(goraliaspath, "#genesalias#\tgor/genes.gorz\n")
         Files writeString(gorconfigpath, "buildPath\tref_mini/chromSeq\nbuildSizeFile\tref_mini/buildsize.gor\nbuildSplitFile\tref_mini/buildsplit.txt\n")
-        sparkGorSession = SparkGOR.createSession(sparkSession, project.toAbsolutePath.normalize().toString, System.getProperty("java.io.tmpdir"), gorconfigpath.toAbsolutePath.normalize().toString, goraliaspath.toAbsolutePath.normalize().toString)
+        sparkGorSession = SparkGOR.createSession(sparkSession, project.toAbsolutePath.normalize().toString, "/Users/sigmar/gorproject/result_cache"/*System.getProperty("java.io.tmpdir")*/, gorconfigpath.toAbsolutePath.normalize().toString, goraliaspath.toAbsolutePath.normalize().toString)
     }
 
     @Test
@@ -206,6 +204,24 @@ class UTestGorSparkSDK {
         val snpCount = exonSnps.collect().mkString("\n")
 
         Assert.assertEquals("Wrong result","[BRCA1]\n[BRCA2]",snpCount)
+    }
+
+    @Test
+    def testTempTableQueryCacheTest(): Unit = {
+        val spark = sparkGorSession.sparkSession
+        import spark.implicits._
+        var myGenes = List("BRCA1","BRCA2").toDF("gene")
+        myGenes.createOrReplaceTempView("brcaGenes")
+        var exonSnps = sparkGorSession.dataframe("create #mygenes# = select gene from brcaGenes; nor [#mygenes#]")
+        var snpCount = exonSnps.sort("gene").collect().mkString("\n")
+        Assert.assertEquals("Wrong result","[BRCA1]\n[BRCA2]",snpCount)
+
+        myGenes = List("BRCA1","BRCA2","BRCA3").toDF("gene")
+        myGenes.createOrReplaceTempView("brcaGenes")
+        exonSnps = sparkGorSession.dataframe("create #mygenes# = select gene from brcaGenes; nor [#mygenes#]")
+        snpCount = exonSnps.sort("gene").collect().mkString("\n")
+
+        Assert.assertEquals("Wrong result","[BRCA1]\n[BRCA2]\n[BRCA3]",snpCount)
     }
 
     @Test

@@ -282,7 +282,7 @@ class GorSparkSession(requestId: String, workers: Int = 0) extends GorSession(re
   def stream(qry: String, sc: StructType, nor: Boolean, parallel: Boolean): java.util.stream.Stream[org.gorpipe.gor.model.Row] = {
     val pi = new PipeInstance(this.getGorContext)
     val createQueries = SparkRowUtilities.createMapString(createMap, defMap, creates)
-    var fullQuery = if( createQueries.length > 0 ) createQueries+qry else qry
+    var fullQuery = if( createQueries.nonEmpty ) createQueries+qry else qry
 
     val querySplit = fullQuery.split(";")
     val lastQuery = querySplit(querySplit.length-1).trim
