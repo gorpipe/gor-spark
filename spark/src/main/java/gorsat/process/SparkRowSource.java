@@ -5,6 +5,7 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -59,6 +60,7 @@ import static org.apache.spark.sql.types.DataTypes.*;
  * Created by sigmar on 12/02/16.
  */
 public class SparkRowSource extends ProcessSource {
+    private static final String[] allowedGorSQLFileEndings = {".json",".csv",".tsv",".gor",".gorz",".gor.gz",".gord",".txt",".vcf",".bgen"};
     public void init() {
         dmap.put(StringType, "S");
         dmap.put(IntegerType, "I");
@@ -167,24 +169,36 @@ public class SparkRowSource extends ProcessSource {
                     return Arrays.stream(cmdspl).map(inner).map(gorfunc).map(parqfunc).collect(Collectors.joining(" ", "(", ")"));
                 } else return p;
             };
-            gorpred = p -> p.toLowerCase().endsWith(".json") || p.toLowerCase().endsWith(".tsv") || p.toLowerCase().endsWith(".gor") || p.toLowerCase().endsWith(".gorz") || p.toLowerCase().endsWith(".gor.gz") || p.toLowerCase().endsWith(".gord") || p.toLowerCase().endsWith(".txt") || p.toLowerCase().endsWith(".vcf") || p.toLowerCase().endsWith(".bgen") || p.startsWith("<(");
+            gorpred = p -> Arrays.stream(allowedGorSQLFileEndings).map(e -> p.toLowerCase().endsWith(p)).reduce((a,b) -> a || b).get() || p.startsWith("<(");
             gorfunc = p -> {
                 if (gorpred.test(p)) {
                     boolean nestedQuery = p.startsWith("<(");
                     String fileName;
+                    List<Instant> inst;
                     if (nestedQuery) {
                         fileName = p.substring(2, p.length() - 1);
+                        var scmdsplit = CommandParseUtilities.quoteCurlyBracketsSafeSplit(fileName, ' ');
+                        inst = Arrays.stream(scmdsplit).flatMap(gorfileflat).filter(gorpred).map(Paths::get).map(sp -> sp.isAbsolute() ? sp : fileroot.resolve(sp)).map(sp -> {
+                            try {
+                                return Files.getLastModifiedTime(sp).toInstant();
+                            } catch (IOException e) {
+                                // Failed getLastModifiedTime are not part of the signature
+                                return null;
+                            }
+                        }).filter(Objects::nonNull).collect(Collectors.toList());
                     } else {
-                        fileName = SparkRowUtilities.translatePath(p, fileroot, standalone);
+                        RowDataType rdt = SparkRowUtilities.translatePath(p, fileroot, standalone);
+                        fileName = rdt.path;
+                        inst = rdt.getTimestamp();
                     }
-                    return SparkRowUtilities.generateTempViewName(fileName, usestreaming, filter, chr, pos, end);
+                    return SparkRowUtilities.generateTempViewName(fileName, usestreaming, filter, chr, pos, end, inst);
                 }
                 return p;
             };
             gorfileflat = p -> p.startsWith("(") ? Arrays.stream(CommandParseUtilities.quoteCurlyBracketsSafeSplit(p.substring(1, p.length() - 1), ' ')).flatMap(gorfileflat).filter(gorpred) : Stream.of(p);
             parqfunc = p -> {
                 if (p.toLowerCase().endsWith(".parquet") && !p.toLowerCase().startsWith("parquet.")) {
-                    String fileName = SparkRowUtilities.translatePath(p, fileroot, standalone);
+                    String fileName = SparkRowUtilities.translatePath(p, fileroot, standalone).path;
                     return "parquet.`" + fileName + "`";
                 } else return p;
             };

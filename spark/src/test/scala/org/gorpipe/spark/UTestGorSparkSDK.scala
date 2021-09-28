@@ -225,6 +225,44 @@ class UTestGorSparkSDK {
     }
 
     @Test
+    def testTempTableFileQueryCacheTest(): Unit = {
+        val brcaPath = Paths.get("../tests/data/brcaGenes.tsv")
+        try {
+            Files.writeString(brcaPath, "#gene\nBRCA1\nBRCA2\n");
+            var exonSnps = sparkGorSession.dataframe("create #mygenes# = select * from brcaGenes.tsv; nor [#mygenes#]")
+            var snpCount = exonSnps.sort("gene").collect().mkString("\n")
+            Assert.assertEquals("Wrong result", "[BRCA1]\n[BRCA2]", snpCount)
+
+            Files.writeString(brcaPath, "#gene\nBRCA1\nBRCA2\nBRCA3\n")
+            exonSnps = sparkGorSession.dataframe("create #mygenes# = select * from brcaGenes.tsv; nor [#mygenes#]")
+            snpCount = exonSnps.sort("gene").collect().mkString("\n")
+
+            Assert.assertEquals("Wrong result", "[BRCA1]\n[BRCA2]\n[BRCA3]", snpCount)
+        } finally {
+            Files.deleteIfExists(brcaPath)
+        }
+    }
+
+    @Test
+    def testTempTableFileNestedQueryCacheTest(): Unit = {
+        val brcaPath = Paths.get("../tests/data/brcaGenes.tsv")
+        try {
+            Files.writeString(brcaPath, "#gene\nBRCA1\nBRCA2\n");
+            var exonSnps = sparkGorSession.dataframe("create #mygenes# = select * from <(nor brcaGenes.tsv); nor [#mygenes#]")
+            var snpCount = exonSnps.sort("gene").collect().mkString("\n")
+            Assert.assertEquals("Wrong result", "[BRCA1]\n[BRCA2]", snpCount)
+
+            Files.writeString(brcaPath, "#gene\nBRCA1\nBRCA2\nBRCA3\n")
+            exonSnps = sparkGorSession.dataframe("create #mygenes# = select * from <(nor brcaGenes.tsv); nor [#mygenes#]")
+            snpCount = exonSnps.sort("gene").collect().mkString("\n")
+
+            Assert.assertEquals("Wrong result", "[BRCA1]\n[BRCA2]\n[BRCA3]", snpCount)
+        } finally {
+            Files.deleteIfExists(brcaPath)
+        }
+    }
+
+    @Test
     @Ignore("Timeout")
     def testDependentCreatesQuery(): Unit = {
         val spark = sparkGorSession.sparkSession
