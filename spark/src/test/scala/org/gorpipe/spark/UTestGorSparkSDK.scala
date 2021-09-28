@@ -24,7 +24,7 @@ class UTestGorSparkSDK {
         val sparkSession = SparkSession.builder().master("local[2]").getOrCreate()
         Files writeString(goraliaspath, "#genesalias#\tgor/genes.gorz\n")
         Files writeString(gorconfigpath, "buildPath\tref_mini/chromSeq\nbuildSizeFile\tref_mini/buildsize.gor\nbuildSplitFile\tref_mini/buildsplit.txt\n")
-        sparkGorSession = SparkGOR.createSession(sparkSession, project.toAbsolutePath.normalize().toString, "/Users/sigmar/gorproject/result_cache"/*System.getProperty("java.io.tmpdir")*/, gorconfigpath.toAbsolutePath.normalize().toString, goraliaspath.toAbsolutePath.normalize().toString)
+        sparkGorSession = SparkGOR.createSession(sparkSession, project.toAbsolutePath.normalize().toString, System.getProperty("java.io.tmpdir"), gorconfigpath.toAbsolutePath.normalize().toString, goraliaspath.toAbsolutePath.normalize().toString)
     }
 
     @Test
