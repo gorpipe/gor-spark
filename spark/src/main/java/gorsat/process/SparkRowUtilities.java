@@ -34,6 +34,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -65,15 +66,16 @@ public class SparkRowUtilities {
     }
 
     public static String generateTempViewName(String fileName, boolean usegorpipe, String filter, String chr, int pos, int end) {
-        return generateTempViewName(fileName, usegorpipe, filter, chr, pos, end, null);
+        return generateTempViewName(fileName, usegorpipe, filter, chr, pos, end, Collections.emptyList());
     }
 
-    public static String generateTempViewName(String fileName, boolean usegorpipe, String filter, String chr, int pos, int end, Instant instant) {
+    public static String generateTempViewName(String fileName, boolean usegorpipe, String filter, String chr, int pos, int end, List<Instant> inst) {
         String prekey = usegorpipe + fileName;
         String key = filter == null ? prekey : filter + prekey;
         String ret = chr == null ? key : chr + pos + end + key;
-        if (instant!=null) ret += instant.toString();
-        return "g" + Math.abs(ret.hashCode());
+        ret += inst.stream().map(Instant::toString).collect(Collectors.joining());
+        var hash = Math.abs(ret.hashCode());
+        return "g" + hash;
     }
 
     public static StructType gor2Schema(String header, Row types) {
@@ -114,10 +116,10 @@ public class SparkRowUtilities {
         return gorDataTypeToStructType(gorDataType);
     }
 
-    public static String translatePath(String fn, Path fileroot, String standalone) {
-        String fileName;
+    public static RowDataType translatePath(String fn, Path fileroot, String standalone) {
+        RowDataType ret;
         if (fn.contains("://")) {
-            fileName = fn;
+            ret = new RowDataType(fn,null);
         } else {
             Path filePath = Paths.get(fn);
             if (!filePath.isAbsolute()) {
@@ -132,9 +134,15 @@ public class SparkRowUtilities {
                     }
                 }
             }
-            fileName = filePath.toString();
+            List<Instant> inst;
+            try {
+                inst = Collections.singletonList(Files.getLastModifiedTime(filePath).toInstant());
+            } catch (IOException e) {
+                inst = Collections.emptyList();
+            }
+            ret = new RowDataType(filePath.toString(),inst);
         }
-        return fileName;
+        return ret;
     }
 
     public static GorDataType gorCmdSchema(String gorcmd, GorSparkSession gorSparkSession, boolean nor) {
@@ -172,13 +180,26 @@ public class SparkRowUtilities {
         Path filePath = null;
         String fileName;
         String tempViewName;
+        List<Instant> inst;
         if (nestedQuery) {
             fileName = fn.substring(curlyQuery ? 1 : 2, fn.length() - 1);
-            tempViewName = generateTempViewName(fileName, usestreaming, filter, chr, pos, end);
+            Predicate<String> gorpred = p -> p.toLowerCase().endsWith(".json") || p.toLowerCase().endsWith(".tsv") || p.toLowerCase().endsWith(".gor") || p.toLowerCase().endsWith(".gorz") || p.toLowerCase().endsWith(".gor.gz") || p.toLowerCase().endsWith(".gord") || p.toLowerCase().endsWith(".txt") || p.toLowerCase().endsWith(".vcf") || p.toLowerCase().endsWith(".bgen") || p.startsWith("<(");;
+            java.util.function.Function<String, Stream<String>> gorfileflat;
+            gorfileflat = p -> p.startsWith("(") ? Arrays.stream(CommandParseUtilities.quoteCurlyBracketsSafeSplit(p.substring(1, p.length() - 1), ' ')).filter(gorpred) : Stream.of(p);
+            var cmdsplit = CommandParseUtilities.quoteCurlyBracketsSafeSplit(fileName, ' ');
+            inst = Arrays.stream(cmdsplit).flatMap(gorfileflat).filter(gorpred).map(Paths::get).map(p -> p.isAbsolute() ? p : fileroot.resolve(p)).map(p -> {
+                try {
+                    return Files.getLastModifiedTime(p).toInstant();
+                } catch (IOException e) {
+                   return null;
+                }
+            }).filter(Objects::nonNull).collect(Collectors.toList());
+            tempViewName = generateTempViewName(fileName, usestreaming, filter, chr, pos, end, inst);
         } else {
-            fileName = translatePath(fn, fileroot, standalone);
-            filePath = Paths.get(fileName);
-            tempViewName = generateTempViewName(fileName, usestreaming, filter, chr, pos, end, Files.getLastModifiedTime(filePath).toInstant());
+            var rdt = translatePath(fn, fileroot, standalone);
+            fileName = rdt.path;
+            inst = rdt.getTimestamp();
+            tempViewName = generateTempViewName(fileName, usestreaming, filter, chr, pos, end, inst);
         }
 
         Map<Integer, DataType> dataTypeMap;
@@ -515,7 +536,7 @@ public class SparkRowUtilities {
                 gor.createOrReplaceTempView(name);
             }
             gor.createOrReplaceTempView(tempViewName);
-            gorSparkSession.datasetMap().put(tempViewName, new RowDataType(gor, dataTypes));
+            gorSparkSession.datasetMap().put(tempViewName, new RowDataType(gor, dataTypes, fileName, inst));
         }
         return gor;
     }

@@ -34,7 +34,7 @@ class UTestGorSparkSDK {
         val sparkSession = SparkSession.builder().master("local[1]").getOrCreate()
         Files writeString(goraliaspath, "#genesalias#\tgor/genes.gorz\n")
         Files writeString(gorconfigpath, "buildPath\tref_mini/chromSeq\nbuildSizeFile\tref_mini/buildsize.gor\nbuildSplitFile\tref_mini/buildsplit.txt\n")
-        sparkGorSession = SparkGOR.createSession(sparkSession, project.toAbsolutePath.normalize().toString, "/Users/sigmar/gorproject/result_cache"/*System.getProperty("java.io.tmpdir")*/, gorconfigpath.toAbsolutePath.normalize().toString, goraliaspath.toAbsolutePath.normalize().toString)
+        sparkGorSession = SparkGOR.createSession(sparkSession, project.toAbsolutePath.normalize().toString, System.getProperty("java.io.tmpdir"), gorconfigpath.toAbsolutePath.normalize().toString, goraliaspath.toAbsolutePath.normalize().toString)
     }
 
     @Test
@@ -252,6 +252,44 @@ class UTestGorSparkSDK {
         snpCount = exonSnps.sort("gene").collect().mkString("\n")
 
         Assert.assertEquals("Wrong result","[BRCA1]\n[BRCA2]\n[BRCA3]",snpCount)
+    }
+
+    @Test
+    def testTempTableFileQueryCacheTest(): Unit = {
+        val brcaPath = Paths.get("../tests/data/brcaGenes.tsv")
+        try {
+            Files.writeString(brcaPath, "#gene\nBRCA1\nBRCA2\n");
+            var exonSnps = sparkGorSession.dataframe("create #mygenes# = select * from brcaGenes.tsv; nor [#mygenes#]")
+            var snpCount = exonSnps.sort("gene").collect().mkString("\n")
+            Assert.assertEquals("Wrong result", "[BRCA1]\n[BRCA2]", snpCount)
+
+            Files.writeString(brcaPath, "#gene\nBRCA1\nBRCA2\nBRCA3\n")
+            exonSnps = sparkGorSession.dataframe("create #mygenes# = select * from brcaGenes.tsv; nor [#mygenes#]")
+            snpCount = exonSnps.sort("gene").collect().mkString("\n")
+
+            Assert.assertEquals("Wrong result", "[BRCA1]\n[BRCA2]\n[BRCA3]", snpCount)
+        } finally {
+            Files.deleteIfExists(brcaPath)
+        }
+    }
+
+    @Test
+    def testTempTableFileNestedQueryCacheTest(): Unit = {
+        val brcaPath = Paths.get("../tests/data/brcaGenes.tsv")
+        try {
+            Files.writeString(brcaPath, "#gene\nBRCA1\nBRCA2\n");
+            var exonSnps = sparkGorSession.dataframe("create #mygenes# = select * from <(nor brcaGenes.tsv); nor [#mygenes#]")
+            var snpCount = exonSnps.sort("gene").collect().mkString("\n")
+            Assert.assertEquals("Wrong result", "[BRCA1]\n[BRCA2]", snpCount)
+
+            Files.writeString(brcaPath, "#gene\nBRCA1\nBRCA2\nBRCA3\n")
+            exonSnps = sparkGorSession.dataframe("create #mygenes# = select * from <(nor brcaGenes.tsv); nor [#mygenes#]")
+            snpCount = exonSnps.sort("gene").collect().mkString("\n")
+
+            Assert.assertEquals("Wrong result", "[BRCA1]\n[BRCA2]\n[BRCA3]", snpCount)
+        } finally {
+            Files.deleteIfExists(brcaPath)
+        }
     }
 
     @Test

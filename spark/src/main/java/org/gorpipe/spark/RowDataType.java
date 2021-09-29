@@ -4,23 +4,28 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataType;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Instant;
+import java.util.List;
 
 public class RowDataType {
     public Dataset<? extends Row> dataset;
     public DataType[]   datatypes;
-    public Instant  timestamp;
+    public List<Instant>  timestamp;
+    public String path;
 
-    public RowDataType(Dataset<? extends Row> dataset, DataType[] datatypes) {
+    public RowDataType(Dataset<? extends Row> dataset, DataType[] datatypes, String path, List<Instant> inst) {
         this.dataset = dataset;
         this.datatypes = datatypes;
-        this.timestamp = Instant.now();
+        this.timestamp = inst;
+        this.path = path;
     }
 
-    public boolean isAfter(Path p) throws IOException {
-        return p != null && timestamp.isAfter(Files.getLastModifiedTime(p).toInstant());
+    public RowDataType(String path, List<Instant> inst) {
+        this.timestamp = inst;
+        this.path = path;
+    }
+
+    public List<Instant> getTimestamp() {
+        return timestamp;
     }
 }
