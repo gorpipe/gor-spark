@@ -60,7 +60,6 @@ import static org.apache.spark.sql.types.DataTypes.*;
  * Created by sigmar on 12/02/16.
  */
 public class SparkRowSource extends ProcessSource {
-    private static final String[] allowedGorSQLFileEndings = {".json",".csv",".tsv",".gor",".gorz",".gor.gz",".gord",".txt",".vcf",".bgen"};
     public void init() {
         dmap.put(StringType, "S");
         dmap.put(IntegerType, "I");
@@ -169,7 +168,7 @@ public class SparkRowSource extends ProcessSource {
                     return Arrays.stream(cmdspl).map(inner).map(gorfunc).map(parqfunc).collect(Collectors.joining(" ", "(", ")"));
                 } else return p;
             };
-            gorpred = p -> Arrays.stream(allowedGorSQLFileEndings).map(e -> p.toLowerCase().endsWith(p)).reduce((a,b) -> a || b).get() || p.startsWith("<(");
+            gorpred = SparkRowUtilities.getFileEndingPredicate();
             gorfunc = p -> {
                 if (gorpred.test(p)) {
                     boolean nestedQuery = p.startsWith("<(");

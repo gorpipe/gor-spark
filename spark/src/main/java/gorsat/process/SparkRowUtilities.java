@@ -43,8 +43,13 @@ import java.util.zip.GZIPInputStream;
 import static org.apache.spark.sql.types.DataTypes.*;
 
 public class SparkRowUtilities {
+    static final String[] allowedGorSQLFileEndings = {".json",".csv",".tsv",".gor",".gorz",".gor.gz",".gord",".txt",".vcf",".bgen"};
     static final String csvDataSource = "csv";
     static final String gordatasourceClassname = "gorsat.spark.GorDataSource";
+
+    public static Predicate<String> getFileEndingPredicate() {
+        return p -> Arrays.stream(allowedGorSQLFileEndings).map(e -> p.toLowerCase().endsWith(e)).reduce((a,b) -> a || b).get() || p.startsWith("<(");
+    }
 
     public static String createMapString(Map<String,String> createMap, Map<String,String> defMap, String creates) {
         String mcreates = createMap.size() > 0 ? createMap.entrySet().stream().map(e -> "create "+e.getKey()+" = "+e.getValue()).collect(Collectors.joining("; ","",";")) : "";
@@ -181,7 +186,7 @@ public class SparkRowUtilities {
         List<Instant> inst;
         if (nestedQuery) {
             fileName = fn.substring(curlyQuery ? 1 : 2, fn.length() - 1);
-            Predicate<String> gorpred = p -> p.toLowerCase().endsWith(".json") || p.toLowerCase().endsWith(".tsv") || p.toLowerCase().endsWith(".gor") || p.toLowerCase().endsWith(".gorz") || p.toLowerCase().endsWith(".gor.gz") || p.toLowerCase().endsWith(".gord") || p.toLowerCase().endsWith(".txt") || p.toLowerCase().endsWith(".vcf") || p.toLowerCase().endsWith(".bgen") || p.startsWith("<(");;
+            var gorpred = getFileEndingPredicate();
             java.util.function.Function<String, Stream<String>> gorfileflat;
             gorfileflat = p -> p.startsWith("(") ? Arrays.stream(CommandParseUtilities.quoteCurlyBracketsSafeSplit(p.substring(1, p.length() - 1), ' ')).filter(gorpred) : Stream.of(p);
             var cmdsplit = CommandParseUtilities.quoteCurlyBracketsSafeSplit(fileName, ' ');
