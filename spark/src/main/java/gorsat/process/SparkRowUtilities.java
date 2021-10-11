@@ -161,7 +161,7 @@ public class SparkRowUtilities {
     }
 
     public static GorDataType gorCmdSchema(String[] gorcmds, GorSparkSession gorSparkSession) {
-        var topcmds = Arrays.stream(gorcmds).map(cmd -> CommandParseUtilities.quoteSafeReplace(cmd,"|","| top 1000 |")).collect(Collectors.toList());
+        var topcmds = Arrays.asList(gorcmds); //Arrays.stream(gorcmds).map(cmd -> CommandParseUtilities.quoteSafeReplace(cmd,"|","| top 1000 |")).collect(Collectors.toList());
         Stream<DynIterator.DynamicRowSource> sdrs = topcmds.stream().map(d -> new DynIterator.DynamicRowSource(d, gorSparkSession.getGorContext(), false));
         Stream<Stream<String>> lstr = sdrs.map(drs -> StreamSupport.stream(Spliterators.spliteratorUnknownSize(drs, Spliterator.ORDERED), false).map(Object::toString).onClose(drs::close));
 
