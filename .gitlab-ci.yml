@@ -84,21 +84,6 @@ integrationtest:
   extends: .test
   script: ./gradlew --continue integrationTest
 
-
-# This codequality block is needed to work around https://gitlab.com/gitlab-org/gitlab/issues/12274
-code_quality:
-  extends:
-    - .on-releasable-branch
-  stage: test
-  tags:
-    - gitlab-build-01
-  artifacts:
-    reports:
-      codequality: gl-code-quality-report.json
-    paths: [gl-code-quality-report.json]
-    expire_in: 1 week
-
-
 license_management:
   extends:
     - .build_cache
