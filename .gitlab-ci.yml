@@ -79,7 +79,6 @@ slowtest:
   extends: .test
   script: ./gradlew --continue slowTest
 
-
 integrationtest:
   extends: .test
   script: ./gradlew --continue integrationTest
@@ -94,19 +93,6 @@ license_management:
     # analysis, however, the license management plugin calls the build task so we have to manually
     # disable tests and documentation generation.
     GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dskip.tests=true -Dskip.documentation=true"
-
-
-dependency_scanning:
-  stage: test
-  tags:
-    - gitlab-build-01
-  variables:
-    # There is no need to run tests or generate sphinx documentation for license management
-    # analysis, however, the license management plugin calls the build task so we have to manually
-    # disable tests and documentation generation.
-    GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dskip.tests=true -Dskip.documentation=true"
-  artifacts:
-    paths: [gl-dependency-scanning-report.json]
 
 publish:
   extends:
