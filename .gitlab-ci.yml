@@ -69,7 +69,6 @@ build:
         # Seems like ** does not work properly (even though it is used in the Gitlab docutmentation)
         #- "**/build/test-results/test/**/TEST-*.xml"
 
-
 unittest:
   extends: .test
   script: ./gradlew --continue test
@@ -83,22 +82,11 @@ integrationtest:
   extends: .test
   script: ./gradlew --continue integrationTest
 
-license_management:
-  extends:
-    - .build_cache
-    - .on-releasable-branch
-  stage: test
-  variables:
-    # There is no need to run tests or generate sphinx documentation for license management
-    # analysis, however, the license management plugin calls the build task so we have to manually
-    # disable tests and documentation generation.
-    GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dskip.tests=true -Dskip.documentation=true"
-
 publish:
   extends:
     - .build_cache
     - .on-releasable-branch
-  stage: publish
+  stage: release
   script: ./gradlew publish -x test -x slowTest -x integrationTest
 
 include:
