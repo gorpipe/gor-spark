@@ -22,7 +22,6 @@ variables:
 before_script:
   - export GRADLE_USER_HOME=`pwd`/.gradle
 
-
 build:
   extends: .on-branches
   stage: build
