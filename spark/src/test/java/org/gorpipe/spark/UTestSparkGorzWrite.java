@@ -89,15 +89,6 @@ public class UTestSparkGorzWrite {
     }
 
     @Test
-    public void testSparkGorzDataSourceWriteP() {
-        Dataset<Row> ds = sparkSession.read().load("/Users/sigmar/results.parquet");
-        ds.write().format("gor").mode(SaveMode.Overwrite).save("/tmp/ds.gorz");
-        ds = sparkSession.read().format("gor").schema(ds.schema()).load("/tmp/ds.gorz");
-        String result = ds.collectAsList().stream().map(Object::toString).collect(Collectors.joining("\n"));
-        Assert.assertEquals("Wrong content loaded from in gorz file in spark", "[chr1,11868,14412,DDX11L1]\n[chr1,14362,29806,WASH7P]\n[chr1,34553,36081,FAM138A]\n[chr1,53048,54936,AL627309.1]", result);
-    }
-
-    @Test
     public void testSparkGorzDataSourceWriteWithNull() {
         Dataset<Row> ds = sparkSession.read().format("gor").load("../tests/data/gor/genes.gorz").limit(4);
         ds = ds.withColumn("GeneSymbol", functions.when(functions.col("Gene_Symbol").$eq$eq$eq("DDX11L1"),null).otherwise(functions.col("Gene_Symbol")));
