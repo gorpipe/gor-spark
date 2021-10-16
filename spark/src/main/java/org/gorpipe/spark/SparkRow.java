@@ -216,10 +216,12 @@ public class SparkRow extends GorSparkRowBase implements Serializable {
     public void writeRowToStream(OutputStream outputStream) throws IOException {
         int i = 0;
         for( ; i < row.length()-1; i++ ) {
-            outputStream.write(row.get(i).toString().getBytes());
+            var r = row.get(i);
+            if(r!=null) outputStream.write(r.toString().getBytes());
             outputStream.write('\t');
         }
-        outputStream.write(row.get(i).toString().getBytes());
+        var r = row.get(i);
+        if(r!=null) outputStream.write(r.toString().getBytes());
     }
 
     @Override
