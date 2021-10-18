@@ -175,7 +175,17 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
                     }
                     is = fs.open(ppath);
                 } else {
-                    is = gorPipeSession.getProjectContext().getFileReader().getInputStream(path);
+                    if (gorPipeSession.getProjectContext().getFileReader().isDirectory(path)) {
+                        var ppath = Paths.get(path);
+                        if (!ppath.isAbsolute()) {
+                            var root = Paths.get(projectRoot);
+                            ppath = root.resolve(ppath);
+                        }
+                        var ogorz = Files.walk(ppath).filter(p -> !Files.isDirectory(p)).filter(p -> p.toString().toLowerCase().endsWith(".gorz")).findFirst();
+                        is = ogorz.isPresent() ? gorPipeSession.getProjectContext().getFileReader().getInputStream(ogorz.get().toString()) : InputStream.nullInputStream();
+                    } else {
+                        is = gorPipeSession.getProjectContext().getFileReader().getInputStream(path);
+                    }
                 }
                 schema = SparkRowUtilities.inferSchema(is, path, false, isGorz);
             } catch (IOException | DataFormatException e) {

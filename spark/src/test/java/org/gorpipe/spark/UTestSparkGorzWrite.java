@@ -8,6 +8,7 @@ import org.apache.spark.api.java.function.MapFunction;
 import org.apache.spark.sql.*;
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
+import org.apache.spark.sql.types.DataTypes;
 import org.junit.*;
 
 import java.io.IOException;
@@ -85,6 +86,31 @@ public class UTestSparkGorzWrite {
         ds = sparkSession.read().format("gor").schema(ds.schema()).load("/tmp/ds.gorz");
         String result = ds.collectAsList().stream().map(Object::toString).collect(Collectors.joining("\n"));
         Assert.assertEquals("Wrong content loaded from in gorz file in spark", "[chr1,11868,14412,DDX11L1]\n[chr1,14362,29806,WASH7P]\n[chr1,34553,36081,FAM138A]\n[chr1,53048,54936,AL627309.1]", result);
+    }
+
+    @Test
+    public void testSparkGorzDataSourceWriteWithNull() {
+        Dataset<Row> ds = sparkSession.read().format("gor").load("../tests/data/gor/genes.gorz").limit(4);
+        ds = ds.withColumn("GeneSymbol", functions.when(functions.col("Gene_Symbol").$eq$eq$eq("DDX11L1"),null).otherwise(functions.col("Gene_Symbol")));
+        ds = ds.withColumn("Gene_Symbol", functions.lit(null));
+        ds = ds.withColumn("gene_end", functions.col("gene_end").cast(DataTypes.LongType));
+        ds = ds.withColumn("namesplit", functions.split(functions.col("GeneSymbol"),""));
+        var schema = ds.schema();
+        ds.write().format("gor").mode(SaveMode.Overwrite).save("/tmp/ds.gorz");
+
+        ds = sparkSession.read().format("gor").load("/tmp/ds.gorz");
+        String result = ds.collectAsList().stream().map(Object::toString).collect(Collectors.joining("\n"));
+        Assert.assertEquals("Wrong content loaded from in gorz file in spark", "[chr1,11868,14412,,,]\n" +
+                "[chr1,14362,29806,,WASH7P,WrappedArray(W, A, S, H, 7, P, )]\n" +
+                "[chr1,34553,36081,,FAM138A,WrappedArray(F, A, M, 1, 3, 8, A, )]\n" +
+                "[chr1,53048,54936,,AL627309.1,WrappedArray(A, L, 6, 2, 7, 3, 0, 9, ., 1, )]", result);
+
+        ds = sparkSession.read().format("gor").schema(schema).load("/tmp/ds.gorz");
+        result = ds.collectAsList().stream().map(Object::toString).collect(Collectors.joining("\n"));
+        Assert.assertEquals("Wrong content loaded from in gorz file in spark", "[chr1,11868,14412,null,,WrappedArray()]\n" +
+                "[chr1,14362,29806,null,WASH7P,WrappedArray(W, A, S, H, 7, P, )]\n" +
+                "[chr1,34553,36081,null,FAM138A,WrappedArray(F, A, M, 1, 3, 8, A, )]\n" +
+                "[chr1,53048,54936,null,AL627309.1,WrappedArray(A, L, 6, 2, 7, 3, 0, 9, ., 1, )]", result);
     }
 
     @Test

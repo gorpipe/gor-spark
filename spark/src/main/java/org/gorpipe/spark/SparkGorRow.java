@@ -14,6 +14,8 @@ public class SparkGorRow extends GorSparkRowBase implements Serializable {
     public org.gorpipe.gor.model.Row row;
     StructType schema;
 
+    final static DataType ARRAY_STRING = DataTypes.createArrayType(DataTypes.StringType, true);
+
     public SparkGorRow(StructType schema) {
         this.schema = schema;
     }
@@ -188,6 +190,13 @@ public class SparkGorRow extends GorSparkRowBase implements Serializable {
             }
         } else if(dt == DataTypes.LongType) {
             return row.colAsLong(i);
+        } else if(dt == DataTypes.NullType) {
+            return "d";
+        } else if(dt.equals(ARRAY_STRING)) {
+            var str = row.stringValue(i);
+            str = str.replace(", ",",");
+            int id = str.indexOf('(');
+            return id==-1 ? str.split(",",-1) : str.substring(id+1,str.length()-1).split(",",-1);
         } else {
             return row.stringValue(i);
         }

@@ -237,6 +237,7 @@ class UTestGorSparkSDK {
     }
 
     @Test
+    @Ignore("Slow test")
     def testTempTableQueryCacheTest(): Unit = {
         val spark = sparkGorSession.sparkSession
         import spark.implicits._
@@ -255,6 +256,7 @@ class UTestGorSparkSDK {
     }
 
     @Test
+    @Ignore("Slow test")
     def testTempTableFileQueryCacheTest(): Unit = {
         val brcaPath = Paths.get("../tests/data/brcaGenes.tsv")
         try {
@@ -274,6 +276,7 @@ class UTestGorSparkSDK {
     }
 
     @Test
+    @Ignore("Slow test")
     def testTempTableFileNestedQueryCacheTest(): Unit = {
         val brcaPath = Paths.get("../tests/data/brcaGenes.tsv")
         try {
