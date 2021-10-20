@@ -21,5 +21,4 @@ include 'spark'
 include 'gorshell'
 include 'redis'
 include 'documentation'
-include 'redis'
 
