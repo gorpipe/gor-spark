@@ -132,8 +132,6 @@ project(':spark') {
         implementation group: 'org.apache.thrift', name: 'libthrift', version: '0.14.1'
         implementation group: 'io.delta', name: 'delta-core_2.12', version: '1.0.0'
 
-        implementation 'com.redislabs:spark-redis_2.12:_'
-
         implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.11.0'
         implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.0'
         implementation group: 'com.fasterxml.jackson.module', name: 'jackson-module-scala_2.12', version: '2.11.0'
@@ -199,7 +197,6 @@ project(':spark') {
         compile "org.json4s:json4s-jackson_2.12:_"
         compile "org.apache.commons:commons-lang3:_"*/
 
-        implementation("redis.clients:jedis:_")
         implementation 'io.kubernetes:client-java:_'
 
         testImplementation("${gorArtifactGroupId}:gor-test:${gorVersion}") {

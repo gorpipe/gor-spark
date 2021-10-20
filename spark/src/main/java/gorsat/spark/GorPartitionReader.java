@@ -15,12 +15,7 @@ import org.apache.spark.sql.types.StructType;
 import org.gorpipe.gor.model.GenomicIterator;
 import org.gorpipe.gor.model.RowBase;
 import org.gorpipe.model.gor.RowObj;
-import org.gorpipe.model.gor.iterators.RowSource;
-import org.gorpipe.spark.GorSparkSession;
-import org.gorpipe.spark.SparkGorMonitor;
-import org.gorpipe.spark.SparkGorRow;
-import org.gorpipe.spark.SparkSessionFactory;
-import org.gorpipe.spark.platform.JobField;
+import org.gorpipe.spark.*;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -102,14 +97,10 @@ public class GorPartitionReader implements PartitionReader<InternalRow> {
     }
 
     void initIterator() {
-        sparkGorMonitor = new SparkGorMonitor(redisUri,jobId) {
-            @Override
-            public boolean isCancelled() {
-                return sparkGorMonitor.getValue(JobField.CancelFlag) != null;
-            }
-        };
+        sparkGorMonitor = SparkGorMonitor.monitorFactory.createSparkGorMonitor(jobId);
 
-        SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectRoot, cacheDir, configFile, aliasFile, securityContext, sparkGorMonitor);
+        var generalQueryHandler = new GeneralSparkQueryHandler();
+        SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectRoot, cacheDir, configFile, aliasFile, securityContext, sparkGorMonitor, generalQueryHandler);
         GorSparkSession gorPipeSession = (GorSparkSession) sessionFactory.create();
         SparkPipeInstance pi = new SparkPipeInstance(gorPipeSession.getGorContext());
 

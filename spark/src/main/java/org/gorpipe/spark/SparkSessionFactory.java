@@ -34,10 +34,6 @@ public class SparkSessionFactory extends GorSessionFactory {
     private String securityContext;
     private int workers;
 
-    public SparkSessionFactory(String root, String cacheDir, String configFile, String aliasFile, String securityContext, SparkGorMonitor sparkMonitor) {
-       this(GorSparkUtilities.getSparkSession(), root, cacheDir, configFile, aliasFile, securityContext, sparkMonitor);
-    }
-
     public SparkSessionFactory(SparkSession sparkSession, String root, String cacheDir, String configFile, String aliasFile, String securityContext, GorMonitor sparkMonitor, int workers) {
         this.root = root;
         this.cacheDir = cacheDir;
@@ -58,10 +54,6 @@ public class SparkSessionFactory extends GorSessionFactory {
         this.securityContext = securityContext;
     }
 
-    public SparkSessionFactory(SparkSession sparkSession, String root, String cacheDir, String configFile, String aliasFile, String securityContext, GorMonitor sparkMonitor) {
-        this(sparkSession, root, cacheDir, configFile, aliasFile, securityContext, sparkMonitor, 0);
-    }
-
     public SparkSessionFactory(SparkSession sparkSession, String root, String cacheDir, String configFile, String aliasFile, String securityContext, GorMonitor sparkMonitor, GorParallelQueryHandler queryHandler) {
         this(sparkSession, root, cacheDir, configFile, aliasFile, securityContext, sparkMonitor, 0);
         this.queryHandler = queryHandler;
@@ -74,13 +66,13 @@ public class SparkSessionFactory extends GorSessionFactory {
         session.setSparkSession(sparkSession);
         String sparkRedisUri = null;
         if(sparkGorMonitor instanceof SparkGorMonitor) {
-            sparkRedisUri = ((SparkGorMonitor)sparkGorMonitor).getRedisUri();
+            //sparkRedisUri = ((SparkGorMonitor)sparkGorMonitor).getRedisUri();
             session.redisUri_$eq(sparkRedisUri);
         }
 
         Path cachePath = Paths.get(cacheDir);
 
-        GorParallelQueryHandler sparkQueryHandler = queryHandler != null ? queryHandler : new GeneralSparkQueryHandler(null, sparkRedisUri);
+        GorParallelQueryHandler sparkQueryHandler = queryHandler;
         ProjectContext.Builder projectContextBuilder = new ProjectContext.Builder();
         if(configFile.isPresent()) projectContextBuilder = projectContextBuilder.setConfigFile(configFile.get());
         if(aliasFile.isPresent()) projectContextBuilder = projectContextBuilder.setAliasFile(aliasFile.get());

@@ -2,15 +2,13 @@ package org.gorpipe.spark.redis;
 
 import org.apache.spark.SparkConf;
 import org.apache.spark.SparkContext;
-import org.apache.spark.sql.*;
 import org.apache.spark.sql.streaming.StreamingQuery;
-import org.apache.spark.sql.types.*;
 import org.gorpipe.spark.GorSparkSession;
 import org.gorpipe.spark.GorSparkUtilities;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.*;
+import java.util.concurrent.Callable;
 
 public class GorSparkRedisRunner implements Callable<String>, AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(GorSparkRedisRunner.class);

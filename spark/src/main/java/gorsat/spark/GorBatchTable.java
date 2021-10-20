@@ -12,6 +12,7 @@ import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.StructField;
 import org.gorpipe.gor.reference.ReferenceBuildDefaults;
+import org.gorpipe.spark.GeneralSparkQueryHandler;
 import org.gorpipe.spark.GorSparkSession;
 import org.apache.spark.sql.connector.catalog.SupportsRead;
 import org.apache.spark.sql.connector.catalog.SupportsWrite;
@@ -157,7 +158,8 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
 
     void inferSchema() {
         schema = Encoders.STRING().schema();
-        SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectRoot, cacheDir, configFile, aliasFile, securityContext,null);
+        var generalQueryHandler = new GeneralSparkQueryHandler();
+        SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectRoot, cacheDir, configFile, aliasFile, securityContext,null,generalQueryHandler);
         GorSparkSession gorPipeSession = (GorSparkSession) sessionFactory.create();
         if(path!=null) {
             String endingLowercase = path.substring(path.lastIndexOf(".")).toLowerCase();

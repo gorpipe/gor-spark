@@ -1,5 +1,13 @@
 package org.gorpipe.spark;
 
+import gorsat.Commands.CommandParseUtilities;
+import gorsat.process.PipeOptions;
+import gorsat.process.SparkPipeInstance;
+import org.apache.spark.sql.SparkSession;
+import org.gorpipe.gor.model.GorParallelQueryHandler;
+import org.gorpipe.gor.monitor.GorMonitor;
+import org.gorpipe.gor.session.GorRunner;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -11,54 +19,23 @@ import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import gorsat.DynIterator;
-import gorsat.process.GenericRunnerFactory;
-import gorsat.process.SparkPipeInstance;
-import org.gorpipe.gor.clients.LocalFileCacheClient;
-import org.gorpipe.gor.model.GorParallelQueryHandler;
-import gorsat.Commands.CommandParseUtilities;
-import gorsat.process.PipeInstance;
-import gorsat.process.PipeOptions;
-import org.apache.spark.sql.SparkSession;
-import org.gorpipe.gor.monitor.GorMonitor;
-import org.gorpipe.gor.session.GorRunner;
-import org.gorpipe.gor.session.GorSessionCache;
-import org.gorpipe.gor.session.ProjectContext;
-import org.gorpipe.gor.session.SystemContext;
-import org.gorpipe.spark.platform.*;
-import redis.clients.jedis.JedisPool;
-
 public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
     GorSparkSession gpSession;
 
-    GorClusterBase cluster;
     boolean force = false;
     public static final String queue = "GOR_CLUSTER";
 
     String requestID;
-    String sparkRedisUri;
-    private JedisPool jedisPool;
 
-    public GeneralSparkQueryHandler(GorSparkSession gorPipeSession, String sparkRedisUri) {
-        this.sparkRedisUri = sparkRedisUri;
+    public GeneralSparkQueryHandler(GorSparkSession gorPipeSession) {
         if (gorPipeSession != null) init(gorPipeSession);
     }
 
-    public void setCluster(GorClusterBase cluster) {
-        this.cluster = cluster;
-    }
+    public GeneralSparkQueryHandler() {}
 
     public void init(GorSparkSession gorPipeSession) {
         this.gpSession = gorPipeSession;
         this.requestID = gorPipeSession.getRequestId();
-
-        if (sparkRedisUri != null && sparkRedisUri.length() > 0) {
-            jedisPool = SharedRedisPools.getJedisPool(JedisURIHelper.create(sparkRedisUri));
-
-            if (cluster == null) {
-                cluster = new GeneralSparkCluster(sparkRedisUri);
-            }
-        }
     }
 
     private static boolean isSparkQuery(String lastQuery) {
@@ -68,7 +45,6 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
 
     public static String[] executeSparkBatch(GorSparkSession session, String projectDir, String cacheDir, String[] fingerprints, String[] commandsToExecute, String[] jobIds, String[] cacheFiles) {
         SparkSession sparkSession = session.getSparkSession();
-        String redisUri = session.getRedisUri();
 
         final Set<Integer> sparkJobs = new TreeSet<>();
         final Set<Integer> gorJobs = new TreeSet<>();
@@ -149,7 +125,7 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
                 newCacheFiles[k] = cacheFiles[i];
                 k++;
             }
-            GorQueryRDD queryRDD = new GorQueryRDD(sparkSession, newCommands, newFingerprints, newCacheFiles, projectDir, cacheDir, session.getProjectContext().getGorConfigFile(), session.getProjectContext().getGorAliasFile(), newJobIds, null, redisUri);
+            GorQueryRDD queryRDD = new GorQueryRDD(sparkSession, newCommands, newFingerprints, newCacheFiles, projectDir, cacheDir, session.getProjectContext().getGorConfigFile(), session.getProjectContext().getGorAliasFile(), newJobIds, null);
             return (String[]) queryRDD.collect();
         };
 
@@ -199,12 +175,6 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
             cacheFileList.add(cachePath);
         });
         String[] jobIds = Arrays.copyOf(fingerprints, fingerprints.length);
-
-        if (jedisPool != null) {
-            GorLogSubscription subscription = new RedisLogSubscription(cluster, new GorMonitorGorLogForwarder(mon), jobIds);
-            subscription.start();
-        }
-
         String[] res = executeSparkBatch(gpSession, projectDir, cacheDir, fingerprints, commandsToExecute, jobIds, cacheFileList.toArray(new String[0]));
         return Arrays.stream(res).map(s -> s.split("\t")[2]).toArray(String[]::new);
     }

@@ -16,10 +16,11 @@ import org.gorpipe.gor.session.GorContext;
 import org.gorpipe.gor.session.GorSessionCache;
 import org.gorpipe.gor.session.ProjectContext;
 import org.gorpipe.gor.session.SystemContext;
-import org.gorpipe.spark.*;
+import org.gorpipe.spark.GeneralSparkQueryHandler;
+import org.gorpipe.spark.GorQueryRDD;
+import org.gorpipe.spark.GorSparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import py4j.Base64;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -188,7 +189,7 @@ public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long>, Au
                 String fingerprint = map.get("fingerprint");
                 String projectRoot = map.get("projectRoot");
                 String requestId = map.get("request-id");
-                String gorquery = new String(Base64.decode(gorquerybase));
+                String gorquery = new String(Base64.getDecoder().decode(gorquerybase));
                 String cachefile = "result_cache/" + fingerprint + CommandParseUtilities.getExtensionForQuery(gorquery, false);
                 if (map.containsKey("outfile")) {
                     String tmpcacheFile = map.get("outfile");

@@ -22,7 +22,6 @@ import org.gorpipe.gor.driver.DataSource;
 import org.gorpipe.gor.model.DriverBackedFileReader;
 import org.gorpipe.gor.monitor.GorMonitor;
 import org.gorpipe.gor.util.Util;
-import org.gorpipe.spark.redis.RedisBatchConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,8 +53,6 @@ public class SparkOperatorRunner {
     boolean hostMount = false;
     SparkSession sparkSession;
     String securityContext;
-
-    private static final boolean debug = false;
 
     public SparkOperatorRunner(GorSparkSession gorSparkSession) throws IOException {
         client = Config.defaultClient();
@@ -263,12 +260,12 @@ public class SparkOperatorRunner {
         }
 
         String yaml = getSparkOperatorYaml(projectDir.toString());
-        if(debug) {
-            runLocal(sparkSession, args);
-        } else {
-            runYaml(yaml, projectDir.toString(), sparkOperatorSpecs);
-            waitForSparkApplicationToComplete(gm, sparkApplicationName);
-        }
+        runJob(sparkSession, yaml, projectDir.toString(), sparkOperatorSpecs, gm, sparkApplicationName, args);
+    }
+
+    public void runJob(SparkSession sparkSession, String yaml, String projectDir, SparkOperatorSpecs sparkOperatorSpecs, GorMonitor gm, String sparkApplicationName, String[] args) throws InterruptedException, ApiException, IOException {
+        runYaml(yaml, projectDir, sparkOperatorSpecs);
+        waitForSparkApplicationToComplete(gm, sparkApplicationName);
     }
 
     public Path run(String uristr, String requestId, String projectDir, GorMonitor gm, String[] commands, String[] resourceSplit, String cachefile) throws IOException, ApiException, InterruptedException {
@@ -306,31 +303,6 @@ public class SparkOperatorRunner {
             runSparkOperator(gm, sparkApplicationName, projectPath, args, resources);
         }
         return cachefilepath;
-    }
-
-    /**
-     * Keep this for debuging purposes, no kubernetes needed
-     * @param sparkSession
-     * @param args
-     */
-    private void runLocal(SparkSession sparkSession, String[] args) {
-        String redisUrl = args[0];
-        String requestId = args[1];
-        String projectDir = args[2];
-        String queries = args[3];
-        String fingerprints = args[4];
-        String cachefiles = args[5];
-        String jobids = args[6];
-        try(RedisBatchConsumer redisBatchConsumer = new RedisBatchConsumer(sparkSession, redisUrl)) {
-            String[] arr = new String[]{queries, fingerprints, projectDir, requestId, jobids, cachefiles};
-            List<String[]> lstr = Collections.singletonList(arr);
-            Map<String, Future<List<String>>> futMap = redisBatchConsumer.runJobBatch(lstr);
-            for(Future<List<String>> f : futMap.values()) {
-                f.get();
-            }
-        } catch (InterruptedException | ExecutionException e) {
-            throw new GorSystemException(e);
-        }
     }
 
     public void runYaml(String yaml, String projectroot, SparkOperatorSpecs specs) throws IOException, ApiException {
