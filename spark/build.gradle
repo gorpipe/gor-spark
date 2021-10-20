@@ -10,7 +10,7 @@ plugins {
 project(':spark') {
     jib {
         from {
-            image = 'registry.gitlab.com/wuxi-nextcode/wxnc-gor/gor-spark/nextcode/ubuntubasepyspark:3.1.2'
+            image = 'registry.gitlab.com/wuxi-nextcode/wxnc-gor/gor-spark/nextcode/ubuntubasepyspark:3.2.0'
             if (project.hasProperty('REGISTRY_USER')) {
                 auth {
                     username = project.findProperty('REGISTRY_USER')
@@ -130,9 +130,9 @@ project(':spark') {
             exclude group: 'org.apache.thrift', module: 'libthrift'
         }
         implementation group: 'org.apache.thrift', name: 'libthrift', version: '0.14.1'
-        implementation group: 'io.delta', name: 'delta-core_2.12', version: '0.8.0'
+        implementation group: 'io.delta', name: 'delta-core_2.12', version: '1.0.0'
 
-        implementation group: 'com.redislabs', name: 'spark-redis_2.12', version: '2.6.0'
+        implementation 'com.redislabs:spark-redis_2.12:_'
 
         implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.11.0'
         implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.0'
