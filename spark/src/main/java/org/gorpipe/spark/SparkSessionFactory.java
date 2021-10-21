@@ -73,7 +73,8 @@ public class SparkSessionFactory extends GorSessionFactory {
     @Override
     public GorSession create() {
         GorSparkSession session;
-        if(sparkQueryHandler instanceof GeneralSparkQueryHandler generalSparkQueryHandler) {
+        if(sparkQueryHandler instanceof GeneralSparkQueryHandler) {
+            var generalSparkQueryHandler = (GeneralSparkQueryHandler)sparkQueryHandler;
             if(generalSparkQueryHandler.gpSession!=null) {
                 session = generalSparkQueryHandler.gpSession;
             } else {
