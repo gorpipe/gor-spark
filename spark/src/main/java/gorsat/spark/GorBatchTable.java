@@ -158,8 +158,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
 
     void inferSchema() {
         schema = Encoders.STRING().schema();
-        var generalQueryHandler = new GeneralSparkQueryHandler();
-        SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectRoot, cacheDir, configFile, aliasFile, securityContext,null,generalQueryHandler);
+        SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectRoot, cacheDir, configFile, aliasFile, securityContext,null);
         GorSparkSession gorPipeSession = (GorSparkSession) sessionFactory.create();
         if(path!=null) {
             String endingLowercase = path.substring(path.lastIndexOf(".")).toLowerCase();
