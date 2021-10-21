@@ -30,7 +30,7 @@ public class RedisSparkQueryHandler extends GeneralSparkQueryHandler {
         super.init(gorPipeSession);
         if (sparkRedisUri != null && sparkRedisUri.length() > 0) {
             jedisPool = SharedRedisPools.getJedisPool(JedisURIHelper.create(sparkRedisUri));
-
+            gorPipeSession.redisUri_$eq(sparkRedisUri);
             if (cluster == null) {
                 cluster = new GeneralSparkCluster(sparkRedisUri);
             }

@@ -30,7 +30,7 @@ public class SparkSessionFactory extends GorSessionFactory {
     private Optional<String> aliasFile;
     private SparkSession sparkSession;
     private GorMonitor sparkGorMonitor;
-    private GorParallelQueryHandler queryHandler;
+    private GorParallelQueryHandler sparkQueryHandler;
     private String securityContext;
     private int workers;
 
@@ -54,25 +54,37 @@ public class SparkSessionFactory extends GorSessionFactory {
         this.securityContext = securityContext;
     }
 
+    public SparkSessionFactory(SparkSession sparkSession, String root, String cacheDir, String configFile, String aliasFile, String securityContext, GorMonitor sparkMonitor) {
+        this(sparkSession, root, cacheDir, configFile, aliasFile, securityContext, sparkMonitor, new GeneralSparkQueryHandler());
+    }
+
     public SparkSessionFactory(SparkSession sparkSession, String root, String cacheDir, String configFile, String aliasFile, String securityContext, GorMonitor sparkMonitor, GorParallelQueryHandler queryHandler) {
         this(sparkSession, root, cacheDir, configFile, aliasFile, securityContext, sparkMonitor, 0);
-        this.queryHandler = queryHandler;
+        this.sparkQueryHandler = queryHandler;
+    }
+
+    public GorSparkSession generateSession() {
+        String requestId = UUID.randomUUID().toString();
+        GorSparkSession session = new GorSparkSession(requestId, workers);
+        session.setSparkSession(sparkSession);
+        return session;
     }
 
     @Override
     public GorSession create() {
-        String requestId = UUID.randomUUID().toString();
-        GorSparkSession session = new GorSparkSession(requestId, workers);
-        session.setSparkSession(sparkSession);
-        String sparkRedisUri = null;
-        if(sparkGorMonitor instanceof SparkGorMonitor) {
-            //sparkRedisUri = ((SparkGorMonitor)sparkGorMonitor).getRedisUri();
-            session.redisUri_$eq(sparkRedisUri);
+        GorSparkSession session;
+        if(sparkQueryHandler instanceof GeneralSparkQueryHandler generalSparkQueryHandler) {
+            if(generalSparkQueryHandler.gpSession!=null) {
+                session = generalSparkQueryHandler.gpSession;
+            } else {
+                session = generateSession();
+                generalSparkQueryHandler.init(session);
+            }
+        } else {
+            session = generateSession();
         }
-
         Path cachePath = Paths.get(cacheDir);
 
-        GorParallelQueryHandler sparkQueryHandler = queryHandler;
         ProjectContext.Builder projectContextBuilder = new ProjectContext.Builder();
         if(configFile.isPresent()) projectContextBuilder = projectContextBuilder.setConfigFile(configFile.get());
         if(aliasFile.isPresent()) projectContextBuilder = projectContextBuilder.setAliasFile(aliasFile.get());
@@ -92,7 +104,7 @@ public class SparkSessionFactory extends GorSessionFactory {
                 .setMonitor(sparkGorMonitor)
                 .setStartTime(System.currentTimeMillis());
 
-        GorSessionCache cache = GorSessionCacheManager.getCache(requestId);
+        GorSessionCache cache = GorSessionCacheManager.getCache(session.getRequestId());
 
         session.init(projectContextBuilder.build(),
                 systemContextBuilder.build(),
