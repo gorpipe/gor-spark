@@ -16,10 +16,11 @@ import org.gorpipe.gor.session.GorContext;
 import org.gorpipe.gor.session.GorSessionCache;
 import org.gorpipe.gor.session.ProjectContext;
 import org.gorpipe.gor.session.SystemContext;
-import org.gorpipe.spark.*;
+import org.gorpipe.spark.GorQueryRDD;
+import org.gorpipe.spark.GorSparkSession;
+import org.gorpipe.spark.RedisSparkQueryHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import py4j.Base64;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -89,7 +90,7 @@ public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long>, Au
         }
         String configFile = gss.getProjectContext() != null ? gss.getProjectContext().getGorConfigFile() : null;
         String aliasFile = gss.getProjectContext() != null ? gss.getProjectContext().getGorAliasFile() : null;
-        GorQueryRDD gorQueryRDD = new GorQueryRDD(gss.sparkSession(), newCommands, newFingerprints, newCacheFiles, projectDirStr, "result_cache", configFile, aliasFile, newJobIds, newSecCtxs, gss.redisUri());
+        GorQueryRDD gorQueryRDD = new GorQueryRDD(gss.sparkSession(), newCommands, newFingerprints, newCacheFiles, projectDirStr, "result_cache", configFile, aliasFile, newJobIds, newSecCtxs);
         return gorQueryRDD.toJavaRDD().collectAsync();
     }
 
@@ -104,7 +105,7 @@ public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long>, Au
         configFile = projectPath.resolve(configFile).toAbsolutePath().normalize().toString();
         aliasFile = projectPath.resolve(aliasFile).toAbsolutePath().normalize().toString();
 
-        GeneralSparkQueryHandler queryHandler = new GeneralSparkQueryHandler(gss, gss.redisUri());
+        RedisSparkQueryHandler queryHandler = new RedisSparkQueryHandler(gss, gss.redisUri());
 
         ProjectContext.Builder projectContextBuilder = new ProjectContext.Builder();
         ProjectContext prjctx = projectContextBuilder
@@ -188,7 +189,7 @@ public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long>, Au
                 String fingerprint = map.get("fingerprint");
                 String projectRoot = map.get("projectRoot");
                 String requestId = map.get("request-id");
-                String gorquery = new String(Base64.decode(gorquerybase));
+                String gorquery = new String(Base64.getDecoder().decode(gorquerybase));
                 String cachefile = "result_cache/" + fingerprint + CommandParseUtilities.getExtensionForQuery(gorquery, false);
                 if (map.containsKey("outfile")) {
                     String tmpcacheFile = map.get("outfile");

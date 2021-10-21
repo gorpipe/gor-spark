@@ -12,6 +12,7 @@ import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.StructField;
 import org.gorpipe.gor.reference.ReferenceBuildDefaults;
+import org.gorpipe.spark.GeneralSparkQueryHandler;
 import org.gorpipe.spark.GorSparkSession;
 import org.apache.spark.sql.connector.catalog.SupportsRead;
 import org.apache.spark.sql.connector.catalog.SupportsWrite;

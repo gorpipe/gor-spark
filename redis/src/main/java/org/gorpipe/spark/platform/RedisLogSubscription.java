@@ -1,6 +1,5 @@
 package org.gorpipe.spark.platform;
 
-import org.gorpipe.exceptions.GorSystemException;
 import org.slf4j.MDC;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPubSub;

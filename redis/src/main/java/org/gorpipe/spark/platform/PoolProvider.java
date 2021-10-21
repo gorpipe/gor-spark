@@ -1,6 +1,7 @@
 package org.gorpipe.spark.platform;
 
 import redis.clients.jedis.JedisPool;
+
 import java.net.URI;
 
 public interface PoolProvider {
