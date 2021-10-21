@@ -50,7 +50,7 @@ public class GorSpark implements MapPartitionsFunction<Row, Row> {
         gps.setNorContext(nor);
 
         if( uri != null ) {
-            GorMonitor gorMonitor = new SparkGorMonitor(uri, jobId);
+            GorMonitor gorMonitor = SparkGorMonitor.monitorFactory.createSparkGorMonitor(jobId);
             gps.getSystemContext().setMonitor(gorMonitor);
         }
 

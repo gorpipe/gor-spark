@@ -58,4 +58,9 @@ public class GorOutputWriter extends OutputWriter {
             w.close();
         } catch (IOException ignored) {}*/
     }
+
+    @Override
+    public String path() {
+        return originalPath;
+    }
 }

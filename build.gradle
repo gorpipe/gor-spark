@@ -57,7 +57,6 @@ apply plugin: "com.gitlab.stfs.gradle.dependency-graph-plugin"
 ext {
     // Get the git SHA to use in manifests. Do this on top level to avoid executing many times in subprojects.
     gitSHA = grgit.head().id
-    sparkVersion = '3.2.0'
 }
 
 gradleLint {
