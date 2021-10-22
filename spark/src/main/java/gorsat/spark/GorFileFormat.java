@@ -16,7 +16,6 @@ import org.apache.spark.sql.execution.datasources.OutputWriter;
 import org.apache.spark.sql.execution.datasources.OutputWriterFactory;
 import org.apache.spark.sql.execution.datasources.PartitionedFile;
 import org.apache.spark.sql.execution.datasources.csv.CSVFileFormat;
-import org.apache.spark.sql.internal.SQLConf;
 import org.apache.spark.sql.sources.Filter;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.StructType;
@@ -34,7 +33,7 @@ import java.util.zip.DataFormatException;
 
 public class GorFileFormat extends CSVFileFormat implements Serializable {
     @Override
-    public Option<StructType> inferSchema(SparkSession session, Map<String, String> options, Seq<FileStatus> files) {
+    public Option<StructType> inferSchema(SparkSession session, Map<String, String> options, scala.collection.immutable.Seq<FileStatus> files) {
         String pathstr = options.get("path").get();
         Option<String> osec = options.get("securityContext");
         String securityContext = osec.isDefined() ? osec.get() : "";
@@ -89,22 +88,7 @@ public class GorFileFormat extends CSVFileFormat implements Serializable {
     }
 
     @Override
-    public boolean supportBatch(SparkSession sparkSession, StructType dataSchema) {
-        return super.supportBatch(sparkSession, dataSchema);
-    }
-
-    @Override
-    public Option<Seq<String>> vectorTypes(StructType requiredSchema, StructType partitionSchema, SQLConf sqlConf) {
-        return super.vectorTypes(requiredSchema, partitionSchema, sqlConf);
-    }
-
-    @Override
-    public boolean isSplitable(SparkSession sparkSession, Map<String, String> options, Path path) {
-        return super.isSplitable(sparkSession, options, path);
-    }
-
-    @Override
-    public Function1<PartitionedFile, Iterator<InternalRow>> buildReader(SparkSession sparkSession, StructType dataSchema, StructType partitionSchema, StructType requiredSchema, Seq<Filter> filters, Map<String, String> options, Configuration hadoopConf) {
+    public Function1<PartitionedFile, Iterator<InternalRow>> buildReader(SparkSession sparkSession, StructType dataSchema, StructType partitionSchema, StructType requiredSchema, scala.collection.immutable.Seq<Filter> filters, Map<String, String> options, Configuration hadoopConf) {
         Function1<PartitionedFile, Iterator<InternalRow>> func;
 
         String pathstr = options.get("path").get();
@@ -125,11 +109,6 @@ public class GorFileFormat extends CSVFileFormat implements Serializable {
             }
         }
         return func;
-    }
-
-    @Override
-    public Function1<PartitionedFile, Iterator<InternalRow>> buildReaderWithPartitionValues(SparkSession sparkSession, StructType dataSchema, StructType partitionSchema, StructType requiredSchema, Seq<Filter> filters, Map<String, String> options, Configuration hadoopConf) {
-        return super.buildReaderWithPartitionValues(sparkSession, dataSchema, partitionSchema, requiredSchema, filters, options, hadoopConf);
     }
 
     @Override

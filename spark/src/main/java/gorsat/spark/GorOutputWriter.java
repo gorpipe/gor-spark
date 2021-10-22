@@ -11,8 +11,8 @@ import org.apache.spark.sql.execution.datasources.OutputWriter;
 import org.apache.spark.sql.types.StructType;
 import org.gorpipe.gor.binsearch.GorIndexType;
 import org.gorpipe.spark.GorSparkRow;
-import scala.collection.JavaConverters;
-import scala.collection.Seq;
+import scala.collection.immutable.Seq;
+import scala.jdk.javaapi.CollectionConverters;
 
 import java.io.IOException;
 import java.net.URI;
@@ -28,8 +28,8 @@ public class GorOutputWriter extends OutputWriter {
 
     public GorOutputWriter(String uristr, StructType schema, String originalPath) throws IOException {
         this.originalPath = originalPath;
-        List<Attribute> lattr = JavaConverters.asJavaCollection(schema.toAttributes()).stream().map(Attribute::toAttribute).collect(Collectors.toList());
-        Seq sattr = JavaConverters.asScalaBuffer(lattr).toSeq();
+        List<Attribute> lattr = CollectionConverters.asJava(schema.toAttributes()).stream().map(Attribute::toAttribute).collect(Collectors.toList());
+        Seq<Attribute> sattr = CollectionConverters.asScala(lattr).toSeq();
         ExpressionEncoder<Row> encoder = RowEncoder.apply(schema).resolveAndBind(sattr, SimpleAnalyzer$.MODULE$);
         deserializer = encoder.createDeserializer();
         String header = String.join("\t", schema.fieldNames());
