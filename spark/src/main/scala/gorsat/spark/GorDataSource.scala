@@ -10,7 +10,6 @@ import org.apache.spark.sql.sources.SchemaRelationProvider
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 
-import scala.collection.Seq
 import scala.collection.immutable.Map
 import java.io.IOException
 import java.util.zip.DataFormatException

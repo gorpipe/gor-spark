@@ -26,8 +26,8 @@ import org.gorpipe.model.gor.RowObj;
 import org.gorpipe.spark.SparkGorRow;
 import scala.Function1;
 import scala.collection.Iterator;
-import scala.collection.JavaConverters;
-import scala.collection.Seq;
+import scala.collection.immutable.Seq;
+import scala.jdk.javaapi.CollectionConverters;
 
 class GorzFunction implements Function1<PartitionedFile, Iterator<InternalRow>>, Serializable {
     Function1<PartitionedFile, Iterator<InternalRow>> func;
@@ -43,8 +43,8 @@ class GorzFunction implements Function1<PartitionedFile, Iterator<InternalRow>>,
         this.func = func;
         this.unzipped = new byte[1<<17];
 
-        List<Attribute> lattr = JavaConverters.asJavaCollection(schema.toAttributes()).stream().map(Attribute::toAttribute).collect(Collectors.toList());
-        Seq sattr = JavaConverters.asScalaBuffer(lattr).toSeq();
+        List<Attribute> lattr = CollectionConverters.asJava(schema.toAttributes()).stream().map(Attribute::toAttribute).collect(Collectors.toList());
+        Seq<Attribute> sattr = CollectionConverters.asScala(lattr).toSeq();
 
         this.encoder = RowEncoder.apply(schema).resolveAndBind(sattr, SimpleAnalyzer$.MODULE$);
         this.serializer = encoder.createSerializer();
@@ -57,7 +57,7 @@ class GorzFunction implements Function1<PartitionedFile, Iterator<InternalRow>>,
     @Override
     public Iterator<InternalRow> apply(PartitionedFile v1) {
         Iterator<InternalRow> it = func.apply(v1);
-        Stream<String> stream = StreamSupport.stream(Spliterators.spliteratorUnknownSize(JavaConverters.asJavaIterator(it), Spliterator.ORDERED), false).map(ir -> ir.getString(0));
+        Stream<String> stream = StreamSupport.stream(Spliterators.spliteratorUnknownSize(CollectionConverters.asJava(it), Spliterator.ORDERED), false).map(ir -> ir.getString(0));
 
         // Do not remove, reinsert when start building with jdk 11+
         /*stream = chrom != null ? stream.dropWhile(f -> {
@@ -110,7 +110,7 @@ class GorzFunction implements Function1<PartitionedFile, Iterator<InternalRow>>,
 
         Stream<InternalRow> istream = stream.map(RowObj::apply).map(r -> new SparkGorRow(r, encoder.schema())).map(r -> serializer.apply(r).copy());
         java.util.Iterator<InternalRow> iterator = istream.iterator();
-        return JavaConverters.asScalaIterator(iterator);
+        return CollectionConverters.asScala(iterator);
     }
 
     @Override
