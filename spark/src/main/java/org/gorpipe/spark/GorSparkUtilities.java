@@ -150,8 +150,8 @@ public class GorSparkUtilities {
         spark.udf().register("todoublematrix", new CommaToDoubleMatrix(), SQLDataTypes.MatrixType());
         spark.udf().register("tointarray", new CommaToIntArray(), DataTypes.createArrayType(DataTypes.IntegerType));
 
-        GlowBase gb = new GlowBase();
-        gb.register(spark, false);
+        //GlowBase gb = new GlowBase();
+        //gb.register(spark, false);
 
         return spark;
     }

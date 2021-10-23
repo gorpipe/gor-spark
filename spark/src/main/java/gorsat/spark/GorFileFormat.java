@@ -22,9 +22,9 @@ import org.apache.spark.sql.types.StructType;
 import scala.Function1;
 import scala.Option;
 import scala.collection.Iterator;
-import scala.collection.JavaConverters;
-import scala.collection.Seq;
 import scala.collection.immutable.Map;
+import scala.collection.immutable.Seq;
+import scala.jdk.CollectionConverters;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -33,7 +33,7 @@ import java.util.zip.DataFormatException;
 
 public class GorFileFormat extends CSVFileFormat implements Serializable {
     @Override
-    public Option<StructType> inferSchema(SparkSession session, Map<String, String> options, scala.collection.immutable.Seq<FileStatus> files) {
+    public Option<StructType> inferSchema(SparkSession session, Map<String, String> options, Seq<FileStatus> files) {
         String pathstr = options.get("path").get();
         Option<String> osec = options.get("securityContext");
         String securityContext = osec.isDefined() ? osec.get() : "";
@@ -88,7 +88,7 @@ public class GorFileFormat extends CSVFileFormat implements Serializable {
     }
 
     @Override
-    public Function1<PartitionedFile, Iterator<InternalRow>> buildReader(SparkSession sparkSession, StructType dataSchema, StructType partitionSchema, StructType requiredSchema, scala.collection.immutable.Seq<Filter> filters, Map<String, String> options, Configuration hadoopConf) {
+    public Function1<PartitionedFile, Iterator<InternalRow>> buildReader(SparkSession sparkSession, StructType dataSchema, StructType partitionSchema, StructType requiredSchema, Seq<Filter> filters, Map<String, String> options, Configuration hadoopConf) {
         Function1<PartitionedFile, Iterator<InternalRow>> func;
 
         String pathstr = options.get("path").get();
@@ -105,7 +105,7 @@ public class GorFileFormat extends CSVFileFormat implements Serializable {
                 //var lgattr = JavaConverters.asJavaCollection(requiredSchema.toAttributes()).stream().map(Attribute::toAttribute).collect(Collectors.toList());
                 //var sgattr = JavaConverters.asScalaBuffer(lgattr).toSeq();
                 //ExpressionEncoder gorzencoder = SparkGOR.gorzencoder().resolveAndBind(sgattr, SimpleAnalyzer$.MODULE$);
-                return new GorzFunction(func, requiredSchema, JavaConverters.asJavaCollection(filters));
+                return new GorzFunction(func, requiredSchema, CollectionConverters.<Filter>SeqHasAsJava(filters).asJava());
             }
         }
         return func;

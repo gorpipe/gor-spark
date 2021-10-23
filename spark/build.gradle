@@ -80,7 +80,19 @@ project(':spark') {
         annotationProcessor 'com.google.auto.service:auto-service:_'
         implementation 'com.google.auto.service:auto-service:_'
 
-        implementation ("org.apache.spark:spark-core_${sparkScalaVersion}:_") {
+        implementation "org.scala-lang.modules:scala-collection-compat_${scalaVersion}:2.5.0"
+
+        implementation ("org.apache.spark:spark-core_${scalaVersion}:_") {
+            exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
+            exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
+            exclude group: 'com.fasterxml.jackson.module', module: 'jackson-module-scala'
+            exclude group: 'org.apache.hadoop', module: 'hadoop-client'
+            exclude group: 'org.apache.hadoop', module: 'hadoop-common'
+            exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
+            exclude group: 'org.apache.avro', module: 'avro'
+            exclude group: 'org.apache.avro', module: 'avro-mapred'
+        }
+        implementation ("org.apache.spark:spark-avro_${scalaVersion}:_") {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'com.fasterxml.jackson.module', module: 'jackson-module-scala'
@@ -88,7 +100,7 @@ project(':spark') {
             exclude group: 'org.apache.hadoop', module: 'hadoop-common'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
-        implementation ("org.apache.spark:spark-sql_${sparkScalaVersion}:_") {
+        implementation ("org.apache.spark:spark-sql_${scalaVersion}:_") {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'com.fasterxml.jackson.module', module: 'jackson-module-scala'
@@ -96,7 +108,7 @@ project(':spark') {
             exclude group: 'org.apache.hadoop', module: 'hadoop-common'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
-        implementation ("org.apache.spark:spark-mllib_${sparkScalaVersion}:_") {
+        implementation ("org.apache.spark:spark-mllib_${scalaVersion}:_") {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'com.fasterxml.jackson.module', module: 'jackson-module-scala'
@@ -105,7 +117,7 @@ project(':spark') {
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
             exclude group: 'net.sourceforge.f2j', module: 'arpack_combined_all'
         }
-        implementation ("org.apache.spark:spark-tags_${sparkScalaVersion}:_") {
+        implementation ("org.apache.spark:spark-tags_${scalaVersion}:_") {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'com.fasterxml.jackson.module', module: 'jackson-module-scala'
@@ -113,73 +125,59 @@ project(':spark') {
             exclude group: 'org.apache.hadoop', module: 'hadoop-common'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
-        implementation ("org.apache.spark:spark-kubernetes_${sparkScalaVersion}:_") {
+        implementation ("org.apache.spark:spark-kubernetes_${scalaVersion}:_") {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'com.fasterxml.jackson.module', module: 'jackson-module-scala'
-            exclude group: 'org.apache.spark', module: 'spark-tags_${sparkScalaVersion}'
+            exclude group: 'org.apache.spark', module: 'spark-tags_${scalaVersion}'
             exclude group: 'org.apache.hadoop', module: 'hadoop-client'
             exclude group: 'org.apache.hadoop', module: 'hadoop-common'
         }
-        implementation ("org.apache.spark:spark-hive_${sparkScalaVersion}:${sparkVersion}") {
+        implementation ("org.apache.spark:spark-hive_${scalaVersion}:_") {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'com.fasterxml.jackson.module', module: 'jackson-module-scala'
-            exclude group: 'org.apache.spark', module: 'spark-tags_${sparkScalaVersion}'
+            exclude group: 'org.apache.spark', module: 'spark-tags_${scalaVersion}'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
             exclude group: 'org.apache.hadoop', module: 'hadoop-client'
             exclude group: 'org.apache.hadoop', module: 'hadoop-common'
             exclude group: 'org.pentaho', module: 'pentaho-aggdesigner-algorithm'
+            exclude group: 'org.apache.avro', module: 'avro'
+            exclude group: 'org.apache.avro', module: 'avro-mapred'
+            exclude group: 'com.google.guava', module: 'guava'
+            exclude group: 'org.apache.thrift', module: 'libthrift'
         }
-        implementation ("org.apache.spark:spark-hive-thriftserver_${sparkScalaVersion}:${sparkVersion}") {
+        implementation ("org.apache.spark:spark-hive-thriftserver_${scalaVersion}:_") {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'com.fasterxml.jackson.module', module: 'jackson-module-scala'
-            exclude group: 'org.apache.spark', module: 'spark-tags_${sparkScalaVersion}'
+            exclude group: 'org.apache.spark', module: 'spark-tags_${scalaVersion}'
             exclude group: 'org.apache.hadoop', module: 'hadoop-client'
             exclude group: 'org.apache.hadoop', module: 'hadoop-common'
             exclude group: 'org.pentaho', module: 'pentaho-aggdesigner-algorithm'
-        }
-        implementation ("org.apache.spark:spark-catalyst_${sparkScalaVersion}:_") {
-            exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
-            exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
-            exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
-            exclude group: 'com.fasterxml.jackson.module', module: 'jackson-module-scala'
-            exclude group: 'org.apache.hadoop', module: 'hadoop-client'
-            exclude group: 'org.apache.hadoop', module: 'hadoop-common'
-        }
-        implementation ("org.apache.spark:spark-repl_${sparkScalaVersion}:_") {
-            exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
-            exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
-            exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
-        }
-        implementation ("org.apache.spark:spark-hive_${sparkScalaVersion}:_") {
-            exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
-            exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
             exclude group: 'com.google.guava', module: 'guava'
             exclude group: 'org.apache.thrift', module: 'libthrift'
         }
-        implementation ("org.apache.spark:spark-hive-thriftserver_${sparkScalaVersion}:_") {
+        implementation ("org.apache.spark:spark-catalyst_${scalaVersion}:_") {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
+            exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
             exclude group: 'com.fasterxml.jackson.module', module: 'jackson-module-scala'
             exclude group: 'org.apache.hadoop', module: 'hadoop-client'
             exclude group: 'org.apache.hadoop', module: 'hadoop-common'
-            exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
-            exclude group: 'com.google.guava', module: 'guava'
-            exclude group: 'org.apache.thrift', module: 'libthrift'
         }
-        implementation group: 'org.apache.thrift', name: 'libthrift', version: '0.14.1'
+        implementation ("org.apache.spark:spark-repl_${scalaVersion}:_") {
+            exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
+            exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
+            exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
+        }
+        implementation group: 'org.apache.thrift', name: 'libthrift', version: '0.15.0'
         //implementation group: 'io.delta', name: 'delta-core_2.12', version: '1.0.0'
 
         implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.11.0'
         implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.0'
-        if(sparkScalaVersion=='2.12') {
-            implementation group: 'com.fasterxml.jackson.module', name: 'jackson-module-scala_2.12', version: '2.11.0'
-        } else {
-            implementation group: 'com.fasterxml.jackson.module', name: 'jackson-module-scala_2.13', version: '2.11.0'
-        }
+        implementation "com.fasterxml.jackson.module:jackson-module-scala_${scalaVersion}:2.11.0"
 
         /*compile('org.broadinstitute:gatk:_') {
             exclude group: 'com.esotericsoftware'

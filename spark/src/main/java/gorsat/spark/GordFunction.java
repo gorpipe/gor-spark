@@ -18,8 +18,7 @@ import org.gorpipe.gor.session.GorSession;
 import org.gorpipe.spark.SparkGorRow;
 import scala.Function1;
 import scala.collection.Iterator;
-import scala.collection.immutable.Seq;
-import scala.jdk.javaapi.CollectionConverters;
+import scala.jdk.CollectionConverters;
 
 import java.io.Serializable;
 import java.util.List;
@@ -34,8 +33,8 @@ public class GordFunction implements Function1<PartitionedFile, Iterator<Interna
 
     public GordFunction(StructType schema) {
         this.header = String.join("\t",schema.fieldNames());
-        List<Attribute> lattr = CollectionConverters.asJava(schema.toAttributes()).stream().map(Attribute::toAttribute).collect(Collectors.toList());
-        Seq<Attribute> sattr = CollectionConverters.asScala(lattr).toSeq();
+        List<Attribute> lattr = CollectionConverters.SeqHasAsJava(schema.toAttributes()).asJava().stream().map(Attribute::toAttribute).collect(Collectors.toList());
+        var sattr = CollectionConverters.ListHasAsScala(lattr).asScala().toSeq();
         encoder = RowEncoder.apply(schema).resolveAndBind(sattr, SimpleAnalyzer$.MODULE$);
         serializer = encoder.createSerializer();
     }
@@ -55,7 +54,7 @@ public class GordFunction implements Function1<PartitionedFile, Iterator<Interna
         BatchedPipeStepIteratorAdaptor batchedPipeStepIteratorAdaptor = new BatchedPipeStepIteratorAdaptor(pi.getIterator(), pi.thePipeStep(), true, header, brsConfig);
         Stream<InternalRow> ir = StreamSupport.stream(batchedPipeStepIteratorAdaptor,false).map(r -> new SparkGorRow(r, encoder.schema())).map(r -> serializer.apply(r));
 
-        return CollectionConverters.asScala(ir.iterator());
+        return CollectionConverters.IteratorHasAsScala(ir.iterator()).asScala();
     }
 
     @Override

@@ -53,8 +53,8 @@ import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.types.*;
 import org.gorpipe.spark.udfs.CharToDoubleArray;
-import scala.collection.immutable.Seq;
-import scala.jdk.javaapi.CollectionConverters;
+import scala.collection.Seq;
+import scala.jdk.CollectionConverters;
 
 import static org.apache.spark.sql.types.DataTypes.*;
 
@@ -912,7 +912,7 @@ public class SparkRowSource extends ProcessSource {
             String udfname = newformula.substring(0,i);
             String[] args = newformula.substring(i+1,newformula.length()-1).split(",");
             List<Column> colist = Arrays.stream(args).map(functions::col).collect(Collectors.toList());
-            Seq<Column> colseq = CollectionConverters.asScala(colist).toSeq();
+            var colseq = CollectionConverters.ListHasAsScala(colist).asScala().toSeq();
             dataset = dataset.withColumn(colName,functions.callUDF(udfname,colseq));
         } else if (formula.toLowerCase().startsWith("normalize")) {
             String oldcolname = formula.substring(10, formula.length() - 1).trim();
