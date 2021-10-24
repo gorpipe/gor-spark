@@ -1,6 +1,8 @@
 package org.gorpipe.spark;
 
 import org.apache.spark.SparkConf;
+import org.apache.spark.SparkContext;
+import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.python.Py4JServer;
 import org.apache.spark.ml.linalg.SQLDataTypes;
 import org.apache.spark.sql.SparkSession;
@@ -16,7 +18,7 @@ import org.gorpipe.util.standalone.GorStandalone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.projectglow.GlowBase;
+//import io.projectglow.GlowBase;
 
 import java.io.*;
 import java.nio.file.Paths;
@@ -76,7 +78,7 @@ public class GorSparkUtilities {
             initPy4jServer();
             GorSparkUtilities.getSparkSession();
 
-            ProcessBuilder pb = new ProcessBuilder("jupyter","notebook","--NotebookApp.allow_origin='https://colab.research.google.com'","--port=8888","--NotebookApp.port_retries=0");
+            ProcessBuilder pb = new ProcessBuilder("jupyter-lab"); //"jupyter","notebook","--NotebookApp.allow_origin='https://colab.research.google.com'","--port=8888","--NotebookApp.port_retries=0");
             standaloneRoot.ifPresent(sroot -> pb.directory(Paths.get(sroot).toFile()));
             Map<String,String> env = pb.environment();
             env.put("PYSPARK_GATEWAY_PORT",Integer.toString(GorSparkUtilities.getPyServerPort()));

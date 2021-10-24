@@ -211,13 +211,14 @@ project(':spark') {
         }
         implementation 'org.apache.commons:commons-compress:_'
 
-        implementation('io.projectglow:glow-spark3_2.12:_') {
+        /*implementation('io.projectglow:glow-spark3_2.12:_') {
             exclude group: 'org.freemarker'
             exclude group: 'org.apache.spark'
-        }
+        }*/
 
         implementation "org.aeonbits.owner:owner:_"
         implementation 'info.picocli:picocli-shell-jline3:_'
+        implementation "com.github.samtools:htsjdk:_"
 
         runtimeOnly "io.prometheus.jmx:jmx_prometheus_javaagent:_"
         //runtimeOnly "${gorArtifactGroupId}:gor-drivers:${gorVersion}"
