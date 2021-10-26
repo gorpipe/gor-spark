@@ -14,7 +14,6 @@ import java.util.stream.StreamSupport;
 import java.util.zip.DataFormatException;
 
 import gorsat.commands.PysparkAnalysis;
-//import io.projectglow.transformers.blockvariantsandsamples.VariantSampleBlockMaker;
 import org.apache.spark.ml.classification.LogisticRegression;
 import org.apache.spark.ml.classification.LogisticRegressionModel;
 import org.apache.spark.ml.feature.Normalizer;
@@ -46,7 +45,6 @@ import htsjdk.samtools.SamInputResource;
 import htsjdk.samtools.SamReader;
 import htsjdk.samtools.SamReaderFactory;
 import htsjdk.samtools.ValidationStringency;
-//import io.projectglow.Glow;
 import org.apache.spark.api.java.function.*;
 import org.apache.spark.rdd.RDD;
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder;
