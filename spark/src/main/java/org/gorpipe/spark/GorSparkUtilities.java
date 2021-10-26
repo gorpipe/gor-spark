@@ -16,8 +16,6 @@ import org.gorpipe.util.standalone.GorStandalone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.projectglow.GlowBase;
-
 import java.io.*;
 import java.nio.file.Paths;
 import java.util.*;
@@ -150,8 +148,8 @@ public class GorSparkUtilities {
         spark.udf().register("todoublematrix", new CommaToDoubleMatrix(), SQLDataTypes.MatrixType());
         spark.udf().register("tointarray", new CommaToIntArray(), DataTypes.createArrayType(DataTypes.IntegerType));
 
-        GlowBase gb = new GlowBase();
-        gb.register(spark, false);
+        //GlowBase gb = new GlowBase();
+        //gb.register(spark, false);
 
         return spark;
     }

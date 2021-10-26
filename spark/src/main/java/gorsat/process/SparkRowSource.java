@@ -14,7 +14,6 @@ import java.util.stream.StreamSupport;
 import java.util.zip.DataFormatException;
 
 import gorsat.commands.PysparkAnalysis;
-import io.projectglow.transformers.blockvariantsandsamples.VariantSampleBlockMaker;
 import org.apache.spark.ml.feature.Normalizer;
 import org.apache.spark.ml.feature.PCA;
 import org.apache.spark.ml.feature.PCAModel;
@@ -44,15 +43,14 @@ import htsjdk.samtools.SamInputResource;
 import htsjdk.samtools.SamReader;
 import htsjdk.samtools.SamReaderFactory;
 import htsjdk.samtools.ValidationStringency;
-import io.projectglow.Glow;
 import org.apache.spark.api.java.function.*;
 import org.apache.spark.rdd.RDD;
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.types.*;
 import org.gorpipe.spark.udfs.CharToDoubleArray;
-import scala.collection.JavaConverters;
 import scala.collection.Seq;
+import scala.jdk.CollectionConverters;
 
 import static org.apache.spark.sql.types.DataTypes.*;
 
@@ -901,7 +899,7 @@ public class SparkRowSource extends ProcessSource {
             String udfname = newformula.substring(0,i);
             String[] args = newformula.substring(i+1,newformula.length()-1).split(",");
             List<Column> colist = Arrays.stream(args).map(functions::col).collect(Collectors.toList());
-            Seq<Column> colseq = JavaConverters.asScalaIterator(colist.iterator()).toSeq();
+            var colseq = CollectionConverters.ListHasAsScala(colist).asScala().toSeq();
             dataset = dataset.withColumn(colName,functions.callUDF(udfname,colseq));
         } else if (formula.toLowerCase().startsWith("normalize")) {
             String oldcolname = formula.substring(10, formula.length() - 1).trim();
@@ -1035,10 +1033,10 @@ public class SparkRowSource extends ProcessSource {
                     options.put(psplit[0], psplit[1].substring(1, psplit[1].length() - 1));
                 else options.put(psplit[0], psplit[1]);
             }
-            ret = Glow.transform("pipe", dataset, options);
+            //ret = Glow.transform("pipe", dataset, options);
         } else if (gor.startsWith("split_multiallelics")) {
             Map<String, String> options = new HashMap<>();
-            ret = Glow.transform("split_multiallelics", dataset, options);
+            //ret = Glow.transform("split_multiallelics", dataset, options);
         } else if (gor.startsWith("block_variants_and_samples")) {
             Map<String, String> options = new HashMap<>();
             String cmd = gor.substring("block_variants_and_samples".length()).trim();
@@ -1049,10 +1047,10 @@ public class SparkRowSource extends ProcessSource {
                     options.put(psplit[0], psplit[1].substring(1, psplit[1].length() - 1));
                 else options.put(psplit[0], psplit[1]);
             }
-            ret = Glow.transform("block_variants_and_samples", dataset, options);
+            //ret = Glow.transform("block_variants_and_samples", dataset, options);
         } else if (gor.startsWith("make_sample_blocks")) {
             int sampleCount = Integer.parseInt(gor.substring("make_sample_blocks".length()).trim());
-            ret = VariantSampleBlockMaker.makeSampleBlocks(dataset, sampleCount);
+            //ret = VariantSampleBlockMaker.makeSampleBlocks(dataset, sampleCount);
         }
         return ret;
     }

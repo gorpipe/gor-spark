@@ -79,66 +79,64 @@ project(':spark') {
         annotationProcessor 'com.google.auto.service:auto-service:_'
         implementation 'com.google.auto.service:auto-service:_'
 
-        implementation ("org.apache.spark:spark-core_${sparkScalaVersion}:_") {
+        implementation "org.scala-lang.modules:scala-collection-compat_${scalaVersion}:2.5.0"
+
+        implementation ("org.apache.spark:spark-core_${scalaVersion}:_") {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
-        implementation ("org.apache.spark:spark-sql_${sparkScalaVersion}:_") {
+        implementation ("org.apache.spark:spark-sql_${scalaVersion}:_") {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
-        implementation ("org.apache.spark:spark-mllib_${sparkScalaVersion}:_") {
+        implementation ("org.apache.spark:spark-mllib_${scalaVersion}:_") {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
-        implementation ("org.apache.spark:spark-tags_${sparkScalaVersion}:_") {
+        implementation ("org.apache.spark:spark-tags_${scalaVersion}:_") {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
-        implementation ("org.apache.spark:spark-kubernetes_${sparkScalaVersion}:_") {
+        implementation ("org.apache.spark:spark-kubernetes_${scalaVersion}:_") {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.spark', module: 'spark-tags_${sparkScalaVersion}'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
-        implementation ("org.apache.spark:spark-catalyst_${sparkScalaVersion}:_") {
+        implementation ("org.apache.spark:spark-catalyst_${scalaVersion}:_") {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
-        implementation ("org.apache.spark:spark-repl_${sparkScalaVersion}:_") {
+        implementation ("org.apache.spark:spark-repl_${scalaVersion}:_") {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
-        implementation ("org.apache.spark:spark-hive_${sparkScalaVersion}:_") {
-            exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
-            exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
-            exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
-            exclude group: 'com.google.guava', module: 'guava'
-            exclude group: 'org.apache.thrift', module: 'libthrift'
-        }
-        implementation ("org.apache.spark:spark-hive-thriftserver_${sparkScalaVersion}:_") {
+        implementation ("org.apache.spark:spark-hive_${scalaVersion}:_") {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
             exclude group: 'com.google.guava', module: 'guava'
             exclude group: 'org.apache.thrift', module: 'libthrift'
         }
-        implementation group: 'org.apache.thrift', name: 'libthrift', version: '0.14.1'
+        implementation ("org.apache.spark:spark-hive-thriftserver_${scalaVersion}:_") {
+            exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
+            exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
+            exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
+            exclude group: 'com.google.guava', module: 'guava'
+            exclude group: 'org.apache.thrift', module: 'libthrift'
+        }
+        implementation group: 'org.apache.thrift', name: 'libthrift', version: '0.15.0'
         //implementation group: 'io.delta', name: 'delta-core_2.12', version: '1.0.0'
 
         implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.11.0'
         implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.0'
-        if(sparkScalaVersion=='2.12') {
-            implementation group: 'com.fasterxml.jackson.module', name: 'jackson-module-scala_2.12', version: '2.11.0'
-        } else {
-            implementation group: 'com.fasterxml.jackson.module', name: 'jackson-module-scala_2.13', version: '2.11.0'
-        }
+        implementation group: 'com.fasterxml.jackson.module', name: "jackson-module-scala_${scalaVersion}", version: '2.11.0'
 
         /*compile('org.broadinstitute:gatk:_') {
             exclude group: 'com.esotericsoftware'
@@ -172,13 +170,14 @@ project(':spark') {
         }
         implementation 'org.apache.commons:commons-compress:_'
 
-        implementation('io.projectglow:glow-spark3_2.12:_') {
+        /*implementation('io.projectglow:glow-spark3_2.12:_') {
             exclude group: 'org.freemarker'
             exclude group: 'org.apache.spark'
-        }
+        }*/
 
         implementation "org.aeonbits.owner:owner:_"
         implementation 'info.picocli:picocli-shell-jline3:_'
+        implementation "com.github.samtools:htsjdk:_"
 
         runtimeOnly "io.prometheus.jmx:jmx_prometheus_javaagent:_"
         runtimeOnly "${gorArtifactGroupId}:gor-drivers:${gorVersion}"
