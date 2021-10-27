@@ -101,16 +101,16 @@ public class UTestSparkGorzWrite {
         ds = sparkSession.read().format("gor").load("/tmp/ds.gorz");
         String result = ds.collectAsList().stream().map(Object::toString).collect(Collectors.joining("\n"));
         Assert.assertEquals("Wrong content loaded from in gorz file in spark", "[chr1,11868,14412,,,]\n" +
-                "[chr1,14362,29806,,WASH7P,WrappedArray(W, A, S, H, 7, P, )]\n" +
-                "[chr1,34553,36081,,FAM138A,WrappedArray(F, A, M, 1, 3, 8, A, )]\n" +
-                "[chr1,53048,54936,,AL627309.1,WrappedArray(A, L, 6, 2, 7, 3, 0, 9, ., 1, )]", result);
+                "[chr1,14362,29806,,WASH7P,(W, A, S, H, 7, P, )]\n" +
+                "[chr1,34553,36081,,FAM138A,(F, A, M, 1, 3, 8, A, )]\n" +
+                "[chr1,53048,54936,,AL627309.1,(A, L, 6, 2, 7, 3, 0, 9, ., 1, )]", result.replace("WrappedArray","").replace("ArraySeq",""));
 
         ds = sparkSession.read().format("gor").schema(schema).load("/tmp/ds.gorz");
         result = ds.collectAsList().stream().map(Object::toString).collect(Collectors.joining("\n"));
         Assert.assertEquals("Wrong content loaded from in gorz file in spark", "[chr1,11868,14412,null,,WrappedArray()]\n" +
-                "[chr1,14362,29806,null,WASH7P,WrappedArray(W, A, S, H, 7, P, )]\n" +
-                "[chr1,34553,36081,null,FAM138A,WrappedArray(F, A, M, 1, 3, 8, A, )]\n" +
-                "[chr1,53048,54936,null,AL627309.1,WrappedArray(A, L, 6, 2, 7, 3, 0, 9, ., 1, )]", result);
+                "[chr1,14362,29806,null,WASH7P,(W, A, S, H, 7, P, )]\n" +
+                "[chr1,34553,36081,null,FAM138A,(F, A, M, 1, 3, 8, A, )]\n" +
+                "[chr1,53048,54936,null,AL627309.1,(A, L, 6, 2, 7, 3, 0, 9, ., 1, )]", result.replace("WrappedArray","").replace("ArraySeq",""));
     }
 
     @Test
