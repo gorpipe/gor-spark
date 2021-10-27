@@ -72,6 +72,7 @@ public class GorSparkUtilities {
 
     public static void initPySpark(Optional<String> standaloneRoot) {
         var pyspark = System.getenv("PYSPARK_PIN_THREAD");
+        if(pyspark==null) pyspark = System.getProperty("PYSPARK_PIN_THREAD");
         if (py4jServer==null&&pyspark!=null&&pyspark.length()>0) {
             initPy4jServer();
             GorSparkUtilities.getSparkSession();
