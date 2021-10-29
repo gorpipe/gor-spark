@@ -6,18 +6,14 @@ import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.analysis.SimpleAnalyzer$;
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
-import org.apache.spark.sql.catalyst.expressions.Attribute;
-import org.apache.spark.sql.catalyst.expressions.AttributeReference;
 import org.apache.spark.sql.execution.datasources.OutputWriter;
 import org.apache.spark.sql.types.StructType;
+import org.gorpipe.ScalaUtils;
 import org.gorpipe.gor.binsearch.GorIndexType;
 import org.gorpipe.spark.GorSparkRow;
-import scala.jdk.CollectionConverters;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.List;
-import java.util.stream.Collectors;
 import java.util.zip.Deflater;
 
 public class GorOutputWriter extends OutputWriter {
@@ -28,8 +24,7 @@ public class GorOutputWriter extends OutputWriter {
 
     public GorOutputWriter(String uristr, StructType schema, String originalPath) throws IOException {
         this.originalPath = originalPath;
-        List<Attribute> lattr = CollectionConverters.<AttributeReference>SeqHasAsJava(schema.toAttributes().toSeq()).asJava().stream().map(Attribute::toAttribute).collect(Collectors.toList());
-        var sattr = CollectionConverters.ListHasAsScala(lattr).asScala().toSeq();
+        var sattr = ScalaUtils.seqAttribute(schema.toAttributes());
         ExpressionEncoder<Row> encoder = RowEncoder.apply(schema).resolveAndBind(sattr, SimpleAnalyzer$.MODULE$);
         deserializer = encoder.createDeserializer();
         String header = String.join("\t", schema.fieldNames());

@@ -11,18 +11,15 @@ import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.analysis.SimpleAnalyzer$;
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
-import org.apache.spark.sql.catalyst.expressions.Attribute;
 import org.apache.spark.sql.execution.datasources.PartitionedFile;
 import org.apache.spark.sql.types.StructType;
+import org.gorpipe.ScalaUtils;
 import org.gorpipe.gor.session.GorSession;
 import org.gorpipe.spark.SparkGorRow;
 import scala.Function1;
 import scala.collection.Iterator;
-import scala.jdk.CollectionConverters;
 
 import java.io.Serializable;
-import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -33,8 +30,7 @@ public class GordFunction implements Function1<PartitionedFile, Iterator<Interna
 
     public GordFunction(StructType schema) {
         this.header = String.join("\t",schema.fieldNames());
-        List<Attribute> lattr = CollectionConverters.SeqHasAsJava(schema.toAttributes()).asJava().stream().map(Attribute::toAttribute).collect(Collectors.toList());
-        var sattr = CollectionConverters.ListHasAsScala(lattr).asScala().toSeq();
+        var sattr = ScalaUtils.seqAttribute(schema.toAttributes());
         encoder = RowEncoder.apply(schema).resolveAndBind(sattr, SimpleAnalyzer$.MODULE$);
         serializer = encoder.createSerializer();
     }
@@ -54,7 +50,7 @@ public class GordFunction implements Function1<PartitionedFile, Iterator<Interna
         BatchedPipeStepIteratorAdaptor batchedPipeStepIteratorAdaptor = new BatchedPipeStepIteratorAdaptor(pi.getIterator(), pi.thePipeStep(), true, header, brsConfig);
         Stream<InternalRow> ir = StreamSupport.stream(batchedPipeStepIteratorAdaptor,false).map(r -> new SparkGorRow(r, encoder.schema())).map(r -> serializer.apply(r));
 
-        return CollectionConverters.IteratorHasAsScala(ir.iterator()).asScala();
+        return ScalaUtils.iterator(ir.iterator());
     }
 
     @Override

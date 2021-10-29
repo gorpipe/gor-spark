@@ -27,6 +27,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.spark.sql.*;
 import org.apache.spark.sql.expressions.UserDefinedFunction;
 
+import org.gorpipe.ScalaUtils;
 import org.gorpipe.exceptions.GorResourceException;
 import org.gorpipe.gor.driver.DataSource;
 import org.gorpipe.gor.driver.providers.stream.datatypes.bam.BamIterator;
@@ -51,8 +52,6 @@ import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.types.*;
 import org.gorpipe.spark.udfs.CharToDoubleArray;
-import scala.collection.Seq;
-import scala.jdk.CollectionConverters;
 
 import static org.apache.spark.sql.types.DataTypes.*;
 
@@ -909,8 +908,7 @@ public class SparkRowSource extends ProcessSource {
             int i = newformula.indexOf('(');
             String udfname = newformula.substring(0,i);
             String[] args = newformula.substring(i+1,newformula.length()-1).split(",");
-            List<Column> colist = Arrays.stream(args).map(functions::col).collect(Collectors.toList());
-            var colseq = CollectionConverters.ListHasAsScala(colist).asScala().toSeq();
+            var colseq = ScalaUtils.columns(args);
             dataset = dataset.withColumn(colName,functions.callUDF(udfname,colseq));
         } else if (formula.toLowerCase().startsWith("normalize")) {
             String oldcolname = formula.substring(10, formula.length() - 1).trim();
