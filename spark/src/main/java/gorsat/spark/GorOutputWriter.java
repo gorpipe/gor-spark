@@ -8,7 +8,7 @@ import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.execution.datasources.OutputWriter;
 import org.apache.spark.sql.types.StructType;
-import org.gorpipe.ScalaUtils;
+import org.gorpipe.spark.ScalaUtils;
 import org.gorpipe.gor.binsearch.GorIndexType;
 import org.gorpipe.spark.GorSparkRow;
 

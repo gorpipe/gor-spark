@@ -18,7 +18,7 @@ import org.apache.spark.sql.sources.Filter;
 import org.apache.spark.sql.sources.GreaterThan;
 import org.apache.spark.sql.sources.LessThan;
 import org.apache.spark.sql.types.StructType;
-import org.gorpipe.ScalaUtils;
+import org.gorpipe.spark.ScalaUtils;
 import org.gorpipe.gor.binsearch.Unzipper;
 import org.gorpipe.model.gor.RowObj;
 import org.gorpipe.spark.SparkGorRow;

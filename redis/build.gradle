@@ -56,18 +56,19 @@ jib {
 
 dependencies {
     internal project(":spark")
-    implementation("${gorArtifactGroupId}:gor-base:${gorVersion}") {
+    implementation(project(':base')) {
         exclude group: 'ch.qos.logback', module: 'logback-classic'
         exclude group: 'ch.qos.logback', module: 'logback-core'
     }
-    implementation("${gorArtifactGroupId}:gor-model:${gorVersion}") {
+    implementation(project(':util')) {
         exclude group: 'ch.qos.logback', module: 'logback-classic'
     }
-    implementation("${gorArtifactGroupId}:gor-gortools:${gorVersion}") {
+    implementation(project(':model')) {
         exclude group: 'ch.qos.logback', module: 'logback-classic'
     }
-    implementation("${gorArtifactGroupId}:gor-util:${gorVersion}") {
+    implementation(project(':gortools')) {
         exclude group: 'ch.qos.logback', module: 'logback-classic'
+        exclude group: 'net.sourceforge.f2j', module: 'arpack_combined_all'
     }
 
     implementation ("org.apache.spark:spark-core_${scalaVersion}:_") {

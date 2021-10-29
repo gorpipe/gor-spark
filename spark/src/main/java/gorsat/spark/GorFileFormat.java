@@ -2,7 +2,7 @@ package gorsat.spark;
 
 import gorsat.process.SparkRowUtilities;
 import org.apache.hadoop.fs.FileSystem;
-import org.gorpipe.ScalaUtils;
+import org.gorpipe.spark.ScalaUtils;
 import org.gorpipe.gor.model.DriverBackedFileReader;
 import org.gorpipe.spark.SparkGOR;
 import org.apache.hadoop.conf.Configuration;
@@ -24,7 +24,7 @@ import scala.Function1;
 import scala.Option;
 import scala.collection.Iterator;
 import scala.collection.immutable.Map;
-import scala.collection.immutable.Seq;
+import scala.collection.Seq;
 
 import java.io.IOException;
 import java.io.InputStream;
