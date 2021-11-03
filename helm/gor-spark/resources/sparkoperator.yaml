@@ -6,13 +6,18 @@ metadata:
 spec:
   type: Java
   mode: cluster
-  image: nextcode/spark:1.5.4
+  image: nextcode/spark:1.6.2
   imagePullPolicy: Always
   imagePullSecrets:
     - dockerhub-nextcode-download-credentials
-  mainApplicationFile: local:///opt/spark/jars/gor-spark-1.5.4.jar
+  mainApplicationFile: local:///opt/spark/jars/gor-spark-1.6.2.jar
   mainClass: org.gorpipe.spark.redis.RedisBatchConsumer
-  sparkVersion: 3.1.2
+  sparkVersion: 3.2.0
+  dynamicAllocation:
+    enabled: true
+    initialExecutors: 2
+    minExecutors: 0
+    maxExecutors: 100
   restartPolicy:
     type: OnFailure
     onFailureRetries: 1
@@ -20,38 +25,41 @@ spec:
     onSubmissionFailureRetries: 1
     onSubmissionFailureRetryInterval: 20
   sparkConf:
-    spark.kubernetes.driver.volumes.persistentVolumeClaim.volume.mount.path: /mnt/csa/volumes
-    spark.kubernetes.driver.volumes.persistentVolumeClaim.volume.mount.readOnly: "false"
-    spark.kubernetes.driver.volumes.persistentVolumeClaim.volume.mount.subPath: volumes
-    spark.kubernetes.driver.volumes.persistentVolumeClaim.volume.options.claimName: pvc-phenocat-nfs
-    spark.kubernetes.executor.volumes.persistentVolumeClaim.volume.mount.path: /mnt/csa/volumes
-    spark.kubernetes.executor.volumes.persistentVolumeClaim.volume.mount.readOnly: "false"
-    spark.kubernetes.executor.volumes.persistentVolumeClaim.volume.mount.subPath: volumes
-    spark.kubernetes.executor.volumes.persistentVolumeClaim.volume.options.claimName: pvc-phenocat-nfs
-    spark.kubernetes.driver.volumes.persistentVolumeClaim.data.mount.path: /mnt/csa/data
-    spark.kubernetes.driver.volumes.persistentVolumeClaim.data.mount.readOnly: "true"
-    spark.kubernetes.driver.volumes.persistentVolumeClaim.data.mount.subPath: data
-    spark.kubernetes.driver.volumes.persistentVolumeClaim.data.options.claimName: pvc-sm-nfs
-    spark.kubernetes.executor.volumes.persistentVolumeClaim.data.mount.path: /mnt/csa/data
-    spark.kubernetes.executor.volumes.persistentVolumeClaim.data.mount.readOnly: "true"
-    spark.kubernetes.executor.volumes.persistentVolumeClaim.data.mount.subPath: data
-    spark.kubernetes.executor.volumes.persistentVolumeClaim.data.options.claimName: pvc-sm-nfs
     spark.driver.extraClassPath: "/opt/spark/classpath/*"
+  volumes:
+  - name: mntcsa
+    persistentVolumeClaim:
+      claimName: pvc-gor-mnt-csa
+  - name: mntcache
+    persistentVolumeClaim:
+      claimName: pvc-gor-mnt-cache
   driver:
-    cores: 1
-    coreLimit: 1200m
-    memory: 1500m
+    cores: 2
+    coreLimit: 2400m
+    memory: 4g
     labels:
-      version: v3.1.2
+      version: v3.2.0
+    volumeMounts:
+    - name: csa
+      mountPath: /mnt/csa
+      readOnly: true
+    - name: cache
+      mountPath: /mnt/cache
     securityContext:
       runAsUser: 3000
       fsGroup: 3000
   executor:
-    cores: 1
-    instances: 1
-    memory: 900m
+    cores: 2
+    instances: 2
+    memory: 8g
     labels:
-      version: v3.1.2
+      version: v3.2.0
+    volumeMounts:
+    - name: csa
+      mountPath: /mnt/csa
+      readOnly: true
+    - name: cache
+      mountPath: /mnt/cache
     securityContext:
       runAsUser: 3000
       fsGroup: 3000

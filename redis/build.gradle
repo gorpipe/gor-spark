@@ -21,7 +21,7 @@ jib {
         }
     }
     to {
-        image = project.findProperty('APPLICATION_REPOSITORY') ?: "nextcode/sparkredis"
+        image = project.findProperty('APPLICATION_REPOSITORY') ?: "nextcode/spark"
         //credHelper = 'osxkeychain'
         tags = [project.findProperty('APPLICATION_TAG') ?: "${version}"]
         if (project.hasProperty('REGISTRY_USER')) {
