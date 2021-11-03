@@ -2,6 +2,7 @@ package gorsat.spark;
 
 import gorsat.process.SparkRowUtilities;
 import org.apache.hadoop.fs.FileSystem;
+import org.gorpipe.spark.ScalaUtils;
 import org.gorpipe.gor.model.DriverBackedFileReader;
 import org.gorpipe.spark.SparkGOR;
 import org.apache.hadoop.conf.Configuration;
@@ -22,9 +23,8 @@ import org.apache.spark.sql.types.StructType;
 import scala.Function1;
 import scala.Option;
 import scala.collection.Iterator;
+import scala.collection.Seq;
 import scala.collection.immutable.Map;
-import scala.collection.immutable.Seq;
-import scala.jdk.CollectionConverters;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -105,7 +105,7 @@ public class GorFileFormat extends CSVFileFormat implements Serializable {
                 //var lgattr = JavaConverters.asJavaCollection(requiredSchema.toAttributes()).stream().map(Attribute::toAttribute).collect(Collectors.toList());
                 //var sgattr = JavaConverters.asScalaBuffer(lgattr).toSeq();
                 //ExpressionEncoder gorzencoder = SparkGOR.gorzencoder().resolveAndBind(sgattr, SimpleAnalyzer$.MODULE$);
-                return new GorzFunction(func, requiredSchema, CollectionConverters.<Filter>SeqHasAsJava(filters).asJava());
+                return new GorzFunction(func, requiredSchema, ScalaUtils.filterSeq(filters));
             }
         }
         return func;
