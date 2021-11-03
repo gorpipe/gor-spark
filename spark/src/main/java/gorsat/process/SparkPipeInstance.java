@@ -1,7 +1,14 @@
 package gorsat.process;
 
+import gorsat.Analysis.PlaceHolder;
 import gorsat.Commands.CommandParseUtilities;
+import gorsat.DynIterator;
+import gorsat.Script.ScriptEngineFactory;
+import gorsat.Script.ScriptExecutionEngine;
+import gorsat.Script.ScriptParsers;
+import gorsat.script.SparkEngineFactory;
 import io.kubernetes.client.openapi.ApiException;
+import org.gorpipe.exceptions.GorParsingException;
 import org.gorpipe.exceptions.GorSystemException;
 import org.gorpipe.gor.driver.meta.SourceReferenceBuilder;
 import org.gorpipe.gor.driver.providers.stream.StreamSourceFile;
@@ -102,6 +109,11 @@ public class SparkPipeInstance extends PipeInstance {
                 gi.close();
             }
         };
+    }
+
+    @Override
+    public ScriptExecutionEngine createScriptEngine(GorContext context) {
+        return SparkEngineFactory.create(context);
     }
 
     @Override

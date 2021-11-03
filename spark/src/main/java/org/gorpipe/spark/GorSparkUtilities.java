@@ -77,7 +77,7 @@ public class GorSparkUtilities {
             initPy4jServer();
             GorSparkUtilities.getSparkSession();
 
-            ProcessBuilder pb = new ProcessBuilder("jupyter-lab"); //"jupyter","notebook","--NotebookApp.allow_origin='https://colab.research.google.com'","--port=8888","--NotebookApp.port_retries=0");
+            ProcessBuilder pb = new ProcessBuilder("jupyter-lab", "--NotebookApp.allow_origin='https://colab.research.google.com'","--port=8888","--NotebookApp.port_retries=0");
             standaloneRoot.ifPresent(sroot -> pb.directory(Paths.get(sroot).toFile()));
             Map<String,String> env = pb.environment();
             env.put("PYSPARK_GATEWAY_PORT",Integer.toString(GorSparkUtilities.getPyServerPort()));
@@ -92,7 +92,7 @@ public class GorSparkUtilities {
                     try (InputStream is = p.getInputStream()) {
                         InputStreamReader isr = new InputStreamReader(is);
                         BufferedReader br = new BufferedReader(isr);
-                        jupyterPath = br.lines().peek(System.err::println).map(String::trim).filter(s -> s.startsWith("http://localhost:8888/?token=")).findFirst();
+                        jupyterPath = br.lines().peek(System.err::println).map(String::trim).filter(s -> s.startsWith("http://localhost:") && s.contains("?token=")).findFirst();
                     }
                     return null;
                 });
@@ -100,7 +100,7 @@ public class GorSparkUtilities {
                     try (InputStream is = p.getErrorStream()) {
                         InputStreamReader isr = new InputStreamReader(is);
                         BufferedReader br = new BufferedReader(isr);
-                        jupyterPath = br.lines().peek(System.err::println).map(String::trim).filter(s -> s.startsWith("http://localhost:8888/?token=")).findFirst();
+                        jupyterPath = br.lines().peek(System.err::println).map(String::trim).filter(s -> s.startsWith("http://localhost:") && s.contains("?token=")).findFirst();
                     }
                     return null;
                 });
