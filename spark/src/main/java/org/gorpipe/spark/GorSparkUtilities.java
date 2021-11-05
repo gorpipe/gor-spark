@@ -121,6 +121,19 @@ public class GorSparkUtilities {
         return sparkRedisHost != null && sparkRedisHost.length() > 0 ? constructRedisUri(sparkRedisHost) : "";
     }
 
+    public static SparkGorMonitor getSparkGorMonitor(String jobId) {
+        var srvList = ServiceLoader.load(SparkMonitorFactory.class).stream().collect(Collectors.toList());
+        if(srvList.size()>0) {
+            SparkMonitorFactory sparkMonitorFactory;
+            sparkMonitorFactory = srvList.get(0).get();
+            if (srvList.size() > 1 && sparkMonitorFactory instanceof SparkGorMonitorFactory) {
+                sparkMonitorFactory = srvList.get(1).get();
+            }
+            return sparkMonitorFactory.createSparkGorMonitor(jobId);
+        }
+        return null;
+    }
+
     private static SparkSession newSparkSession(int workers) {
         SparkConf sparkConf = new SparkConf();
         sparkConf.set("spark.sql.execution.arrow.pyspark.enabled","true");

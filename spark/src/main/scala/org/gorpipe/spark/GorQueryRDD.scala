@@ -1,11 +1,9 @@
 package org.gorpipe.spark
 
 import java.nio.file.{Files, Path, Paths}
-import gorsat.Utilities.AnalysisUtilities
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.{Partition, TaskContext}
-import org.gorpipe.gor.monitor.GorMonitor
 
 import java.util.UUID
 import scala.collection.mutable.ListBuffer
@@ -41,7 +39,7 @@ class GorQueryRDD(sparkSession: SparkSession, commandsToExecute: Array[String], 
     val cacheFileMd5Path = absCacheFilePath.getParent.resolve(absCacheFilePath.getFileName+".md5")
     val cacheFileMetaPath = absCacheFilePath.getParent.resolve(absCacheFilePath.getFileName+".meta")
     if(Files.isDirectory(absCacheFilePath)) {
-      val sparkGorMonitor : GorMonitor = if(SparkGorMonitor.monitorFactory!=null) SparkGorMonitor.monitorFactory.createSparkGorMonitor(jobId) else null
+      val sparkGorMonitor = GorSparkUtilities.getSparkGorMonitor(jobId)
       val engine = new SparkGorExecutionEngine(commandToExecute, projectDirectory, cacheDirectory, configFile, aliasFile, cacheFilePath, securityContext, sparkGorMonitor)
       engine.execute()
     } else if (!Files.exists(absCacheFilePath)) {
@@ -50,7 +48,7 @@ class GorQueryRDD(sparkSession: SparkSession, commandsToExecute: Array[String], 
       val temp_cacheMetaFile = temp_cacheFile.getParent.resolve(temp_cacheFile.getFileName.toString+".meta")
       val tempFile_absolutepath = temp_cacheFile.toAbsolutePath.normalize()
       try {
-        val sparkGorMonitor : GorMonitor = if(SparkGorMonitor.monitorFactory!=null) SparkGorMonitor.monitorFactory.createSparkGorMonitor(jobId) else null
+        val sparkGorMonitor = GorSparkUtilities.getSparkGorMonitor(jobId)
         val engine = new SparkGorExecutionEngine(commandToExecute, projectDirectory, cacheDirectory, configFile, aliasFile, tempFile_absolutepath, securityContext, sparkGorMonitor)
         engine.execute()
         if (!Files.exists(absCacheFilePath)) {

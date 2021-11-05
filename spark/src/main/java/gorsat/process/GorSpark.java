@@ -12,7 +12,7 @@ import org.apache.spark.sql.types.StructType;
 import org.gorpipe.gor.model.Row;
 import org.gorpipe.gor.monitor.GorMonitor;
 import org.gorpipe.gor.session.GorSession;
-import org.gorpipe.spark.SparkGorMonitor;
+import org.gorpipe.spark.GorSparkUtilities;
 import org.gorpipe.spark.SparkGorRow;
 
 public class GorSpark implements MapPartitionsFunction<Row, Row> {
@@ -50,7 +50,7 @@ public class GorSpark implements MapPartitionsFunction<Row, Row> {
         gps.setNorContext(nor);
 
         if( uri != null ) {
-            GorMonitor gorMonitor = SparkGorMonitor.monitorFactory.createSparkGorMonitor(jobId);
+            GorMonitor gorMonitor = GorSparkUtilities.getSparkGorMonitor(jobId);
             gps.getSystemContext().setMonitor(gorMonitor);
         }
 

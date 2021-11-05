@@ -88,6 +88,7 @@ project(':spark') {
         }
         implementation group: 'org.apache.thrift', name: 'libthrift', version: '0.15.0'
         //implementation group: 'io.delta', name: 'delta-core_2.12', version: '1.0.0'
+        //implementation group: 'com.google.dagger', name: 'dagger', version: '2.40'
 
         implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.11.0'
         implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.0'

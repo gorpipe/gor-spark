@@ -1,8 +1,10 @@
 package org.gorpipe.spark;
 
+import com.google.auto.service.AutoService;
 import java.io.Serializable;
 
-public class SparkGorRedisMonitorFactory extends SparkGorMonitorFactory implements Serializable {
+@AutoService(SparkMonitorFactory.class)
+public class SparkGorRedisMonitorFactory implements SparkMonitorFactory,Serializable {
     String redisUri;
     public SparkGorRedisMonitorFactory(String redisUri) {
         this.redisUri = redisUri;
