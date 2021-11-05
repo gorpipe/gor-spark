@@ -432,6 +432,10 @@ public class SparkRowUtilities {
                                 if (fileroot != null) dfr.option("projectroot", fileroot.toString());
                                 dfr.option("aliasfile", gorSparkSession.getProjectContext().getGorAliasFile());
                                 dfr.option("configfile", gorSparkSession.getProjectContext().getGorConfigFile());
+                                if (gorSparkSession.getRedisUri() != null && gorSparkSession.getRedisUri().length() > 0) {
+                                    dfr.option("redis", gorSparkSession.getRedisUri());
+                                }
+                                dfr.option("jobid", jobid);
                                 var securityContext = gorSparkSession.getProjectContext().getFileReader().getSecurityContext();
                                 if (securityContext != null) dfr = dfr.option("securityContext", securityContext);
                                 if (filter != null) dfr = dfr.option("f", filter);
