@@ -45,6 +45,7 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
 
     public static String[] executeSparkBatch(GorSparkSession session, String projectDir, String cacheDir, String[] fingerprints, String[] commandsToExecute, String[] jobIds, String[] cacheFiles) {
         SparkSession sparkSession = session.getSparkSession();
+        String redisUri = session.getRedisUri();
 
         final Set<Integer> sparkJobs = new TreeSet<>();
         final Set<Integer> gorJobs = new TreeSet<>();
@@ -125,7 +126,7 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
                 newCacheFiles[k] = cacheFiles[i];
                 k++;
             }
-            GorQueryRDD queryRDD = new GorQueryRDD(sparkSession, newCommands, newFingerprints, newCacheFiles, projectDir, cacheDir, session.getProjectContext().getGorConfigFile(), session.getProjectContext().getGorAliasFile(), newJobIds, null);
+            GorQueryRDD queryRDD = new GorQueryRDD(sparkSession, newCommands, newFingerprints, newCacheFiles, projectDir, cacheDir, session.getProjectContext().getGorConfigFile(), session.getProjectContext().getGorAliasFile(), newJobIds, null, redisUri);
             return (String[]) queryRDD.collect();
         };
 

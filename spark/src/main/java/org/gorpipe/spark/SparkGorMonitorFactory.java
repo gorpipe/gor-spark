@@ -7,7 +7,7 @@ import java.io.Serializable;
 @AutoService(SparkMonitorFactory.class)
 public class SparkGorMonitorFactory implements SparkMonitorFactory,Serializable {
     @Override
-    public SparkGorMonitor createSparkGorMonitor(String jobId) {
+    public SparkGorMonitor createSparkGorMonitor(String jobId,String redisUri) {
         return new SparkGorMonitor(jobId);
     }
 }

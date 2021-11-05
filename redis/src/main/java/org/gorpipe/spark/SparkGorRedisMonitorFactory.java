@@ -5,13 +5,8 @@ import java.io.Serializable;
 
 @AutoService(SparkMonitorFactory.class)
 public class SparkGorRedisMonitorFactory implements SparkMonitorFactory,Serializable {
-    String redisUri;
-    public SparkGorRedisMonitorFactory(String redisUri) {
-        this.redisUri = redisUri;
-    }
-
     @Override
-    public SparkGorMonitor createSparkGorMonitor(String jobId) {
+    public SparkGorMonitor createSparkGorMonitor(String jobId,String redisUri) {
         return new SparkGorRedisMonitor(redisUri, jobId);
     }
 }

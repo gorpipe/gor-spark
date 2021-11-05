@@ -121,15 +121,15 @@ public class GorSparkUtilities {
         return sparkRedisHost != null && sparkRedisHost.length() > 0 ? constructRedisUri(sparkRedisHost) : "";
     }
 
-    public static SparkGorMonitor getSparkGorMonitor(String jobId) {
+    public static SparkGorMonitor getSparkGorMonitor(String jobId, String redisUri) {
         var srvList = ServiceLoader.load(SparkMonitorFactory.class).stream().collect(Collectors.toList());
         if(srvList.size()>0) {
             SparkMonitorFactory sparkMonitorFactory;
             sparkMonitorFactory = srvList.get(0).get();
-            if (srvList.size() > 1 && sparkMonitorFactory instanceof SparkGorMonitorFactory) {
+            if (srvList.size() > 1 && sparkMonitorFactory instanceof SparkGorMonitorFactory && redisUri != null && redisUri.length() > 0) {
                 sparkMonitorFactory = srvList.get(1).get();
             }
-            return sparkMonitorFactory.createSparkGorMonitor(jobId);
+            return sparkMonitorFactory.createSparkGorMonitor(jobId, redisUri);
         }
         return null;
     }

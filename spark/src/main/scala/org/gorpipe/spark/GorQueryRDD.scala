@@ -9,7 +9,7 @@ import java.util.UUID
 import scala.collection.mutable.ListBuffer
 
 //Todo handle GORDICT and GORDICTPART
-class GorQueryRDD(sparkSession: SparkSession, commandsToExecute: Array[String], commandSignatures: Array[String], cacheFiles: Array[String], projectDirectory: String, cacheDirectory: String, configFile: String, aliasFile: String, jobIds: Array[String], secCtxs: Array[String]) extends RDD[String](sparkSession.sparkContext, Nil) {
+class GorQueryRDD(sparkSession: SparkSession, commandsToExecute: Array[String], commandSignatures: Array[String], cacheFiles: Array[String], projectDirectory: String, cacheDirectory: String, configFile: String, aliasFile: String, jobIds: Array[String], secCtxs: Array[String], redisUri: String) extends RDD[String](sparkSession.sparkContext, Nil) {
   require(cacheDirectory!=null)
   require(projectDirectory!=null)
   require(commandsToExecute!=null)
@@ -39,7 +39,7 @@ class GorQueryRDD(sparkSession: SparkSession, commandsToExecute: Array[String], 
     val cacheFileMd5Path = absCacheFilePath.getParent.resolve(absCacheFilePath.getFileName+".md5")
     val cacheFileMetaPath = absCacheFilePath.getParent.resolve(absCacheFilePath.getFileName+".meta")
     if(Files.isDirectory(absCacheFilePath)) {
-      val sparkGorMonitor = GorSparkUtilities.getSparkGorMonitor(jobId)
+      val sparkGorMonitor = GorSparkUtilities.getSparkGorMonitor(jobId, redisUri)
       val engine = new SparkGorExecutionEngine(commandToExecute, projectDirectory, cacheDirectory, configFile, aliasFile, cacheFilePath, securityContext, sparkGorMonitor)
       engine.execute()
     } else if (!Files.exists(absCacheFilePath)) {
@@ -48,7 +48,7 @@ class GorQueryRDD(sparkSession: SparkSession, commandsToExecute: Array[String], 
       val temp_cacheMetaFile = temp_cacheFile.getParent.resolve(temp_cacheFile.getFileName.toString+".meta")
       val tempFile_absolutepath = temp_cacheFile.toAbsolutePath.normalize()
       try {
-        val sparkGorMonitor = GorSparkUtilities.getSparkGorMonitor(jobId)
+        val sparkGorMonitor = GorSparkUtilities.getSparkGorMonitor(jobId, redisUri)
         val engine = new SparkGorExecutionEngine(commandToExecute, projectDirectory, cacheDirectory, configFile, aliasFile, tempFile_absolutepath, securityContext, sparkGorMonitor)
         engine.execute()
         if (!Files.exists(absCacheFilePath)) {
