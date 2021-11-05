@@ -21,7 +21,7 @@ jib {
         }
     }
     to {
-        image = project.findProperty('APPLICATION_REPOSITORY') ?: "nextcode/sparkredis"
+        image = project.findProperty('APPLICATION_REPOSITORY') ?: "nextcode/spark"
         //credHelper = 'osxkeychain'
         tags = [project.findProperty('APPLICATION_TAG') ?: "${version}"]
         if (project.hasProperty('REGISTRY_USER')) {
@@ -122,6 +122,9 @@ dependencies {
         exclude group: 'org.apache.thrift', module: 'libthrift'
     }
 
+    annotationProcessor 'com.google.auto.service:auto-service:_'
+    implementation 'com.google.auto.service:auto-service:_'
+
     implementation 'io.kubernetes:client-java:_'
 
     implementation("redis.clients:jedis:_")
@@ -131,8 +134,11 @@ dependencies {
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.0'
     implementation "com.fasterxml.jackson.module:jackson-module-scala_${scalaVersion}:2.11.0"
 
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.0'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.0'
+    //testImplementation("${gorArtifactGroupId}:gor-test:${gorVersion}") {
+    //    exclude group: 'ch.qos.logback', module: 'logback-classic'
+    //}
+    //testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.0'
+    //testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.0'
 }
 
 test {

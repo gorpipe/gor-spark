@@ -31,7 +31,6 @@ public final class GeneralSparkCluster extends GorClusterBase {
     public GeneralSparkCluster(String sparkRedisUri) {
         this.redisUri = sparkRedisUri;
         if (this.redisUri.length() > 0) {
-            SparkGorMonitor.monitorFactory = new SparkGorRedisMonitorFactory(redisUri);
             jedisPool = SharedRedisPools.getJedisPool(JedisURIHelper.create(this.redisUri));
         }
     }

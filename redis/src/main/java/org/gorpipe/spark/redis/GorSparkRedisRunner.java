@@ -22,16 +22,21 @@ public class GorSparkRedisRunner implements Callable<String>, AutoCloseable {
     public static GorSparkRedisRunner instance;
     private SparkSession sparkSession;
     private String redisUri;
+    private String streamKey;
 
     public GorSparkRedisRunner(GorSparkSession sparkSession) {
-        init(sparkSession.getSparkSession());
+        init(sparkSession.getSparkSession(), "resque");
     }
 
     public GorSparkRedisRunner() {
-        init(GorSparkUtilities.getSparkSession());
+        init(GorSparkUtilities.getSparkSession(), "resque");
     }
 
-    public void init(SparkSession sparkSession) {
+    public GorSparkRedisRunner(String streamKey) {
+        init(GorSparkUtilities.getSparkSession(), streamKey);
+    }
+
+    public void init(SparkSession sparkSession, String streamKey) {
         SparkContext context = sparkSession.sparkContext();
         SparkConf conf = context.conf();
         String logLevel = DEFAULT_LOG_LEVEL;
@@ -40,6 +45,7 @@ public class GorSparkRedisRunner implements Callable<String>, AutoCloseable {
 
         log.info("Initializing GorSparkRedisRunner");
 
+        this.streamKey = streamKey;
         instance = this;
         this.sparkSession = sparkSession;
         redisUri = GorSparkUtilities.getSparkGorRedisUri();
@@ -53,7 +59,7 @@ public class GorSparkRedisRunner implements Callable<String>, AutoCloseable {
         StructType schema = new StructType(fields);
         try(RedisBatchConsumer redisBatchConsumer = new RedisBatchConsumer(sparkSession, redisUri)) {
             StreamingQuery query = sparkSession.readStream().format("redis")
-                    .option("stream.keys", "resque")
+                    .option("stream.keys", streamKey)
                     .schema(schema)
                     .load().writeStream().outputMode("update")
                     .foreachBatch(redisBatchConsumer).start();
@@ -66,7 +72,8 @@ public class GorSparkRedisRunner implements Callable<String>, AutoCloseable {
     }
 
     public static void main(String[] args) {
-        try(GorSparkRedisRunner grr = new GorSparkRedisRunner()) {
+        var streamKey = args.length > 0 ? args[0] : "resque";
+        try(GorSparkRedisRunner grr = new GorSparkRedisRunner(streamKey)) {
             grr.call();
         } catch (Exception e) {
             log.error("Error running GorSparkRedisRunner", e);
