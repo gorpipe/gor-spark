@@ -177,7 +177,7 @@ public class SparkRowUtilities {
         return gdt;
     }
 
-    public static Dataset<? extends org.apache.spark.sql.Row> registerFile(String[] fns, String name, String profile, GorSparkSession gorSparkSession, String standalone, Path fileroot, Path cacheDir, boolean usestreaming, String filter, String filterFile, String filterColumn, String splitFile, final boolean nor, final String chr, final int pos, final int end, final String jobid, String cacheFile, boolean cpp, boolean tag, StructType schema) throws IOException, DataFormatException {
+    public static Dataset<? extends org.apache.spark.sql.Row> registerFile(String[] fns, String name, String profile, GorSparkSession gorSparkSession, String standalone, Path fileroot, Path cacheDir, boolean usestreaming, String filter, String filterFile, String filterColumn, String splitFile, final boolean nor, final String chr, final int pos, final int end, final String jobid, String cacheFile, boolean cpp, boolean tag, StructType schema, Map<String,String> readOptions) throws IOException, DataFormatException {
         String fn = fns[0];
         boolean curlyQuery = fn.startsWith("{");
         boolean nestedQuery = fn.startsWith("<(") || curlyQuery;
@@ -374,6 +374,9 @@ public class SparkRowUtilities {
                     String bgenDataSource = "xml";
                     var dfr = gorSparkSession.getSparkSession().read().format(bgenDataSource);
                     if (schema!=null) dfr.schema(schema);
+                    for (Map.Entry<String,String> entry : readOptions.entrySet()) {
+                        dfr = dfr.option(entry.getKey(),entry.getValue());
+                    }
                     gor = dfr.load(fileName);
                     dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
                 } else if (splitFile == null && (fileName.toLowerCase().endsWith(".gor") || fileName.toLowerCase().endsWith(".nor") || fileName.toLowerCase().endsWith(".tsv") || fileName.toLowerCase().endsWith(".csv"))) {

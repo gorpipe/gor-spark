@@ -109,24 +109,28 @@ public class SparkRowSource extends ProcessSource {
 
         this.gorSparkSession = gpSession;
         this.nor = nor;
+
+        var options = new HashMap<String,String>();
+        if(option!=null) {
+            if(option.startsWith("'")) {
+                option = option.substring(1,option.length()-1);
+            }
+            for(String split : option.split(";")) {
+                String splittrim = split.trim();
+                int ie = splittrim.indexOf('=');
+                String key = splittrim.substring(0,ie);
+                String val = splittrim.substring(ie+1);
+                options.put(key,val);
+            }
+        }
+
         if (parquet != null && Files.exists(Paths.get(parquet))) {
             dataset = gpSession.getSparkSession().read().parquet(parquet);
         } else if(format != null) {
             initFileRoot(gpSession);
             var dataFrameReader = gpSession.getSparkSession().read().format(format);
-            var options = new HashSet<String>();
-            if(option!=null) {
-                if(option.startsWith("'")) {
-                    option = option.substring(1,option.length()-1);
-                }
-                for(String split : option.split(";")) {
-                    String splittrim = split.trim();
-                    int ie = splittrim.indexOf('=');
-                    String key = splittrim.substring(0,ie);
-                    String val = splittrim.substring(ie+1);
-                    options.add(key);
-                    dataFrameReader = dataFrameReader.option(key,val);
-                }
+            for (Map.Entry<String,String> entry : options.entrySet()) {
+                dataFrameReader = dataFrameReader.option(entry.getKey(),entry.getValue());
             }
             if(ddl!=null) {
                 StructType schema = loadSchema(ddl, fileroot);
@@ -148,7 +152,7 @@ public class SparkRowSource extends ProcessSource {
                     dataFrameReader.option("table",table).load().createOrReplaceTempView(sqlhash);
                     dataset = gorSparkSession.getSparkSession().sql(sql);
                 } else {
-                    dataset = sql.equals("dummy") || options.contains("table") ? dataFrameReader.load() : dataFrameReader.option("table",sql).load();
+                    dataset = sql.equals("dummy") || options.containsKey("table") ? dataFrameReader.load() : dataFrameReader.option("table",sql).load();
                 }
             } else if(sql.toLowerCase().startsWith("select ")) {
                 dataset = dataFrameReader.load();
@@ -222,13 +226,13 @@ public class SparkRowSource extends ProcessSource {
                 for (String fn : fileNames) {
                     if (gorSparkSession.getSystemContext().getServer()) ProjectContext.validateServerFileName(fn, fileroot.toString(), true);
                     StructType schema = ddl!=null ? loadSchema(ddl, fileroot) : null;
-                    SparkRowUtilities.registerFile(new String[]{fn}, profile,null, gpSession, standalone, fileroot, cachepath, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp, tag, schema);
+                    SparkRowUtilities.registerFile(new String[]{fn}, profile,null, gpSession, standalone, fileroot, cachepath, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp, tag, schema, options);
                 }
                 dataset = gorSparkSession.getSparkSession().sql(sql);
             } else {
                 fileNames = headercommands.toArray(new String[0]);
                 StructType schema = ddl!=null ? loadSchema(ddl, fileroot) : null;
-                dataset = SparkRowUtilities.registerFile(fileNames, null, profile, gpSession, standalone, fileroot, cachepath, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp, tag, schema);
+                dataset = SparkRowUtilities.registerFile(fileNames, null, profile, gpSession, standalone, fileroot, cachepath, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp, tag, schema, options);
             }
 
             if (chr != null) {
