@@ -13,7 +13,10 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import java.util.zip.DataFormatException;
 
+import com.databricks.spark.xml.util.XSDToSchema;
 import gorsat.commands.PysparkAnalysis;
+import io.projectglow.Glow;
+import io.projectglow.transformers.blockvariantsandsamples.VariantSampleBlockMaker;
 import org.apache.spark.ml.feature.Normalizer;
 import org.apache.spark.ml.feature.PCA;
 import org.apache.spark.ml.feature.PCAModel;
@@ -84,6 +87,13 @@ public class SparkRowSource extends ProcessSource {
         }
     }
 
+    private StructType loadSchema(String ddl) {
+        if (ddl.toLowerCase().endsWith(".xsd")) {
+            return XSDToSchema.read(Paths.get(ddl));
+        }
+        return StructType.fromDDL(ddl);
+    }
+
     public SparkRowSource(String sql, String profile, String parquet, String type, boolean nor, GorSparkSession gpSession, final String filter, final String filterFile, final String filterColumn, final String splitFile, final String chr, final int pos, final int end, boolean usestreaming, String jobId, boolean useCpp, String parts, int buckets, boolean tag, String ddl, String format, String option) throws IOException, DataFormatException {
         init();
         this.sql = sql;
@@ -115,7 +125,7 @@ public class SparkRowSource extends ProcessSource {
                 }
             }
             if(ddl!=null) {
-                StructType schema = StructType.fromDDL(ddl);
+                StructType schema = loadSchema(ddl);
                 dataFrameReader = dataFrameReader.schema(schema);
             }
             if(format.equals("jdbc")) {
@@ -207,13 +217,13 @@ public class SparkRowSource extends ProcessSource {
                 fileNames = Arrays.stream(cmdsplit).flatMap(gorfileflat).filter(gorpred).toArray(String[]::new);
                 for (String fn : fileNames) {
                     if (gorSparkSession.getSystemContext().getServer()) ProjectContext.validateServerFileName(fn, fileroot.toString(), true);
-                    StructType schema = ddl!=null ? StructType.fromDDL(ddl) : null;
+                    StructType schema = ddl!=null ? loadSchema(ddl) : null;
                     SparkRowUtilities.registerFile(new String[]{fn}, profile,null, gpSession, standalone, fileroot, cachepath, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp, tag, schema);
                 }
                 dataset = gorSparkSession.getSparkSession().sql(sql);
             } else {
                 fileNames = headercommands.toArray(new String[0]);
-                StructType schema = ddl!=null ? StructType.fromDDL(ddl) : null;
+                StructType schema = ddl!=null ? loadSchema(ddl) : null;
                 dataset = SparkRowUtilities.registerFile(fileNames, null, profile, gpSession, standalone, fileroot, cachepath, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp, tag, schema);
             }
 
@@ -1031,10 +1041,10 @@ public class SparkRowSource extends ProcessSource {
                     options.put(psplit[0], psplit[1].substring(1, psplit[1].length() - 1));
                 else options.put(psplit[0], psplit[1]);
             }
-            //ret = Glow.transform("pipe", dataset, options);
+            ret = Glow.transform("pipe", dataset, options);
         } else if (gor.startsWith("split_multiallelics")) {
             Map<String, String> options = new HashMap<>();
-            //ret = Glow.transform("split_multiallelics", dataset, options);
+            ret = Glow.transform("split_multiallelics", dataset, options);
         } else if (gor.startsWith("block_variants_and_samples")) {
             Map<String, String> options = new HashMap<>();
             String cmd = gor.substring("block_variants_and_samples".length()).trim();
@@ -1045,10 +1055,10 @@ public class SparkRowSource extends ProcessSource {
                     options.put(psplit[0], psplit[1].substring(1, psplit[1].length() - 1));
                 else options.put(psplit[0], psplit[1]);
             }
-            //ret = Glow.transform("block_variants_and_samples", dataset, options);
+            ret = Glow.transform("block_variants_and_samples", dataset, options);
         } else if (gor.startsWith("make_sample_blocks")) {
             int sampleCount = Integer.parseInt(gor.substring("make_sample_blocks".length()).trim());
-            //ret = VariantSampleBlockMaker.makeSampleBlocks(dataset, sampleCount);
+            ret = VariantSampleBlockMaker.makeSampleBlocks(dataset, sampleCount);
         }
         return ret;
     }

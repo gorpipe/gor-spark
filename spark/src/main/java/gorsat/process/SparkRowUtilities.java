@@ -43,7 +43,7 @@ import java.util.zip.GZIPInputStream;
 import static org.apache.spark.sql.types.DataTypes.*;
 
 public class SparkRowUtilities {
-    static final String[] allowedGorSQLFileEndings = {".json",".csv",".tsv",".gor",".gorz",".gor.gz",".gord",".txt",".vcf",".bgen"};
+    static final String[] allowedGorSQLFileEndings = {".json",".csv",".tsv",".gor",".gorz",".gor.gz",".gord",".txt",".vcf",".bgen",".xml",".mt"};
     static final String csvDataSource = "csv";
     static final String gordatasourceClassname = "gorsat.spark.GorDataSource";
 
@@ -369,6 +369,12 @@ public class SparkRowUtilities {
                     //io.projectglow.vcf.VCFFileFormat f;
                     String bgenDataSource = "io.projectglow.bgen.BgenFileFormat"; //vcf
                     gor = gorSparkSession.getSparkSession().read().format(bgenDataSource).load(fileName);
+                    dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
+                } else if (fileName.toLowerCase().endsWith(".xml")) {
+                    String bgenDataSource = "xml";
+                    var dfr = gorSparkSession.getSparkSession().read().format(bgenDataSource);
+                    if (schema!=null) dfr.schema(schema);
+                    gor = dfr.load(fileName);
                     dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
                 } else if (splitFile == null && (fileName.toLowerCase().endsWith(".gor") || fileName.toLowerCase().endsWith(".nor") || fileName.toLowerCase().endsWith(".tsv") || fileName.toLowerCase().endsWith(".csv"))) {
                     DataFrameReader dfr = gorSparkSession.getSparkSession().read().format("csv").option("header",true);
