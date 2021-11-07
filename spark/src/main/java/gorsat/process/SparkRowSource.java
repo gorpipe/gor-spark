@@ -87,9 +87,13 @@ public class SparkRowSource extends ProcessSource {
         }
     }
 
-    private StructType loadSchema(String ddl) {
+    private StructType loadSchema(String ddl, Path root) {
         if (ddl.toLowerCase().endsWith(".xsd")) {
-            return XSDToSchema.read(Paths.get(ddl));
+            var ddlPath = Paths.get(ddl);
+            if (!ddlPath.isAbsolute()) ddlPath = root.resolve(ddlPath);
+            return XSDToSchema.read(ddlPath);
+        } else if(ddl.startsWith("<")) {
+            return XSDToSchema.read(ddl);
         }
         return StructType.fromDDL(ddl);
     }
@@ -125,7 +129,7 @@ public class SparkRowSource extends ProcessSource {
                 }
             }
             if(ddl!=null) {
-                StructType schema = loadSchema(ddl);
+                StructType schema = loadSchema(ddl, fileroot);
                 dataFrameReader = dataFrameReader.schema(schema);
             }
             if(format.equals("jdbc")) {
@@ -217,13 +221,13 @@ public class SparkRowSource extends ProcessSource {
                 fileNames = Arrays.stream(cmdsplit).flatMap(gorfileflat).filter(gorpred).toArray(String[]::new);
                 for (String fn : fileNames) {
                     if (gorSparkSession.getSystemContext().getServer()) ProjectContext.validateServerFileName(fn, fileroot.toString(), true);
-                    StructType schema = ddl!=null ? loadSchema(ddl) : null;
+                    StructType schema = ddl!=null ? loadSchema(ddl, fileroot) : null;
                     SparkRowUtilities.registerFile(new String[]{fn}, profile,null, gpSession, standalone, fileroot, cachepath, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp, tag, schema);
                 }
                 dataset = gorSparkSession.getSparkSession().sql(sql);
             } else {
                 fileNames = headercommands.toArray(new String[0]);
-                StructType schema = ddl!=null ? loadSchema(ddl) : null;
+                StructType schema = ddl!=null ? loadSchema(ddl, fileroot) : null;
                 dataset = SparkRowUtilities.registerFile(fileNames, null, profile, gpSession, standalone, fileroot, cachepath, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp, tag, schema);
             }
 
