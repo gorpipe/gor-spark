@@ -23,22 +23,22 @@ public class RedisLogSubscription extends JedisPubSub implements GorLogSubscript
     private Thread subscriptionThread;
     private Thread unsubscriptionThread;
 
-    public RedisLogSubscription(GorClusterBase cluster, GorLogReceiver receiver, String[] jobIds) {
+    public RedisLogSubscription(GorClusterBase cluster, GorLogReceiver receiver, String[] jobIds, String key) {
         this.cluster = cluster;
         this.receiver = receiver;
         this.channels = new String[jobIds.length];
         for (int i = 0; i < jobIds.length; i++) {
-            channels[i] = getPrivateLogKey(jobIds[i]);
+            channels[i] = getPrivateLogKey(key, jobIds[i]);
             chanToId.put(channels[i], jobIds[i]);
         }
     }
 
     public static String getKey(String... parts) {
-        return "resque:DC:" + String.join(":", parts);
+        return String.join(":", parts);
     }
 
-    public static String getPrivateLogKey(String jobId) {
-        return getKey("JOB", jobId, "LOG");
+    public static String getPrivateLogKey(String key, String jobId) {
+        return getKey(key, "DC", "JOB", jobId, "LOG");
     }
 
     @Override
@@ -75,7 +75,6 @@ public class RedisLogSubscription extends JedisPubSub implements GorLogSubscript
                     cluster.logInfo("Ending log subscription on channels " + Arrays.toString(channels), null);
                     unsubscriptionThread.interrupt();
                 }
-
             }
         };
         subscriptionThread.start();

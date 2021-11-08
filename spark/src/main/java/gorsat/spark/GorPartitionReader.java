@@ -97,7 +97,8 @@ public class GorPartitionReader implements PartitionReader<InternalRow> {
     }
 
     void initIterator() {
-        sparkGorMonitor = GorSparkUtilities.getSparkGorMonitor(jobId, redisUri);
+        String key = GorSparkUtilities.getRedisKey(securityContext);
+        sparkGorMonitor = GorSparkUtilities.getSparkGorMonitor(jobId, redisUri, key);
 
         SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectRoot, cacheDir, configFile, aliasFile, securityContext, sparkGorMonitor);
         GorSparkSession gorPipeSession = (GorSparkSession) sessionFactory.create();
