@@ -15,8 +15,6 @@ import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.types.*;
 import org.gorpipe.gor.binsearch.CompressionType;
 import org.gorpipe.gor.binsearch.Unzipper;
-import org.gorpipe.gor.driver.DataSource;
-import org.gorpipe.gor.model.DriverBackedFileReader;
 import org.gorpipe.gor.model.FileReader;
 import org.gorpipe.gor.model.ParquetLine;
 import org.gorpipe.gor.model.Row;
