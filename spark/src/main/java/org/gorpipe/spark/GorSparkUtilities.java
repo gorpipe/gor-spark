@@ -20,6 +20,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -123,7 +125,7 @@ public class GorSparkUtilities {
         return sparkRedisHost != null && sparkRedisHost.length() > 0 ? constructRedisUri(sparkRedisHost) : "";
     }
 
-    public static SparkGorMonitor getSparkGorMonitor(String jobId, String redisUri) {
+    public static SparkGorMonitor getSparkGorMonitor(String jobId, String redisUri, String key) {
         var srvList = ServiceLoader.load(SparkMonitorFactory.class).stream().collect(Collectors.toList());
         if(srvList.size()>0) {
             SparkMonitorFactory sparkMonitorFactory;
@@ -131,7 +133,7 @@ public class GorSparkUtilities {
             if (srvList.size() > 1 && sparkMonitorFactory instanceof SparkGorMonitorFactory && redisUri != null && redisUri.length() > 0) {
                 sparkMonitorFactory = srvList.get(1).get();
             }
-            return sparkMonitorFactory.createSparkGorMonitor(jobId, redisUri);
+            return sparkMonitorFactory.createSparkGorMonitor(jobId, redisUri, key);
         }
         return null;
     }
@@ -191,5 +193,20 @@ public class GorSparkUtilities {
 
     public static List<org.apache.spark.sql.Row> stream2SparkRowList(Stream<Row> str, StructType schema) {
         return str.map(p -> new SparkGorRow(p, schema)).collect(Collectors.toList());
+    }
+
+    public static String getRedisKey(String securityContext) {
+        if(securityContext!=null && securityContext.length()>0) {
+            try {
+                MessageDigest md = MessageDigest.getInstance("MD5");
+                md.update(securityContext.getBytes());
+                String digest = new String(md.digest());
+                long ldigest = Long.parseLong(digest);
+                return Long.toHexString(ldigest);
+            } catch (NoSuchAlgorithmException e) {
+                // Ignore
+            }
+        }
+        return "resque";
     }
 }

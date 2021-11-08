@@ -167,10 +167,11 @@ project(':spark') {
         }
         implementation 'org.apache.commons:commons-compress:_'
 
-        implementation('io.projectglow:glow-spark3_2.12:_') {
+        /*implementation('io.projectglow:glow-spark3_2.12:_') {
             exclude group: 'org.freemarker'
             exclude group: 'org.apache.spark'
-        }
+        }*/
+        implementation group: 'com.databricks', name: 'spark-xml_2.12', version: '0.14.0'
 
         implementation "org.aeonbits.owner:owner:_"
         implementation 'info.picocli:picocli-shell-jline3:_'

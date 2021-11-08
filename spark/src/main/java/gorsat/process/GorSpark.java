@@ -47,10 +47,11 @@ public class GorSpark implements MapPartitionsFunction<Row, Row> {
 
         GenericSessionFactory gsf = Files.exists(projectPath) ? new GenericSessionFactory(gorroot, "result_cache") : new GenericSessionFactory();
         GorSession gps = gsf.create();
+        String key = gps.getProjectContext().getFileReader().getSecurityContext();
         gps.setNorContext(nor);
 
         if( uri != null ) {
-            GorMonitor gorMonitor = GorSparkUtilities.getSparkGorMonitor(jobId, uri);
+            GorMonitor gorMonitor = GorSparkUtilities.getSparkGorMonitor(jobId, uri, key);
             gps.getSystemContext().setMonitor(gorMonitor);
         }
 

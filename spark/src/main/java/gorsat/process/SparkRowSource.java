@@ -13,6 +13,7 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import java.util.zip.DataFormatException;
 
+import com.databricks.spark.xml.util.XSDToSchema;
 import gorsat.commands.PysparkAnalysis;
 import org.apache.spark.ml.classification.LogisticRegression;
 import org.apache.spark.ml.classification.LogisticRegressionModel;
@@ -86,6 +87,17 @@ public class SparkRowSource extends ProcessSource {
         }
     }
 
+    private StructType loadSchema(String ddl, Path root) {
+        if (ddl.toLowerCase().endsWith(".xsd")) {
+            var ddlPath = Paths.get(ddl);
+            if (!ddlPath.isAbsolute()) ddlPath = root.resolve(ddlPath);
+            return XSDToSchema.read(ddlPath);
+        } else if(ddl.startsWith("<")) {
+            return XSDToSchema.read(ddl);
+        }
+        return StructType.fromDDL(ddl);
+    }
+
     public SparkRowSource(String sql, String profile, String parquet, String type, boolean nor, GorSparkSession gpSession, final String filter, final String filterFile, final String filterColumn, final String splitFile, final String chr, final int pos, final int end, boolean usestreaming, String jobId, boolean useCpp, String parts, int buckets, boolean tag, String ddl, String format, String option) throws IOException, DataFormatException {
         init();
         this.sql = sql;
@@ -97,27 +109,31 @@ public class SparkRowSource extends ProcessSource {
 
         this.gorSparkSession = gpSession;
         this.nor = nor;
+
+        var options = new HashMap<String,String>();
+        if(option!=null) {
+            if(option.startsWith("'")) {
+                option = option.substring(1,option.length()-1);
+            }
+            for(String split : option.split(";")) {
+                String splittrim = split.trim();
+                int ie = splittrim.indexOf('=');
+                String key = splittrim.substring(0,ie);
+                String val = splittrim.substring(ie+1);
+                options.put(key,val);
+            }
+        }
+
         if (parquet != null && Files.exists(Paths.get(parquet))) {
             dataset = gpSession.getSparkSession().read().parquet(parquet);
         } else if(format != null) {
             initFileRoot(gpSession);
             var dataFrameReader = gpSession.getSparkSession().read().format(format);
-            var options = new HashSet<String>();
-            if(option!=null) {
-                if(option.startsWith("'")) {
-                    option = option.substring(1,option.length()-1);
-                }
-                for(String split : option.split(";")) {
-                    String splittrim = split.trim();
-                    int ie = splittrim.indexOf('=');
-                    String key = splittrim.substring(0,ie);
-                    String val = splittrim.substring(ie+1);
-                    options.add(key);
-                    dataFrameReader = dataFrameReader.option(key,val);
-                }
+            for (Map.Entry<String,String> entry : options.entrySet()) {
+                dataFrameReader = dataFrameReader.option(entry.getKey(),entry.getValue());
             }
             if(ddl!=null) {
-                StructType schema = StructType.fromDDL(ddl);
+                StructType schema = loadSchema(ddl, fileroot);
                 dataFrameReader = dataFrameReader.schema(schema);
             }
             if(format.equals("jdbc")) {
@@ -136,7 +152,7 @@ public class SparkRowSource extends ProcessSource {
                     dataFrameReader.option("table",table).load().createOrReplaceTempView(sqlhash);
                     dataset = gorSparkSession.getSparkSession().sql(sql);
                 } else {
-                    dataset = sql.equals("dummy") || options.contains("table") ? dataFrameReader.load() : dataFrameReader.option("table",sql).load();
+                    dataset = sql.equals("dummy") || options.containsKey("table") ? dataFrameReader.load() : dataFrameReader.option("table",sql).load();
                 }
             } else if(sql.toLowerCase().startsWith("select ")) {
                 dataset = dataFrameReader.load();
@@ -209,14 +225,14 @@ public class SparkRowSource extends ProcessSource {
                 fileNames = Arrays.stream(cmdsplit).flatMap(gorfileflat).filter(gorpred).toArray(String[]::new);
                 for (String fn : fileNames) {
                     if (gorSparkSession.getSystemContext().getServer()) ProjectContext.validateServerFileName(fn, fileroot.toString(), true);
-                    StructType schema = ddl!=null ? StructType.fromDDL(ddl) : null;
-                    SparkRowUtilities.registerFile(new String[]{fn}, profile,null, gpSession, standalone, fileroot, cachepath, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp, tag, schema);
+                    StructType schema = ddl!=null ? loadSchema(ddl, fileroot) : null;
+                    SparkRowUtilities.registerFile(new String[]{fn}, profile,null, gpSession, standalone, fileroot, cachepath, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp, tag, schema, options);
                 }
                 dataset = gorSparkSession.getSparkSession().sql(sql);
             } else {
                 fileNames = headercommands.toArray(new String[0]);
-                StructType schema = ddl!=null ? StructType.fromDDL(ddl) : null;
-                dataset = SparkRowUtilities.registerFile(fileNames, null, profile, gpSession, standalone, fileroot, cachepath, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp, tag, schema);
+                StructType schema = ddl!=null ? loadSchema(ddl, fileroot) : null;
+                dataset = SparkRowUtilities.registerFile(fileNames, null, profile, gpSession, standalone, fileroot, cachepath, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp, tag, schema, options);
             }
 
             if (chr != null) {
