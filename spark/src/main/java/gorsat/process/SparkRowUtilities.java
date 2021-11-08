@@ -437,6 +437,13 @@ public class SparkRowUtilities {
                                 if (fileroot != null) dfr.option("projectroot", fileroot.toString());
                                 dfr.option("aliasfile", gorSparkSession.getProjectContext().getGorAliasFile());
                                 dfr.option("configfile", gorSparkSession.getProjectContext().getGorConfigFile());
+                                if (gorSparkSession.getRedisUri() != null && gorSparkSession.getRedisUri().length() > 0) {
+                                    dfr.option("redis", gorSparkSession.getRedisUri());
+                                }
+                                if (gorSparkSession.streamKey() != null && gorSparkSession.streamKey().length() > 0) {
+                                    dfr.option("streamkey", gorSparkSession.streamKey());
+                                }
+                                dfr.option("jobid", jobid);
                                 var securityContext = gorSparkSession.getProjectContext().getFileReader().getSecurityContext();
                                 if (securityContext != null) dfr = dfr.option("securityContext", securityContext);
                                 if (filter != null) dfr = dfr.option("f", filter);
@@ -475,6 +482,7 @@ public class SparkRowUtilities {
                                 DataFrameReader dfr = gorSparkSession.getSparkSession().read().format(gordatasourceClassname).schema(schema);
                                 if (gorSparkSession.getRedisUri() != null && gorSparkSession.getRedisUri().length() > 0) {
                                     dfr = dfr.option("redis", gorSparkSession.getRedisUri())
+                                            .option("streamkey", gorSparkSession.streamKey())
                                             .option("jobid", jobid)
                                             .option("cachefile", cacheFile)
                                             .option("native", Boolean.toString(cpp));

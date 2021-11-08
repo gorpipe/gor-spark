@@ -57,7 +57,7 @@ public class GorSparkRedisRunner implements Callable<String>, AutoCloseable {
 
         StructField[] fields = {StructField.apply("_id", DataTypes.StringType, true, Metadata.empty()),StructField.apply("job", DataTypes.StringType, true, Metadata.empty()),StructField.apply("field", DataTypes.StringType, true, Metadata.empty()),StructField.apply("value", DataTypes.StringType, true, Metadata.empty()),StructField.apply("sec", DataTypes.StringType, true, Metadata.empty())};
         StructType schema = new StructType(fields);
-        try(RedisBatchConsumer redisBatchConsumer = new RedisBatchConsumer(sparkSession, redisUri)) {
+        try(RedisBatchConsumer redisBatchConsumer = new RedisBatchConsumer(sparkSession, redisUri, streamKey)) {
             StreamingQuery query = sparkSession.readStream().format("redis")
                     .option("stream.keys", streamKey)
                     .schema(schema)
