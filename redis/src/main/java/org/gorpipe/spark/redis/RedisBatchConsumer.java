@@ -42,12 +42,13 @@ public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long>, Au
     MonitorThread mont;
     ExecutorService es;
 
-    public RedisBatchConsumer(SparkSession sparkSession, String redisUri) {
+    public RedisBatchConsumer(SparkSession sparkSession, String redisUri, String streamKey) {
         log.info("Starting RedisBatchConsumer on redisUri "+ redisUri);
 
         gss = new GorSparkSession("", 0);
         gss.setSparkSession(sparkSession);
         gss.redisUri_$eq(redisUri);
+        gss.streamKey_$eq(streamKey);
 
         SystemContext.Builder systemContextBuilder = new SystemContext.Builder();
         sysctx = systemContextBuilder
@@ -90,7 +91,7 @@ public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long>, Au
         }
         String configFile = gss.getProjectContext() != null ? gss.getProjectContext().getGorConfigFile() : null;
         String aliasFile = gss.getProjectContext() != null ? gss.getProjectContext().getGorAliasFile() : null;
-        GorQueryRDD gorQueryRDD = new GorQueryRDD(gss.sparkSession(), newCommands, newFingerprints, newCacheFiles, projectDirStr, "result_cache", configFile, aliasFile, newJobIds, newSecCtxs, gss.redisUri());
+        GorQueryRDD gorQueryRDD = new GorQueryRDD(gss.sparkSession(), newCommands, newFingerprints, newCacheFiles, projectDirStr, "result_cache", configFile, aliasFile, newJobIds, newSecCtxs, gss.redisUri(), gss.streamKey());
         return gorQueryRDD.toJavaRDD().collectAsync();
     }
 
@@ -218,10 +219,11 @@ public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long>, Au
         String fingerprints = args[4];
         String cachefiles = args[5];
         String jobids = args[6];
+        String streamKey = args.length > 7 ? args[7] : "resque";
 
         SparkSession.Builder sb = new SparkSession.Builder();
         try(SparkSession sparkSession = sb
-                .getOrCreate(); RedisBatchConsumer redisBatchConsumer = new RedisBatchConsumer(sparkSession, redisUrl)) {
+                .getOrCreate(); RedisBatchConsumer redisBatchConsumer = new RedisBatchConsumer(sparkSession, redisUrl, streamKey)) {
             String[] querySplit = queries.split(";;");
             String[] fingerprintSplit = fingerprints.split(";");
             String[] cachefileSplit = cachefiles.split(";");

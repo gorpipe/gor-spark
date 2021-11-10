@@ -48,7 +48,7 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
     public static String[] executeSparkBatch(GorSparkSession session, String projectDir, String cacheDir, String[] fingerprints, String[] commandsToExecute, String[] jobIds, String[] batchGroupNames, String[] cacheFiles) {
         SparkSession sparkSession = session.getSparkSession();
         String redisUri = session.getRedisUri();
-        String redisKey = GorSparkUtilities.getRedisKey(session.getProjectContext().getFileReader().getSecurityContext());
+        String redisKey = session.streamKey();
 
         final Set<Integer> sparkJobs = new TreeSet<>();
         final Set<Integer> gorJobs = new TreeSet<>();

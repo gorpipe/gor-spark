@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.math.BigInteger;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -193,20 +194,5 @@ public class GorSparkUtilities {
 
     public static List<org.apache.spark.sql.Row> stream2SparkRowList(Stream<Row> str, StructType schema) {
         return str.map(p -> new SparkGorRow(p, schema)).collect(Collectors.toList());
-    }
-
-    public static String getRedisKey(String securityContext) {
-        if(securityContext!=null && securityContext.length()>0) {
-            try {
-                MessageDigest md = MessageDigest.getInstance("MD5");
-                md.update(securityContext.getBytes());
-                String digest = new String(md.digest());
-                long ldigest = Long.parseLong(digest);
-                return Long.toHexString(ldigest);
-            } catch (NoSuchAlgorithmException e) {
-                // Ignore
-            }
-        }
-        return "resque";
     }
 }

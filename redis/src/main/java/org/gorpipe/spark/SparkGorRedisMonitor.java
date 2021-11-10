@@ -54,7 +54,7 @@ public class SparkGorRedisMonitor extends SparkGorMonitor implements Serializabl
     }
 
     private String getJobKey(String jobId) {
-        return getKey("JOB", jobId);
+        return getKey(key, "DC", "JOB", jobId);
     }
 
     public Duration getJobExpiration() {

@@ -27,7 +27,7 @@ public class RedisSparkQueryHandler extends GeneralSparkQueryHandler {
     @Override
     public void init(GorSparkSession gorPipeSession) {
         super.init(gorPipeSession);
-        key = GorSparkUtilities.getRedisKey(gorPipeSession.getProjectContext().getFileReader().getSecurityContext());
+        key = gorPipeSession.streamKey();
         if (sparkRedisUri != null && sparkRedisUri.length() > 0) {
             jedisPool = SharedRedisPools.getJedisPool(JedisURIHelper.create(sparkRedisUri));
             gorPipeSession.redisUri_$eq(sparkRedisUri);

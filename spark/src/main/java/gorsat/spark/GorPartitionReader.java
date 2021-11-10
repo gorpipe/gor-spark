@@ -30,6 +30,7 @@ public class GorPartitionReader implements PartitionReader<InternalRow> {
     GorRangeInputPartition p;
     ExpressionEncoder.Serializer<Row> serializer;
     String redisUri;
+    String streamKey;
     String jobId;
     String useCpp;
     String projectRoot;
@@ -39,12 +40,13 @@ public class GorPartitionReader implements PartitionReader<InternalRow> {
     String securityContext;
     boolean nor = false;
 
-    public GorPartitionReader(StructType schema, GorRangeInputPartition gorRangeInputPartition, String redisUri, String jobId, String projectRoot, String cacheDir, String configFile, String aliasFile, String securityContext, String useCpp) {
+    public GorPartitionReader(StructType schema, GorRangeInputPartition gorRangeInputPartition, String redisUri, String streamKey, String jobId, String projectRoot, String cacheDir, String configFile, String aliasFile, String securityContext, String useCpp) {
         ExpressionEncoder<Row> encoder = RowEncoder.apply(schema);
         serializer = encoder.createSerializer();
         sparkRow = new SparkGorRow(schema);
         p = gorRangeInputPartition;
         this.redisUri = redisUri;
+        this.streamKey = streamKey;
         this.jobId = jobId;
         this.useCpp = useCpp;
         this.projectRoot = projectRoot;
@@ -97,8 +99,7 @@ public class GorPartitionReader implements PartitionReader<InternalRow> {
     }
 
     void initIterator() {
-        String key = GorSparkUtilities.getRedisKey(securityContext);
-        sparkGorMonitor = GorSparkUtilities.getSparkGorMonitor(jobId, redisUri, key);
+        sparkGorMonitor = GorSparkUtilities.getSparkGorMonitor(jobId, redisUri, streamKey);
 
         SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectRoot, cacheDir, configFile, aliasFile, securityContext, sparkGorMonitor);
         GorSparkSession gorPipeSession = (GorSparkSession) sessionFactory.create();

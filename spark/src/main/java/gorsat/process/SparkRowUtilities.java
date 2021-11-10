@@ -442,6 +442,9 @@ public class SparkRowUtilities {
                                 if (gorSparkSession.getRedisUri() != null && gorSparkSession.getRedisUri().length() > 0) {
                                     dfr.option("redis", gorSparkSession.getRedisUri());
                                 }
+                                if (gorSparkSession.streamKey() != null && gorSparkSession.streamKey().length() > 0) {
+                                    dfr.option("streamkey", gorSparkSession.streamKey());
+                                }
                                 dfr.option("jobid", jobid);
                                 var securityContext = gorSparkSession.getProjectContext().getFileReader().getSecurityContext();
                                 if (securityContext != null) dfr = dfr.option("securityContext", securityContext);
@@ -481,6 +484,7 @@ public class SparkRowUtilities {
                                 DataFrameReader dfr = gorSparkSession.getSparkSession().read().format(gordatasourceClassname).schema(schema);
                                 if (gorSparkSession.getRedisUri() != null && gorSparkSession.getRedisUri().length() > 0) {
                                     dfr = dfr.option("redis", gorSparkSession.getRedisUri())
+                                            .option("streamkey", gorSparkSession.streamKey())
                                             .option("jobid", jobid)
                                             .option("cachefile", cacheFile)
                                             .option("native", Boolean.toString(cpp));

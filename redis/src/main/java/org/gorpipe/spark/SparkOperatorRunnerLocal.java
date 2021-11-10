@@ -33,7 +33,8 @@ public class SparkOperatorRunnerLocal extends SparkOperatorRunner {
         String fingerprints = args[4];
         String cachefiles = args[5];
         String jobids = args[6];
-        try(RedisBatchConsumer redisBatchConsumer = new RedisBatchConsumer(sparkSession, redisUrl)) {
+        String streamKey = args.length > 7 ? args[7] : "resque";
+        try(RedisBatchConsumer redisBatchConsumer = new RedisBatchConsumer(sparkSession, redisUrl, streamKey)) {
             String[] arr = new String[]{queries, fingerprints, projectDir, requestId, jobids, cachefiles};
             List<String[]> lstr = Collections.singletonList(arr);
             Map<String, Future<List<String>>> futMap = redisBatchConsumer.runJobBatch(lstr);
