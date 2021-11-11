@@ -347,6 +347,13 @@ public class SparkRowUtilities {
                     if (securityContext!=null) dfr.option("securityContext", securityContext);
                     dfr.option("aliasfile", gorSparkSession.getProjectContext().getGorAliasFile());
                     dfr.option("configfile", gorSparkSession.getProjectContext().getGorConfigFile());
+                    if (gorSparkSession.getRedisUri() != null && gorSparkSession.getRedisUri().length() > 0) {
+                        dfr.option("redis", gorSparkSession.getRedisUri());
+                    }
+                    if (gorSparkSession.streamKey() != null && gorSparkSession.streamKey().length() > 0) {
+                        dfr.option("streamkey", gorSparkSession.streamKey());
+                    }
+                    if (jobid!=null) dfr.option("jobid", jobid);
                     if(schema!=null) dfr.schema(schema);
                     gor = dfr.load();
                     dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
