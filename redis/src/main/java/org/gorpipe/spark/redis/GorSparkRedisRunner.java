@@ -19,24 +19,26 @@ public class GorSparkRedisRunner implements Callable<String>, AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(GorSparkRedisRunner.class);
     private static final String CUSTOM_SPARK_LOGLEVEL_CONFIG = "spark.logLevel";
     private static final String DEFAULT_LOG_LEVEL = "WARN";
+    public static int DEFAULT_TIMEOUT = 3600;
     public static GorSparkRedisRunner instance;
     private SparkSession sparkSession;
     private String redisUri;
     private String streamKey;
+    private int timeoutCount;
 
     public GorSparkRedisRunner(GorSparkSession sparkSession) {
-        init(sparkSession.getSparkSession(), "resque");
+        init(sparkSession.getSparkSession(), "resque", DEFAULT_TIMEOUT);
     }
 
     public GorSparkRedisRunner() {
-        init(GorSparkUtilities.getSparkSession(), "resque");
+        init(GorSparkUtilities.getSparkSession(), "resque", DEFAULT_TIMEOUT);
     }
 
-    public GorSparkRedisRunner(String streamKey) {
-        init(GorSparkUtilities.getSparkSession(), streamKey);
+    public GorSparkRedisRunner(String streamKey, int timeoutCount) {
+        init(GorSparkUtilities.getSparkSession(), streamKey, timeoutCount);
     }
 
-    public void init(SparkSession sparkSession, String streamKey) {
+    public void init(SparkSession sparkSession, String streamKey, int timeoutCount) {
         SparkContext context = sparkSession.sparkContext();
         SparkConf conf = context.conf();
         String logLevel = DEFAULT_LOG_LEVEL;
@@ -46,6 +48,7 @@ public class GorSparkRedisRunner implements Callable<String>, AutoCloseable {
         log.info("Initializing GorSparkRedisRunner");
 
         this.streamKey = streamKey;
+        this.timeoutCount = timeoutCount;
         instance = this;
         this.sparkSession = sparkSession;
         redisUri = GorSparkUtilities.getSparkGorRedisUri();
@@ -64,6 +67,7 @@ public class GorSparkRedisRunner implements Callable<String>, AutoCloseable {
                     .load().writeStream().outputMode("update")
                     .foreachBatch(redisBatchConsumer).start();
             log.info("GorSparkRedisRunner is running");
+            redisBatchConsumer.mont.setQuery(query, timeoutCount);
             query.awaitTermination();
         }
         log.info("GorSparkRedisRunner has stopped");
@@ -73,7 +77,8 @@ public class GorSparkRedisRunner implements Callable<String>, AutoCloseable {
 
     public static void main(String[] args) {
         var streamKey = args.length > 0 ? args[0] : "resque";
-        try(GorSparkRedisRunner grr = new GorSparkRedisRunner(streamKey)) {
+        var timeoutCount = args.length > 1 ? Integer.parseInt(args[1]) : DEFAULT_TIMEOUT;
+        try(GorSparkRedisRunner grr = new GorSparkRedisRunner(streamKey, timeoutCount)) {
             grr.call();
         } catch (Exception e) {
             log.error("Error running GorSparkRedisRunner", e);

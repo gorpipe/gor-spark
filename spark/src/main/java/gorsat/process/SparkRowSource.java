@@ -51,6 +51,8 @@ import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.types.*;
 import org.gorpipe.spark.udfs.CharToDoubleArray;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.apache.spark.sql.types.DataTypes.*;
 
@@ -58,6 +60,8 @@ import static org.apache.spark.sql.types.DataTypes.*;
  * Created by sigmar on 12/02/16.
  */
 public class SparkRowSource extends ProcessSource {
+    private static final Logger log = LoggerFactory.getLogger(SparkRowSource.class);
+
     public void init() {
         dmap.put(StringType, "S");
         dmap.put(IntegerType, "I");
@@ -107,6 +111,19 @@ public class SparkRowSource extends ProcessSource {
 
         this.gorSparkSession = gpSession;
         this.nor = nor;
+
+        if (format==null || format.length()==0) {
+            for (Map.Entry e : jdbcmap.entrySet()) {
+                var key = "[" + e.getKey() + "].";
+                var i = CommandParseUtilities.quoteSafeIndexOf(sql, " " + key, false, 0);
+                if (i > 0) {
+                    sql = sql.replace(key, "");
+                    if (option == null || option.length() == 0) option = "url=" + e.getValue();
+                    else option += ";url=" + e.getValue();
+                    break;
+                }
+            }
+        }
 
         var options = new HashMap<String,String>();
         if(option!=null) {
@@ -342,11 +359,26 @@ public class SparkRowSource extends ProcessSource {
         //GorSparkSession.getSparkSession().sparkContext().setJobGroup("group gor", pushdownGorPipe, true);
     }
 
+    static Map<String,String> jdbcmap = new HashMap<>();
     static Map<String, DataType> tmap = new HashMap<>();
     static {
         tmap.put("S", StringType);
         tmap.put("I", IntegerType);
         tmap.put("D", DoubleType);
+
+        var gordbcreds = System.getProperty("gor.db.credentials","/opt/nextcode/gor-scripts/config/gor.db.credentials");
+        var path = Paths.get(gordbcreds);
+        if (Files.exists(path)) {
+            try {
+                Files.lines(path).skip(1).forEach(l -> {
+                    var spl = l.split("\t");
+                    if (spl.length<4) spl = l.split("\\t");
+                    jdbcmap.put(spl[0],spl[2]+"?user="+spl[3]+"&password="+spl[4]);
+                });
+            } catch (IOException e) {
+                log.error("No jdbc urls loaded", e);
+            }
+        }
     }
 
     public static StructType schemaFromRow(String[] header, Row row) {
