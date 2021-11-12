@@ -10,6 +10,7 @@ import java.time.Duration;
 public class SparkGorMonitor extends GorMonitor implements Serializable {
     private static final Logger log = LoggerFactory.getLogger(SparkGorMonitor.class);
     String jobId;
+    public static GorMonitor localProgressMonitor;
 
     public SparkGorMonitor(String jobId) {
         init(jobId);

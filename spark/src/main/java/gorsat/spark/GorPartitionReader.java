@@ -14,6 +14,7 @@ import org.apache.spark.sql.connector.read.PartitionReader;
 import org.apache.spark.sql.types.StructType;
 import org.gorpipe.gor.model.GenomicIterator;
 import org.gorpipe.gor.model.RowBase;
+import org.gorpipe.gor.monitor.GorMonitor;
 import org.gorpipe.model.gor.RowObj;
 import org.gorpipe.spark.*;
 
@@ -26,7 +27,7 @@ import java.util.stream.Collectors;
 public class GorPartitionReader implements PartitionReader<InternalRow> {
     GenomicIterator iterator;
     SparkGorRow sparkRow;
-    SparkGorMonitor sparkGorMonitor;
+    GorMonitor sparkGorMonitor;
     GorRangeInputPartition p;
     ExpressionEncoder.Serializer<Row> serializer;
     String redisUri;
