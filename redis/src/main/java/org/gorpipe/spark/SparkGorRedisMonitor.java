@@ -19,6 +19,9 @@ public class SparkGorRedisMonitor extends SparkGorMonitor implements Serializabl
     private String uri;
     private String key;
     boolean working = true;
+    private int count = 0;
+    private int max = 32;
+    private long lasttime = System.currentTimeMillis();
 
     public SparkGorRedisMonitor(String uri, String jobId, String key) {
         super(jobId);
@@ -46,7 +49,18 @@ public class SparkGorRedisMonitor extends SparkGorMonitor implements Serializabl
 
     @Override
     public boolean isCancelled() {
-        return getValue(JobField.CancelFlag) != null;
+        if (count++ > max) {
+            long t = System.currentTimeMillis();
+            if (t-lasttime < 1000) {
+                max *= 2;
+            } else {
+                max = Math.max(1,max/2);
+            }
+            lasttime = t;
+            count = 0;
+            return getValue(JobField.CancelFlag) != null;
+        }
+        return false;
     }
 
     public String getRedisUri() {

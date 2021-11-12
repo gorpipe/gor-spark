@@ -34,7 +34,7 @@ public class SparkSessionFactory extends GorSessionFactory {
     private String securityContext;
     private int workers;
 
-    public SparkSessionFactory(String root, String cacheDir, String configFile, String aliasFile, String securityContext, SparkGorMonitor sparkMonitor) {
+    public SparkSessionFactory(String root, String cacheDir, String configFile, String aliasFile, String securityContext, GorMonitor sparkMonitor) {
         this(GorSparkUtilities.getSparkSession(), root, cacheDir, configFile, aliasFile, securityContext, sparkMonitor);
     }
 

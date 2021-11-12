@@ -9,6 +9,7 @@ import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
 import org.gorpipe.gor.model.Row;
+import org.gorpipe.gor.monitor.GorMonitor;
 import org.gorpipe.spark.udfs.CharToDoubleArray;
 import org.gorpipe.spark.udfs.CharToDoubleArrayParallel;
 import org.gorpipe.spark.udfs.CommaToDoubleArray;
@@ -126,17 +127,21 @@ public class GorSparkUtilities {
         return sparkRedisHost != null && sparkRedisHost.length() > 0 ? constructRedisUri(sparkRedisHost) : "";
     }
 
-    public static SparkGorMonitor getSparkGorMonitor(String jobId, String redisUri, String key) {
-        var srvList = ServiceLoader.load(SparkMonitorFactory.class).stream().collect(Collectors.toList());
-        if(srvList.size()>0) {
-            SparkMonitorFactory sparkMonitorFactory;
-            sparkMonitorFactory = srvList.get(0).get();
-            if (srvList.size() > 1 && sparkMonitorFactory instanceof SparkGorMonitorFactory && redisUri != null && redisUri.length() > 0) {
-                sparkMonitorFactory = srvList.get(1).get();
+    public static GorMonitor getSparkGorMonitor(String jobId, String redisUri, String key) {
+        if (SparkGorMonitor.localProgressMonitor != null) {
+            return SparkGorMonitor.localProgressMonitor;
+        } else {
+            var srvList = ServiceLoader.load(SparkMonitorFactory.class).stream().collect(Collectors.toList());
+            if (srvList.size() > 0) {
+                SparkMonitorFactory sparkMonitorFactory;
+                sparkMonitorFactory = srvList.get(0).get();
+                if (srvList.size() > 1 && sparkMonitorFactory instanceof SparkGorMonitorFactory && redisUri != null && redisUri.length() > 0) {
+                    sparkMonitorFactory = srvList.get(1).get();
+                }
+                return sparkMonitorFactory.createSparkGorMonitor(jobId, redisUri, key);
             }
-            return sparkMonitorFactory.createSparkGorMonitor(jobId, redisUri, key);
+            return null;
         }
-        return null;
     }
 
     private static SparkSession newSparkSession(int workers) {
