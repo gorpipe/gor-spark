@@ -108,7 +108,7 @@ public class GorPartitionReader implements PartitionReader<InternalRow> {
 
         if(p.query!=null) {
             iterator = iteratorWithPipeSteps(pi);
-            nor = p.query.toLowerCase().startsWith("nor ") || p.query.toLowerCase().startsWith("norrows ");
+            nor = p.query.toLowerCase().startsWith("nor ") || p.query.toLowerCase().startsWith("norrows ") || p.query.toLowerCase().startsWith("norcmd ") || p.query.toLowerCase().startsWith("cmd -n ");
         } else {
             iterator = iteratorFromFile(pi);
         }
