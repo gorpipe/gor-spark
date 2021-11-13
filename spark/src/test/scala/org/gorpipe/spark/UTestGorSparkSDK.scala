@@ -28,6 +28,13 @@ class UTestGorSparkSDK {
     }
 
     @Test
+    def testSelectCmdEmpty(): Unit = {
+        val res = sparkGorSession.dataframe("select * from <(cmd {date})")
+        val res2 = res.collect().mkString("\n")
+        Assert.assertEquals("Wrong results from select norrows","",res2)
+    }
+
+    @Test
     def testSelectNorrows(): Unit = {
         val res = sparkGorSession.dataframe("select * from <(norrows 2)")
         val res2 = res.collect().mkString("\n")
