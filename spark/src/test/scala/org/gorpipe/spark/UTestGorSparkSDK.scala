@@ -35,6 +35,20 @@ class UTestGorSparkSDK {
     }
 
     @Test
+    def testSelectCmd(): Unit = {
+        val res = sparkGorSession.dataframe("select * from <(cmd -n {bash -c 'for i in {10..12}; do echo $i; done;'})")
+        val res2 = res.collect().mkString("\n")
+        Assert.assertEquals("Wrong results from select norrows","[11]\n[12]",res2)
+    }
+
+    @Test
+    def testSelectCmdHeaderless(): Unit = {
+        val res = sparkGorSession.dataframe("select * from <(cmd -n -h {bash -c 'for i in {1..2}; do echo $i; done;'})")
+        val res2 = res.collect().mkString("\n")
+        Assert.assertEquals("Wrong results from select norrows","[1]\n[2]",res2)
+    }
+
+    @Test
     def testSelectNorrows(): Unit = {
         val res = sparkGorSession.dataframe("select * from <(norrows 2)")
         val res2 = res.collect().mkString("\n")

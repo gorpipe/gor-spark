@@ -162,7 +162,7 @@ public class SparkRowUtilities {
         Stream<Stream<String>> lstr = sdrs.map(drs -> StreamSupport.stream(Spliterators.spliteratorUnknownSize(drs, Spliterator.ORDERED), false).map(Object::toString).onClose(drs::close));
 
         String query = gorcmds[0];
-        boolean nor = query.toLowerCase().startsWith("nor ") || query.toLowerCase().startsWith("norrows ");
+        boolean nor = query.toLowerCase().startsWith("nor ") || query.toLowerCase().startsWith("norrows ") || query.toLowerCase().startsWith("norcmd ") || query.toLowerCase().startsWith("cmd -n ");
         DynIterator.DynamicRowSource drs = new DynIterator.DynamicRowSource(query, gorSparkSession.getGorContext(), false);
         String header = drs.getHeader();
         List<String> usedFiles = JavaConverters.seqAsJavaList(drs.usedFiles());
@@ -335,7 +335,7 @@ public class SparkRowUtilities {
                     gor = sparkRowSource.getDataset();
                     dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
                     //gor = registerFile();
-                } else if (fileName.startsWith("pgor ") || fileName.startsWith("partgor ") || fileName.startsWith("parallel ") || fileName.startsWith("gor ") || fileName.startsWith("nor ") || fileName.startsWith("gorrows ") || fileName.startsWith("norrows ") || fileName.startsWith("cmd ")) {
+                } else if (fileName.startsWith("pgor ") || fileName.startsWith("partgor ") || fileName.startsWith("parallel ") || fileName.startsWith("gor ") || fileName.startsWith("nor ") || fileName.startsWith("gorrows ") || fileName.startsWith("norrows ") || fileName.startsWith("cmd ") || fileName.startsWith("norcmd ") || fileName.startsWith("gorcmd ")) {
                     DataFrameReader dfr = gorSparkSession.getSparkSession().read().format(gordatasourceClassname);
                     dfr.option("query", fileName);
                     if (tag) dfr.option("tag", true);
