@@ -337,7 +337,7 @@ public class SparkRowUtilities {
                     gor = sparkRowSource.getDataset();
                     dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
                     //gor = registerFile();
-                } else if (fileName.startsWith("pgor ") || fileName.startsWith("partgor ") || fileName.startsWith("parallel ") || fileName.startsWith("gor ") || fileName.startsWith("nor ") || fileName.startsWith("gorrows ") || fileName.startsWith("norrows ")) {
+                } else if (fileName.startsWith("pgor ") || fileName.startsWith("partgor ") || fileName.startsWith("parallel ") || fileName.startsWith("gor ") || fileName.startsWith("nor ") || fileName.startsWith("gorrows ") || fileName.startsWith("norrows ") || fileName.startsWith("cmd ")) {
                     DataFrameReader dfr = gorSparkSession.getSparkSession().read().format(gordatasourceClassname);
                     dfr.option("query", fileName);
                     if (tag) dfr.option("tag", true);
