@@ -101,6 +101,20 @@ class UTestGorSparkSDK {
     }
 
     @Test
+    def testGorWhere(): Unit = {
+      val res = sparkGorSession.dataframe("gor gor/genes.gor").gor("where gene_end > 29805")(sparkGorSession)
+      val res2 = res.limit(1).collect().mkString("\n")
+      Assert.assertEquals("Wrong results from nested norrows","[chr1,14362,29806,WASH7P]",res2)
+    }
+
+    @Test
+    def testGorWhere2(): Unit = {
+      val res = sparkGorSession.dataframe("gor gor/genes.gor").gor("where gene_end > 29805")(sparkGorSession).gor("where gene_end < 29807")(sparkGorSession)
+      val res2 = res.collect().mkString("\n")
+      Assert.assertEquals("Wrong results from nested norrows","[chr1,14362,29806,WASH7P]",res2)
+    }
+
+    @Test
     def testGorrowsWithSchema(): Unit = {
         val df = sparkGorSession.dataframe("gorrows -p chr1:1-5")
         val res = df.gorschema("where pos > 3",df.schema)(sparkGorSession)

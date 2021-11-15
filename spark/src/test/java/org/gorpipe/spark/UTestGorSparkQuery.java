@@ -304,6 +304,11 @@ public class UTestGorSparkQuery {
     }
 
     @Test
+    public void testGorSparkQueryWithWhere() {
+        testSparkQuery("select * from ../tests/data/gor/genes.gor | where gene_end > 29805 | where gene_end < 29807", "chr1\t14362\t29806\tWASH7P");
+    }
+
+    @Test
     public void testGorzSparkQueryWithCalcWhere() {
         testSparkQuery("spark ../tests/data/gor/genes.gorz | top 5 | calc a 'a' | where Gene_Symbol = 'WASH7P'", "chr1\t14362\t29806\tWASH7P\ta");
     }

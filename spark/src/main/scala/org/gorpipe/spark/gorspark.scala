@@ -136,7 +136,8 @@ class GorDatasetFunctions[T: ClassTag](ds: Dataset[T])(implicit tag: ClassTag[T]
       val gsm = new GorSparkMaterialize(header, nor, SparkGOR.gorrowEncoder.schema, cmd, sgs.getProjectContext.getRoot, 100)
       val mu = if(nor) ds.asInstanceOf[Dataset[Row]].map(row => new NorSparkRow(row).asInstanceOf[org.gorpipe.gor.model.Row])(SparkGOR.gorrowEncoder) else ds.asInstanceOf[Dataset[Row]].map(row => new GorSparkRow(row).asInstanceOf[org.gorpipe.gor.model.Row])(SparkGOR.gorrowEncoder)
 
-      val row = mu.mapPartitions(gsm, SparkGOR.gorrowEncoder).limit(100).reduce(gr)
+      var row = mu.mapPartitions(gsm, SparkGOR.gorrowEncoder).limit(100).reduce(gr)
+      if (row.chr != null) row = gr.infer(row, row)
       val schema = SparkRowSource.schemaFromRow(gs.query().getHeader().split("\t"), row)
       val encoder = RowEncoder.apply(schema)
       gs.setSchema(schema)
