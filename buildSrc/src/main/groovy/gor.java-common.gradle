@@ -40,7 +40,7 @@ plugins {
 ext {
     gorArtifactGroupId = 'org.gorpipe'
     gorVersion = new File("${rootDir}/GOR_VERSION").text.trim()
-    sparkVersion = '3.2.0'
+    sparkVersion = '3.1.2'
     scalaVersion = '2.12'
 }
 
