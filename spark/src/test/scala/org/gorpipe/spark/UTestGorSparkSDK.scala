@@ -131,6 +131,13 @@ class UTestGorSparkSDK {
     }
 
     @Test
+    def testGorWhereDouble(): Unit = {
+        val res = sparkGorSession.dataframe("gor gor/genes.gor | calc f 1.0").gor("where gene_end > 29805.0 | where f < 2")(sparkGorSession)
+        val res2 = res.limit(1).collect().mkString("\n")
+        Assert.assertEquals("Wrong results from nested norrows","[chr1,14362,29806,WASH7P,1.0]",res2)
+    }
+
+    @Test
     def testGorWhere(): Unit = {
       val res = sparkGorSession.dataframe("gor gor/genes.gor").gor("where gene_end > 29805")(sparkGorSession)
       val res2 = res.limit(1).collect().mkString("\n")
