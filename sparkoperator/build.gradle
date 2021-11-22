@@ -1,4 +1,6 @@
 plugins {
+    id 'gor.java-library'
+    id 'gor.common'
     id 'com.google.cloud.tools.jib'
 }
 
