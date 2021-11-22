@@ -1,0 +1,32 @@
+plugins {
+    id 'com.google.cloud.tools.jib'
+}
+
+jib {
+    from {
+        image = 'registry.gitlab.com/wuxi-nextcode/wxnc-gor/gor-spark/spark-operator:1.7.1'
+        if (project.hasProperty('REGISTRY_USER')) {
+            auth {
+                username = project.findProperty('REGISTRY_USER')
+                password = project.findProperty('REGISTRY_PASSWORD')
+            }
+        }
+    }
+    to {
+        image = project.findProperty('APPLICATION_REPOSITORY') ?: "spark-operator"
+        //credHelper = 'osxkeychain'
+        tags = [project.findProperty('APPLICATION_TAG') ?: "${version}"]
+        if (project.hasProperty('REGISTRY_USER')) {
+            auth {
+                username = project.findProperty('REGISTRY_USER')
+                password = project.findProperty('REGISTRY_PASSWORD')
+            }
+        }
+    }
+    container {
+        user = 'app'
+        entrypoint = '/opt/bin/entrypoint.sh'
+        appRoot = '/opt/spark/'
+        environment = [SPARK_EXTRA_CLASSPATH:'/opt/spark/classpath/*']
+    }
+}
