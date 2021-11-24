@@ -20,6 +20,5 @@ rootProject.buildFileName = "build.gradle"
 include 'spark'
 include 'gorshell'
 include 'redis'
-include 'sparkoperator'
 include 'documentation'
 

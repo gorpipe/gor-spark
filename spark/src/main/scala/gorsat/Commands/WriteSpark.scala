@@ -37,10 +37,6 @@ class WriteSpark extends CommandInfo("WRITE",
   override def processArguments(context: GorContext, argString: String, iargs: Array[String], args: Array[String], executeNor: Boolean, forcedInputHeader: String): CommandParsingResult = {
 
     val fileName = replaceSingleQuotes(iargs.mkString(" "))
-    if (context.getSession.getSystemContext.getServer) {
-      context.getSession.getProjectContext.validateWriteAllowed(fileName)
-    }
-
     var forkCol = -1
     var remove = false
     var columnCompress: Boolean = false
