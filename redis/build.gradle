@@ -39,7 +39,7 @@ jib {
                 rules {
                     rule {
                         glob = '/opt/spark/**'
-                        ownership = 'app:app'
+                        ownership = '3000:3000'
                     }
                 }
             }
