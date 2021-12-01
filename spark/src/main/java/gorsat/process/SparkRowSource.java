@@ -226,7 +226,7 @@ public class SparkRowSource extends ProcessSource {
             };
             gorfileflat = p -> p.startsWith("(") ? Arrays.stream(CommandParseUtilities.quoteCurlyBracketsSafeSplit(p.substring(1, p.length() - 1), ' ')).flatMap(gorfileflat).filter(gorpred) : Stream.of(p);
             parqfunc = p -> {
-                if (p.toLowerCase().endsWith(".parquet") && !p.toLowerCase().startsWith("parquet.")) {
+                if (p.toLowerCase().endsWith(".parquet") && !(p.toLowerCase().startsWith("parquet.") || p.startsWith("s3a://"))) {
                     String fileName = SparkRowUtilities.translatePath(p, fileroot, standalone).path;
                     return "parquet.`" + fileName + "`";
                 } else return p;

@@ -74,7 +74,7 @@ public class SparkRowUtilities {
         String prekey = usegorpipe + fileName;
         String key = filter == null ? prekey : filter + prekey;
         String ret = chr == null ? key : chr + pos + end + key;
-        ret += inst.stream().map(Instant::toString).collect(Collectors.joining());
+        if (inst!=null) ret += inst.stream().map(Instant::toString).collect(Collectors.joining());
         var hash = Math.abs(ret.hashCode());
         return "g" + hash;
     }
