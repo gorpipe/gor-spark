@@ -157,7 +157,7 @@ public class GorSparkUtilities {
         sparkConf.set("spark.hadoop.fs.s3a.committer.name","partitioned");
         sparkConf.set("spark.hadoop.fs.s3a.committer.staging.conflict-mode","replace");
         sparkConf.set("spark.delta.logStore.class","org.apache.spark.sql.delta.storage.S3SingleDriverLogStore");
-        sparkConf.set("spark.hadoop.fs.s3a.aws.credentials.provider","org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider");
+        //sparkConf.set("spark.hadoop.fs.s3a.aws.credentials.provider","org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider");
         SparkSession.Builder ssb = SparkSession.builder();
         if(!sparkConf.contains("spark.master")) {
             ssb = workers>0 ? ssb.master("local["+workers+"]") : ssb.master("local[*]");
