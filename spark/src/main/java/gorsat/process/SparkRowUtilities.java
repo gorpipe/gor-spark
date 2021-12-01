@@ -41,7 +41,7 @@ import java.util.zip.GZIPInputStream;
 import static org.apache.spark.sql.types.DataTypes.*;
 
 public class SparkRowUtilities {
-    static final String[] allowedGorSQLFileEndings = {".json",".csv",".tsv",".gor",".gorz",".gor.gz",".gord",".txt",".vcf",".bgen",".xml",".mt"};
+    static final String[] allowedGorSQLFileEndings = {".json",".csv",".tsv",".gor",".gorz",".gor.gz",".gord",".txt",".vcf",".bgen",".xml",".mt",".parquet"};
     static final String csvDataSource = "csv";
     static final String gordatasourceClassname = "gorsat.spark.GorDataSource";
 

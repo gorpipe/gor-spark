@@ -267,6 +267,16 @@ public class UTestGorSparkQuery {
     }
 
     @Test
+    public void testParquetNotationSparkQuery() {
+        var fullPath = Paths.get("../tests/data/parquet/dbsnp_test.parquet").toAbsolutePath().toString();
+        testSparkQuery("select * from parquet.`"+fullPath+"` | top 5", "chr1\t10179\tC\tCC\trs367896724\n" +
+                "chr1\t10250\tA\tC\trs199706086\n" +
+                "chr10\t60803\tT\tG\trs536478188\n" +
+                "chr10\t61023\tC\tG\trs370414480\n" +
+                "chr11\t61248\tG\tA\trs367559610");
+    }
+
+    @Test
     public void testCreateSparkQuery() {
         testSparkQuery("create xxx = spark ../tests/data/parquet/dbsnp_test.parquet | top 5; gor [xxx]", "chr1\t10179\tC\tCC\trs367896724\n" +
                 "chr1\t10250\tA\tC\trs199706086\n" +
