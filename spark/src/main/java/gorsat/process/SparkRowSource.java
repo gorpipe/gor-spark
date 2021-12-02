@@ -236,7 +236,10 @@ public class SparkRowSource extends ProcessSource {
             String[] fileNames;
             String cacheFile = null;
             if (isSql) {
-                sql = headercommands.stream().filter(p -> p.length() > 0).map(inner).map(gorfunc).map(parqfunc).collect(Collectors.joining(" "));
+                sql = headercommands.stream().filter(p -> p.length() > 0).map(inner).map(parqfunc).map(gorfunc).collect(Collectors.joining(" "));
+                cmdsplit = CommandParseUtilities.quoteCurlyBracketsSafeSplit(sql, ' ');
+                commands.clear();
+                commands.addAll(Arrays.asList(cmdsplit));
                 fileNames = Arrays.stream(cmdsplit).flatMap(gorfileflat).filter(gorpred).toArray(String[]::new);
                 for (String fn : fileNames) {
                     if (gorSparkSession.getSystemContext().getServer()) DriverBackedGorServerFileReader.validateServerFileName(fn, fileroot.toString(), true);
@@ -246,8 +249,13 @@ public class SparkRowSource extends ProcessSource {
                 dataset = gorSparkSession.getSparkSession().sql(sql);
             } else {
                 fileNames = headercommands.toArray(new String[0]);
-                StructType schema = ddl!=null ? loadSchema(ddl, fileroot) : null;
-                dataset = SparkRowUtilities.registerFile(fileNames, null, profile, gpSession, standalone, fileroot, cachepath, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp, tag, schema, options);
+                if (fileNames.length == 1 && fileNames[0].toLowerCase().endsWith(".parquet")) {
+                    String parq = SparkRowUtilities.translatePath(fileNames[0], fileroot, standalone).path;
+                    dataset = gpSession.getSparkSession().read().parquet(parq);
+                } else {
+                    StructType schema = ddl != null ? loadSchema(ddl, fileroot) : null;
+                    dataset = SparkRowUtilities.registerFile(fileNames, null, profile, gpSession, standalone, fileroot, cachepath, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp, tag, schema, options);
+                }
             }
 
             if (chr != null) {
