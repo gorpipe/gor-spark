@@ -217,7 +217,7 @@ public class SparkRowSource extends ProcessSource {
                             }
                         }).filter(Objects::nonNull).collect(Collectors.toList());
                     } else {
-                        RowDataType rdt = null;
+                        RowDataType rdt;
                         try {
                             rdt = SparkRowUtilities.translatePath(p, fileroot, standalone, fileReader);
                         } catch (IOException e) {
@@ -251,10 +251,10 @@ public class SparkRowSource extends ProcessSource {
             String[] fileNames;
             String cacheFile = null;
             if (isSql) {
-                sql = headercommands.stream().filter(p -> p.length() > 0).map(inner).map(parqfunc).map(gorfunc).collect(Collectors.joining(" "));
-                cmdsplit = CommandParseUtilities.quoteCurlyBracketsSafeSplit(sql, ' ');
+                cmdsplit = headercommands.stream().filter(p -> p.length() > 0).map(parqfunc).toArray(String[]::new);
                 commands.clear();
                 commands.addAll(Arrays.asList(cmdsplit));
+                sql = Arrays.stream(cmdsplit).map(inner).map(gorfunc).collect(Collectors.joining(" "));
                 fileNames = Arrays.stream(cmdsplit).flatMap(gorfileflat).filter(gorpred).toArray(String[]::new);
                 for (String fn : fileNames) {
                     if (gorSparkSession.getSystemContext().getServer()) DriverBackedGorServerFileReader.validateServerFileName(fn, fileroot.toString(), true);
