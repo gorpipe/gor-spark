@@ -308,6 +308,44 @@ public class UTestGorSparkQuery {
     }
 
     @Test
+    public void testParquetSelectQuery() {
+        testSparkQuery("select * from ../tests/data/parquet/dbsnp_test.parquet | top 5", "chr1\t10179\tC\tCC\trs367896724\n" +
+                "chr1\t10250\tA\tC\trs199706086\n" +
+                "chr10\t60803\tT\tG\trs536478188\n" +
+                "chr10\t61023\tC\tG\trs370414480\n" +
+                "chr11\t61248\tG\tA\trs367559610");
+    }
+
+    @Test
+    public void testParquetSelectLinkQuery() throws IOException {
+        var linkpath = Files.createTempFile("test",".parquet.link").toAbsolutePath();
+        var path = Paths.get("../tests/data/parquet/dbsnp_test.parquet").toAbsolutePath().normalize();
+        Files.writeString(linkpath,path.toString());
+        testSparkQuery("select * from "+linkpath+" | top 5", "chr1\t10179\tC\tCC\trs367896724\n" +
+                "chr1\t10250\tA\tC\trs199706086\n" +
+                "chr10\t60803\tT\tG\trs536478188\n" +
+                "chr10\t61023\tC\tG\trs370414480\n" +
+                "chr11\t61248\tG\tA\trs367559610");
+
+        var linkpathString = linkpath.toString();
+        testSparkQuery("select * from "+linkpathString.substring(0,linkpathString.length()-5)+" | top 5", "chr1\t10179\tC\tCC\trs367896724\n" +
+                "chr1\t10250\tA\tC\trs199706086\n" +
+                "chr10\t60803\tT\tG\trs536478188\n" +
+                "chr10\t61023\tC\tG\trs370414480\n" +
+                "chr11\t61248\tG\tA\trs367559610");
+    }
+
+    @Test
+    public void testParquetNotationSparkQuery() {
+        var fullPath = Paths.get("../tests/data/parquet/dbsnp_test.parquet").toAbsolutePath().toString();
+        testSparkQuery("select * from parquet.`"+fullPath+"` | top 5", "chr1\t10179\tC\tCC\trs367896724\n" +
+                "chr1\t10250\tA\tC\trs199706086\n" +
+                "chr10\t60803\tT\tG\trs536478188\n" +
+                "chr10\t61023\tC\tG\trs370414480\n" +
+                "chr11\t61248\tG\tA\trs367559610");
+    }
+
+    @Test
     public void testCreateSparkQuery() {
         testSparkQuery("create xxx = spark ../tests/data/parquet/dbsnp_test.parquet | top 5; gor [xxx]", "chr1\t10179\tC\tCC\trs367896724\n" +
                 "chr1\t10250\tA\tC\trs199706086\n" +

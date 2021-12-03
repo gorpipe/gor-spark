@@ -68,7 +68,7 @@ public class S3ASource implements StreamSource {
         conf.set("fs.s3a.committer.name","partitioned");
         conf.set("fs.s3a.committer.staging.conflict-mode","replace");
         conf.set("spark.delta.logStore.class","org.apache.spark.sql.delta.storage.S3SingleDriverLogStore");
-        conf.set("fs.s3a.aws.credentials.provider","org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider");
+        //conf.set("fs.s3a.aws.credentials.provider","org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider");
 
         try {
             this.fs = path.getFileSystem(conf);

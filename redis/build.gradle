@@ -39,7 +39,7 @@ jib {
                 rules {
                     rule {
                         glob = '/opt/spark/**'
-                        ownership = 'app:app'
+                        ownership = '3000:3000'
                     }
                 }
             }
@@ -55,19 +55,25 @@ jib {
 }
 
 dependencies {
-    internal project(":spark")
+    internal(project(":spark")) {
+        exclude group: 'ch.qos.logback', module: 'logback-classic'
+        exclude group: 'ch.qos.logback', module: 'logback-core'
+    }
     implementation(project(':base')) {
         exclude group: 'ch.qos.logback', module: 'logback-classic'
         exclude group: 'ch.qos.logback', module: 'logback-core'
     }
     implementation(project(':util')) {
         exclude group: 'ch.qos.logback', module: 'logback-classic'
+        exclude group: 'ch.qos.logback', module: 'logback-core'
     }
     implementation(project(':model')) {
         exclude group: 'ch.qos.logback', module: 'logback-classic'
+        exclude group: 'ch.qos.logback', module: 'logback-core'
     }
     implementation(project(':gortools')) {
         exclude group: 'ch.qos.logback', module: 'logback-classic'
+        exclude group: 'ch.qos.logback', module: 'logback-core'
         exclude group: 'net.sourceforge.f2j', module: 'arpack_combined_all'
     }
 

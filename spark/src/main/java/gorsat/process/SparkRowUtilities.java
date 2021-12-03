@@ -18,6 +18,7 @@ import org.gorpipe.gor.binsearch.Unzipper;
 import org.gorpipe.gor.model.FileReader;
 import org.gorpipe.gor.model.ParquetLine;
 import org.gorpipe.gor.model.Row;
+import org.gorpipe.gor.table.PathUtils;
 import org.gorpipe.spark.GorSparkSession;
 import org.gorpipe.spark.GorzFlatMapFunction;
 import org.gorpipe.spark.RowDataType;
@@ -43,7 +44,7 @@ import java.util.zip.GZIPInputStream;
 import static org.apache.spark.sql.types.DataTypes.*;
 
 public class SparkRowUtilities {
-    static final String[] allowedGorSQLFileEndings = {".json",".csv",".tsv",".gor",".gorz",".gor.gz",".gord",".txt",".vcf",".bgen",".xml",".mt"};
+    static final String[] allowedGorSQLFileEndings = {".json",".csv",".tsv",".gor",".gorz",".gor.gz",".gord",".txt",".vcf",".bgen",".xml",".mt",".parquet",".adam",".link"};
     static final String csvDataSource = "csv";
     static final String gordatasourceClassname = "gorsat.spark.GorDataSource";
 
@@ -76,7 +77,7 @@ public class SparkRowUtilities {
         String prekey = usegorpipe + fileName;
         String key = filter == null ? prekey : filter + prekey;
         String ret = chr == null ? key : chr + pos + end + key;
-        ret += inst.stream().map(Instant::toString).collect(Collectors.joining());
+        if (inst!=null) ret += inst.stream().map(Instant::toString).collect(Collectors.joining());
         var hash = Math.abs(ret.hashCode());
         return "g" + hash;
     }
@@ -119,10 +120,12 @@ public class SparkRowUtilities {
         return gorDataTypeToStructType(gorDataType);
     }
 
-    public static RowDataType translatePath(String fn, Path fileroot, String standalone) {
+    public static RowDataType translatePath(String fn, Path fileroot, String standalone, FileReader fr) throws IOException {
         RowDataType ret;
-        if (fn.contains("://")) {
-            ret = new RowDataType(fn,null);
+        if (!PathUtils.isLocal(fn)) {
+            fn = fn.replace("s3://","s3a://");
+            List<Instant> inst = fr != null ? Collections.singletonList(Instant.ofEpochMilli(fr.resolveUrl(fn).getSourceMetadata().getLastModified())) : Collections.emptyList();
+            ret = new RowDataType(fn,inst);
         } else {
             Path filePath = Paths.get(fn);
             if (!filePath.isAbsolute()) {
@@ -136,6 +139,10 @@ public class SparkRowUtilities {
                         filePath = fileroot.resolve(filePath).normalize().toAbsolutePath();
                     }
                 }
+            }
+            var linkPath = Path.of(filePath +".link");
+            if (!Files.exists(filePath) && Files.exists(linkPath)) {
+                return translatePath(Files.readString(linkPath), fileroot, standalone, fr);
             }
             List<Instant> inst;
             try {
@@ -200,7 +207,8 @@ public class SparkRowUtilities {
             }).filter(Objects::nonNull).collect(Collectors.toList());
             tempViewName = generateTempViewName(fileName, usestreaming, filter, chr, pos, end, inst);
         } else {
-            var rdt = translatePath(fn, fileroot, standalone);
+            var fr = gorSparkSession.getProjectContext().getFileReader();
+            var rdt = translatePath(fn, fileroot, standalone, fr);
             fileName = rdt.path;
             inst = rdt.getTimestamp();
             tempViewName = generateTempViewName(fileName, usestreaming, filter, chr, pos, end, inst);
