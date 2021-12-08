@@ -45,7 +45,7 @@ public class SparkPipeInstance extends PipeInstance {
     public Path getRelativeCachePath() {
         Path p = Paths.get(cachePath);
         if(p.isAbsolute()) {
-            Path root = Paths.get(session.getProjectContext().getRoot());
+            Path root = session.getProjectContext().getProjectRootPath();
             return PathUtils.relativize(root, p);
         }
         return p;
