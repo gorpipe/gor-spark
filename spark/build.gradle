@@ -135,6 +135,9 @@ project(':spark') {
         implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.0'
         implementation "com.fasterxml.jackson.module:jackson-module-scala_${scalaVersion}:2.11.0"
 
+        implementation group: 'org.bdgenomics.adam', name: 'adam-core-spark3_2.12', version: '0.36.0'
+        implementation group: 'org.bdgenomics.adam', name: 'adam-apis-spark3_2.12', version: '0.36.0'
+
         /*compile('org.broadinstitute:gatk:_') {
             exclude group: 'com.esotericsoftware'
             exclude group: 'org.apache.commons', module: 'commons-vfs2'

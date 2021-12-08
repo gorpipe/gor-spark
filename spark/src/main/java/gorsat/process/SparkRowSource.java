@@ -15,6 +15,7 @@ import java.util.zip.DataFormatException;
 
 import com.databricks.spark.xml.util.XSDToSchema;
 import gorsat.commands.PysparkAnalysis;
+import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 import org.apache.spark.deploy.worker.CommandUtils;
 import org.apache.spark.ml.classification.LogisticRegression;
 import org.apache.spark.ml.classification.LogisticRegressionModel;
@@ -29,6 +30,12 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.spark.sql.*;
 import org.apache.spark.sql.expressions.UserDefinedFunction;
 
+import org.bdgenomics.adam.api.java.JavaADAMContext;
+import org.bdgenomics.adam.ds.ADAMContext;
+import org.bdgenomics.adam.ds.GenomicDataset;
+import org.bdgenomics.adam.ds.variant.GenotypeDataset;
+import org.bdgenomics.adam.ds.variant.VariantDataset;
+import org.bdgenomics.adam.sql.Variant;
 import org.gorpipe.spark.ScalaUtils;
 import org.gorpipe.exceptions.GorResourceException;
 import org.gorpipe.gor.driver.DataSource;
@@ -304,6 +311,7 @@ public class SparkRowSource extends ProcessSource {
     String parquetPath = null;
     String dictPath = null;
     int pcacomponents = 10;
+    int posbin = -1;
     String pushdownGorPipe = null;
     GorSparkSession gorSparkSession;
 
@@ -771,30 +779,37 @@ public class SparkRowSource extends ProcessSource {
                             }
                         } else {
                             Arrays.stream(dataset.columns()).filter(c -> c.contains("(")).forEach(c -> dataset = dataset.withColumnRenamed(c, c.replace('(', '_').replace(')', '_')));
-                            DataFrameWriter dfw = dataset.write();
-                            if (parts != null) {
-                                if (buckets != null) {
-                                    dfw = dfw.bucketBy(buckets, parts);
-                                } else {
-                                    dfw = dfw.partitionBy(parts.split(","));
-                                }
-                            }
-                            boolean gorformat = parquetPath.toLowerCase().endsWith(".gorz");
-                            dfw = gorformat ? dfw.format("gor") : dfw.format("parquet");
-                            dfw.mode(SaveMode.Overwrite).save(resolvedPath);
 
-                            if (gorformat) {
-                                org.apache.hadoop.fs.Path hp = new org.apache.hadoop.fs.Path(resolvedPath);
-                                if (parquetPath.equals(dictPath)) {
-                                    writeDictionary(hp, hp);
-                                } else {
-                                    Path dPath = Paths.get(dictPath);
-                                    if (fileroot != null && !dPath.isAbsolute()) {
-                                        dPath = fileroot.resolve(dPath);
+                            if (posbin != -1) {
+                                Dataset<Variant> variantDataset = dataset.map(k -> new Variant());
+                                VariantDataset vd = VariantDataset.apply(variantDataset);
+                                vd.saveAsPartitionedParquet(parquetPath, CompressionCodecName.GZIP, posbin);
+                            } else {
+                                DataFrameWriter dfw = dataset.write();
+                                if (parts != null) {
+                                    if (buckets != null) {
+                                        dfw = dfw.bucketBy(buckets, parts);
+                                    } else {
+                                        dfw = dfw.partitionBy(parts.split(","));
                                     }
-                                    String dictPathStr = dPath.toAbsolutePath().normalize().toString();
-                                    org.apache.hadoop.fs.Path dp = new org.apache.hadoop.fs.Path(dictPathStr);
-                                    writeDictionary(hp, dp);
+                                }
+                                boolean gorformat = parquetPath.toLowerCase().endsWith(".gorz");
+                                dfw = gorformat ? dfw.format("gor") : dfw.format("parquet");
+                                dfw.mode(SaveMode.Overwrite).save(resolvedPath);
+
+                                if (gorformat) {
+                                    org.apache.hadoop.fs.Path hp = new org.apache.hadoop.fs.Path(resolvedPath);
+                                    if (parquetPath.equals(dictPath)) {
+                                        writeDictionary(hp, hp);
+                                    } else {
+                                        Path dPath = Paths.get(dictPath);
+                                        if (fileroot != null && !dPath.isAbsolute()) {
+                                            dPath = fileroot.resolve(dPath);
+                                        }
+                                        String dictPathStr = dPath.toAbsolutePath().normalize().toString();
+                                        org.apache.hadoop.fs.Path dp = new org.apache.hadoop.fs.Path(dictPathStr);
+                                        writeDictionary(hp, dp);
+                                    }
                                 }
                             }
                         }
@@ -1046,6 +1061,7 @@ public class SparkRowSource extends ProcessSource {
     public boolean pushdownWrite(String filename) {
         if(parquetPath==null) {
             int id = filename.indexOf("-pca ");
+            int posid = filename.indexOf("-posbin ");
             if (id != -1) {
                 int k = id + 5;
                 char c = filename.charAt(k);
@@ -1053,6 +1069,17 @@ public class SparkRowSource extends ProcessSource {
                 while (k < filename.length() && c != ' ') c = filename.charAt(k++);
                 String pcompstr = filename.substring(id + 5, k).trim();
                 pcacomponents = Integer.parseInt(pcompstr);
+                this.parquetPath = filename.substring(k).trim();
+                if (this.parquetPath.length() == 0) {
+                    this.parquetPath = gorSparkSession.getProjectContext().getFileCache().tempLocation(jobId, CommandParseUtilities.getExtensionForQuery(sql.startsWith("<(") ? "spark " + sql : sql, false));
+                }
+            } else if (posid != -1) {
+                int k = id + 8;
+                char c = filename.charAt(k);
+                while (c == ' ') c = filename.charAt(++k);
+                while (k < filename.length() && c != ' ') c = filename.charAt(k++);
+                String psbn = filename.substring(id + 8, k).trim();
+                posbin = Integer.parseInt(psbn);
                 this.parquetPath = filename.substring(k).trim();
                 if (this.parquetPath.length() == 0) {
                     this.parquetPath = gorSparkSession.getProjectContext().getFileCache().tempLocation(jobId, CommandParseUtilities.getExtensionForQuery(sql.startsWith("<(") ? "spark " + sql : sql, false));
