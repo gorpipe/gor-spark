@@ -784,7 +784,7 @@ public class SparkRowSource extends ProcessSource {
                             Arrays.stream(dataset.columns()).filter(c -> c.contains("(")).forEach(c -> dataset = dataset.withColumnRenamed(c, c.replace('(', '_').replace(')', '_')));
 
                             if (posbin != -1) {
-                                Dataset<Variant> variantDataset = dataset.map(k -> (MapFunction<String, Variant>) value -> Variant.apply(null, null, null, null, null, null, null, null, null, null, null, null), ScalaUtils.variantEncoder());
+                                Dataset<Variant> variantDataset = ((Dataset<org.apache.spark.sql.Row>) dataset).map((MapFunction<org.apache.spark.sql.Row, Variant>) value -> Variant.apply(null, null, null, null, null, null, null, null, null, null, null, null), ScalaUtils.variantEncoder());
                                 VariantDataset vd = VariantDataset.apply(variantDataset);
                                 vd.saveAsPartitionedParquet(parquetPath, CompressionCodecName.GZIP, posbin);
                             } else {
