@@ -347,6 +347,11 @@ public class UTestGorSparkQuery {
     }
 
     @Test
+    public void testGorSparkQueryWithCalcContext() {
+        testSparkQuery("select * from ../tests/data/gor/genes.gor | calc t time() | top 1 | hide t", "chr1\t11868\t14412\tDDX11L1");
+    }
+
+    @Test
     public void testGorzSparkQueryWithCalcWhere() {
         testSparkQuery("spark ../tests/data/gor/genes.gorz | top 5 | calc a 'a' | where Gene_Symbol = 'WASH7P'", "chr1\t14362\t29806\tWASH7P\ta");
     }
