@@ -63,6 +63,9 @@ import org.apache.spark.sql.types.*;
 import org.gorpipe.spark.udfs.CharToDoubleArray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import scala.Option;
+import scala.collection.Seq;
+import scala.reflect.api.TypeTags;
 
 import static org.apache.spark.sql.types.DataTypes.*;
 
@@ -781,7 +784,7 @@ public class SparkRowSource extends ProcessSource {
                             Arrays.stream(dataset.columns()).filter(c -> c.contains("(")).forEach(c -> dataset = dataset.withColumnRenamed(c, c.replace('(', '_').replace(')', '_')));
 
                             if (posbin != -1) {
-                                Dataset<Variant> variantDataset = dataset.map(k -> new Variant());
+                                Dataset<Variant> variantDataset = dataset.map(k -> (MapFunction<String, Variant>) value -> Variant.apply(null, null, null, null, null, null, null, null, null, null, null, null), ScalaUtils.variantEncoder());
                                 VariantDataset vd = VariantDataset.apply(variantDataset);
                                 vd.saveAsPartitionedParquet(parquetPath, CompressionCodecName.GZIP, posbin);
                             } else {
