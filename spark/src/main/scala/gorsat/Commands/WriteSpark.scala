@@ -36,11 +36,13 @@ class WriteSpark extends CommandInfo("WRITE",
   CommandOptions(gorCommand = true, norCommand = true, verifyCommand = true)) {
   override def processArguments(context: GorContext, argString: String, iargs: Array[String], args: Array[String], executeNor: Boolean, forcedInputHeader: String): CommandParsingResult = {
 
-    val fileName = replaceSingleQuotes(iargs.mkString(" "))
+    var fileName = replaceSingleQuotes(iargs.mkString(" "))
     val useFolder = if (hasOption(args, "-d")) {
       Option.apply(stringValueOfOption(args, "-d"))
     } else if(fileName.toLowerCase.endsWith(".gord")) {
-      Option.apply(fileName)
+      val fn = fileName
+      fileName = ""
+      Option.apply(fn)
     } else {
       Option.empty
     }
