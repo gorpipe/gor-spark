@@ -121,7 +121,7 @@ public class SparkRowUtilities {
     public static RowDataType translatePath(String fn, Path fileroot, String standalone, FileReader fr) throws IOException {
         RowDataType ret;
         if (!PathUtils.isLocal(fn)) {
-            fn = fn.replace("s3://","s3a://");
+            fn = fn.replace("s3a://","s3://");
             List<Instant> inst = fr != null ? Collections.singletonList(Instant.ofEpochMilli(fr.resolveUrl(fn).getSourceMetadata().getLastModified())) : Collections.emptyList();
             ret = new RowDataType(fn,inst);
         } else {
