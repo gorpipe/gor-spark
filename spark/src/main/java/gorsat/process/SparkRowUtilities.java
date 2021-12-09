@@ -121,11 +121,11 @@ public class SparkRowUtilities {
     public static RowDataType translatePath(String fn, Path fileroot, String standalone, FileReader fr) throws IOException {
         RowDataType ret;
         if (!PathUtils.isLocal(fn)) {
-            List<Instant> inst;
+            List<Instant> inst = Collections.emptyList();
             if (fr!=null) {
                 fn = fn.replace("s3://", "s3a://");
                 var ds = fr.resolveUrl(fn);
-                if (!ds.exists()) {
+                if (ds.isDirectory()) { //!ds.exists()
                     var fnl = fn.toLowerCase();
                     if (fnl.endsWith(".parquet")) {
                         ds = fr.resolveUrl(fn + "/_SUCCESS");
@@ -137,8 +137,8 @@ public class SparkRowUtilities {
                         ds = fr.resolveUrl(fn + "thedict.gord");
                     }
                 }
-                inst = Collections.singletonList(Instant.ofEpochMilli(ds.getSourceMetadata().getLastModified()));
-            } else inst = Collections.emptyList();
+                if (ds.exists()) inst = Collections.singletonList(Instant.ofEpochMilli(ds.getSourceMetadata().getLastModified()));
+            }
             ret = new RowDataType(fn,inst);
         } else {
             Path filePath = Paths.get(fn);

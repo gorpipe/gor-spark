@@ -140,6 +140,16 @@ public class S3ASource implements StreamSource {
     }
 
     @Override
+    public boolean isDirectory() {
+        try {
+            FileStatus fileStatus = fs.getFileStatus(path);
+            return fileStatus.isDirectory();
+        } catch (IOException e) {
+            throw new GorResourceException("Hadoop s3 isDirectory failed",path.toString(),e);
+        }
+    }
+
+    @Override
     public SourceType getSourceType() {
         return S3ASourceType.S3A;
     }
