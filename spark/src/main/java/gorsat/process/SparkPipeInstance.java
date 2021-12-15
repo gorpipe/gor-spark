@@ -13,7 +13,7 @@ import org.gorpipe.gor.model.Row;
 import org.gorpipe.gor.monitor.GorMonitor;
 import org.gorpipe.gor.session.GorContext;
 import org.gorpipe.gor.session.GorSession;
-import org.gorpipe.gor.table.PathUtils;
+import org.gorpipe.gor.table.util.PathUtils;
 import org.gorpipe.model.gor.iterators.RowSource;
 import org.gorpipe.spark.GorSparkSession;
 import org.gorpipe.spark.SparkOperatorRunner;
