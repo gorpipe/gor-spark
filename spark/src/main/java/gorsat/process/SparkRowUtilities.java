@@ -18,7 +18,7 @@ import org.gorpipe.gor.binsearch.Unzipper;
 import org.gorpipe.gor.model.FileReader;
 import org.gorpipe.gor.model.ParquetLine;
 import org.gorpipe.gor.model.Row;
-import org.gorpipe.gor.table.PathUtils;
+import org.gorpipe.gor.table.util.PathUtils;
 import org.gorpipe.spark.GorSparkSession;
 import org.gorpipe.spark.RowDataType;
 import org.gorpipe.spark.RowGorRDD;
