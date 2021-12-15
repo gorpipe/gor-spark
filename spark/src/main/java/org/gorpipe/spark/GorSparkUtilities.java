@@ -79,7 +79,7 @@ public class GorSparkUtilities {
             initPy4jServer();
             GorSparkUtilities.getSparkSession();
 
-            ProcessBuilder pb = new ProcessBuilder("jupyter-lab", "--NotebookApp.allow_origin='https://colab.research.google.com'","--port=8888","--NotebookApp.port_retries=0");
+            ProcessBuilder pb = new ProcessBuilder("jupyter-lab", "--ip=0.0.0.0", "--NotebookApp.allow_origin='https://colab.research.google.com'","--port=8888","--NotebookApp.port_retries=0");
             standaloneRoot.ifPresent(sroot -> pb.directory(Paths.get(sroot).toFile()));
             Map<String,String> env = pb.environment();
             env.put("PYSPARK_GATEWAY_PORT",Integer.toString(GorSparkUtilities.getPyServerPort()));
