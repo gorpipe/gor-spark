@@ -13,6 +13,7 @@ import org.gorpipe.spark.GorSparkUtilities;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.file.Path;
 import java.util.concurrent.Callable;
 
 public class GorSparkRedisRunner implements Callable<String>, AutoCloseable {
@@ -78,6 +79,15 @@ public class GorSparkRedisRunner implements Callable<String>, AutoCloseable {
     public static void main(String[] args) {
         var streamKey = args.length > 0 ? args[0] : "resque";
         var timeoutCount = args.length > 1 ? Integer.parseInt(args[1]) : DEFAULT_TIMEOUT;
+
+        if (args.length>0) {
+            var split = streamKey.split(";");
+            if (split.length>1) {
+                var projectPath = Path.of(split[1]);
+                //Files.createSymbolicLink(Path.of(System.getProperty("user.home")).resolve("project"), projectPath);
+            }
+        }
+
         try(GorSparkRedisRunner grr = new GorSparkRedisRunner(streamKey, timeoutCount)) {
             grr.call();
         } catch (Exception e) {
