@@ -80,6 +80,11 @@ public class GorSparkUtilities {
             GorSparkUtilities.getSparkSession();
 
             var plist = new ArrayList<>(List.of("jupyter-lab", "--ip=0.0.0.0", "--NotebookApp.allow_origin='*'","--port=8888","--NotebookApp.port_retries=0"));
+            var notebookdir = System.getenv("JUPYTER_NOTEBOOK_DIR");
+            if(notebookdir==null) notebookdir = System.getProperty("JUPYTER_NOTEBOOK_DIR");
+            if (notebookdir!=null&&!notebookdir.isEmpty()) {
+                plist.add("--notebook-dir="+notebookdir);
+            }
             var baseurl = System.getenv("JUPYTER_BASE_URL");
             if(baseurl==null) baseurl = System.getProperty("JUPYTER_BASE_URL");
             if (baseurl!=null&&!baseurl.isEmpty()) {
