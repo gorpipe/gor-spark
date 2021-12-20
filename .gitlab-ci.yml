@@ -72,18 +72,9 @@ build:
         # Seems like ** does not work properly (even though it is used in the Gitlab docutmentation)
         #- "**/build/test-results/test/**/TEST-*.xml"
 
-unittest:
-  extends: .test
-  script: ./gradlew --continue test
-
-
-slowtest:
-  extends: .test
-  script: ./gradlew --continue slowTest
-
-integrationtest:
-  extends: .test
-  script: ./gradlew --continue integrationTest
+#unittest:
+#  extends: .test
+#  script: ./gradlew --continue test
 
 publish:
   extends:

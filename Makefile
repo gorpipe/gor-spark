@@ -61,68 +61,6 @@ update-master-version: update-master    ## Update version on the master branch, 
 	git commit -m "Updated version to ${NEW_VERSION} on master."
 	git push -u origin "Update_master_version_to_${NEW_VERSION}"
 
-#
-# Release from release branch.
-#
-
-# Create a release branch with library locks and update version info.
-create-release-branch: update-master  ## Create a release branch, assumes BRANCH_VERSION is passed in.
-	@if [ -z "${BRANCH_VERSION}" ]; then { echo "ERROR:  BRANCH_VERSION should be set! Exiting..."; exit 1; }; fi
-
-	# Create the release branch.
-	@echo "Creating new release branch release/v${BRANCH_VERSION}"
-	git checkout -b release/v${BRANCH_VERSION}
-
-	# Create the library locks
-	./gradlew allDeps --write-locks
-	find . -name '*.lockfile' | grep -v '/build/' | xargs git add
-	git commit -m "Creating release branch ${BRANCH_VERSION}, updating dependency locking"
-
-	# Update versions
-	echo "${BRANCH_VERSION}.0" > VERSION
-	git add VERSION
-	git commit -m "Updating version to ${BRANCH_VERSION}.0 on release/v${BRANCH_VERSION}."
-
-	# Push to the branch
-	git push -u origin release/v${BRANCH_VERSION}
-
-	# Must also Call update-master-version.
-
-
-update-release-version:  ## Update version on the development branch, assumes BRANCH_VERSION, NEW_VERSION is passed in.
-	@if [ -z "${BRANCH_VERSION}" ]; then { echo "ERROR: BRANCH_VERSION should be set! Exiting..."; exit 1; }; fi
-	@if [ -z "${NEW_VERSION}" ]; then { echo "ERROR:  NEW_VERSION should be set! Exiting..."; exit 1; }; fi
-
-	# Check out the release branch
-	git checkout release/v${BRANCH_VERSION}
-	git pull
-	git submodule update --init --recursive
-
-	# Update the version numbers
-	echo "${NEW_VERSION}" > VERSION
-	git add VERSION
-
-	# Commit and push to the branch
-	git commit -m "Updated version to ${NEW_VERSION} on on release/v${BRANCH_VERSION}."
-	git push
-
-
-release-from-release:  ## Release from the given release branch.  Assumes BRANCH_VERSION is passed in.
-	@if [ -z "${BRANCH_VERSION}" ]; then { echo "ERROR: BRANCH_VERSION should be set! Exiting..."; exit 1; }; fi
-
-	# Check out release the branch
-	git checkout release/v${BRANCH_VERSION}
-	git pull
-
-	git tag -a ${CURRENT_TAG_VERSION} -m "Releasing gor-services ${CURRENT_TAG_VERSION}"
-	git push origin $(CURRENT_TAG_VERSION)
-
-release-from-master:  ## Release from master.
-	git checkout master
-	git pull
-
-	git tag -a ${CURRENT_TAG_VERSION} -m "Releasing gor-services ${CURRENT_TAG_VERSION}"
-	git push origin $(CURRENT_TAG_VERSION)
 
 #
 # Release directly from main.
@@ -130,5 +68,5 @@ release-from-master:  ## Release from master.
 
 # TBD
 
-check-for-library-updates:  ## Check for available library updates
-	./gradlew dependencyUpdates
+dependencies-check-for-updates:  ## Check for available library updates (updates versions.properties)
+	./gradlew refreshVersions

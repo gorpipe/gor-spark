@@ -93,7 +93,7 @@ public class SparkGorExecutionEngine extends GorExecutionEngine {
             String theHeader = pi.getIterator().getHeader();
             if (outfile != null) {
                 var outwritefile = ((!Files.exists(outfile) && outfile.toString().toLowerCase().endsWith(".gord")) || Files.isDirectory(outfile)) ? outfile.resolve(pi.isNorContext() ? UUID.randomUUID() +".tsv" : UUID.randomUUID() +".gorz") : outfile;
-                Output ofile = OutFile.apply(outwritefile.toString(), session.getProjectContext().getFileReader(), theHeader, false, false, pi.isNorContext(), true, true, GorIndexType.NONE, Option.<String>empty(), Deflater.BEST_SPEED);
+                Output ofile = OutFile.apply(outwritefile.toString(), session.getProjectContext().getFileReader(), theHeader, false, false, pi.isNorContext(), true, false, GorIndexType.NONE, Option.<String>empty(), Deflater.BEST_SPEED);
                 pi.thePipeStep_$eq(pi.thePipeStep().$bar(ofile));
             } else {
                 String header = pi.getHeader();

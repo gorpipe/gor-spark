@@ -399,7 +399,7 @@ class QueryRDD(private val sparkSession: SparkSession, private val sqlContext: S
         var extension: String = null
         val fileReader = new DriverBackedFileReader(null, projectDirectory, null)
         val tableHeader = new TableHeader
-        tableHeader.setTableColumns(TableHeader.DEFULT_RANGE_TABLE_HEADER)
+        tableHeader.setColumns(Array("filepath","alias","startchrom","startpos","endchrom","endpos","tags"))
         if (commandToExecute.startsWith("gordictpart")) {
           overheadTime = 1000 * 60 * 10 // 10 minutes
           val w = commandToExecute.split(" ")

@@ -18,7 +18,7 @@ import org.gorpipe.gor.binsearch.Unzipper;
 import org.gorpipe.gor.model.FileReader;
 import org.gorpipe.gor.model.ParquetLine;
 import org.gorpipe.gor.model.Row;
-import org.gorpipe.gor.table.PathUtils;
+import org.gorpipe.gor.table.util.PathUtils;
 import org.gorpipe.spark.GorSparkSession;
 import org.gorpipe.spark.GorzFlatMapFunction;
 import org.gorpipe.spark.RowDataType;
@@ -123,8 +123,24 @@ public class SparkRowUtilities {
     public static RowDataType translatePath(String fn, Path fileroot, String standalone, FileReader fr) throws IOException {
         RowDataType ret;
         if (!PathUtils.isLocal(fn)) {
-            fn = fn.replace("s3://","s3a://");
-            List<Instant> inst = fr != null ? Collections.singletonList(Instant.ofEpochMilli(fr.resolveUrl(fn).getSourceMetadata().getLastModified())) : Collections.emptyList();
+            List<Instant> inst = Collections.emptyList();
+            if (fr!=null) {
+                fn = fn.replace("s3://", "s3a://");
+                var ds = fr.resolveUrl(fn);
+                if (ds.isDirectory()) { //!ds.exists()
+                    var fnl = fn.toLowerCase();
+                    if (fnl.endsWith(".parquet")) {
+                        ds = fr.resolveUrl(fn + "/_SUCCESS");
+                    } else if (fnl.endsWith(".parquet/")) {
+                        ds = fr.resolveUrl(fn + "_SUCCESS");
+                    } else if (fnl.endsWith(".gord")) {
+                        ds = fr.resolveUrl(fn + "/thedict.gord");
+                    } else if (fnl.endsWith(".gord/")) {
+                        ds = fr.resolveUrl(fn + "thedict.gord");
+                    }
+                }
+                if (ds.exists()) inst = Collections.singletonList(Instant.ofEpochMilli(ds.getSourceMetadata().getLastModified()));
+            }
             ret = new RowDataType(fn,inst);
         } else {
             Path filePath = Paths.get(fn);

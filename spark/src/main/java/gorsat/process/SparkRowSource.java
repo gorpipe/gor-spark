@@ -30,13 +30,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.spark.sql.*;
 import org.apache.spark.sql.expressions.UserDefinedFunction;
 
-import org.bdgenomics.adam.api.java.JavaADAMContext;
-import org.bdgenomics.adam.ds.ADAMContext;
-import org.bdgenomics.adam.ds.GenomicDataset;
-import org.bdgenomics.adam.ds.variant.GenotypeDataset;
-import org.bdgenomics.adam.ds.variant.VariantDataset;
-import org.bdgenomics.adam.sql.Variant;
-import org.gorpipe.spark.ScalaUtils;
 import org.gorpipe.exceptions.GorResourceException;
 import org.gorpipe.gor.driver.DataSource;
 import org.gorpipe.gor.driver.providers.stream.datatypes.bam.BamIterator;
@@ -44,7 +37,6 @@ import org.gorpipe.gor.model.*;
 import org.gorpipe.gor.model.FileReader;
 import org.gorpipe.gor.model.Row;
 import org.gorpipe.gor.session.GorSession;
-import org.gorpipe.gor.session.ProjectContext;
 import org.gorpipe.spark.*;
 import gorsat.Commands.Analysis;
 import gorsat.Commands.CommandParseUtilities;
@@ -378,7 +370,7 @@ public class SparkRowSource extends ProcessSource {
         Dataset<? extends Row> dr = checkRowFormat(dataset);
 
         String uri = gorSparkSession.getRedisUri();
-        GorSpark gs = new GorSparkMaterialize(inputHeader, nor, SparkGOR.sparkrowEncoder().schema(), pushdownGorPipe, gorSparkSession.getProjectContext().getRoot(), uri, jobId, 100);
+        GorSpark gs = new GorSparkMaterialize(inputHeader, nor, SparkGOR.sparkrowEncoder().schema(), pushdownGorPipe, gorSparkSession.getProjectContext().getProjectRoot(), uri, jobId, 100);
         GorSparkRowInferFunction gi = new GorSparkRowInferFunction();
         Row row = ((Dataset<Row>) dr).mapPartitions(gs, SparkGOR.gorrowEncoder()).limit(100).reduce(gi);
         if (row.chr != null) row = gi.infer(row, row);
@@ -386,7 +378,7 @@ public class SparkRowSource extends ProcessSource {
 
         this.setHeader(correctHeader(schema.fieldNames()));
         ExpressionEncoder encoder = RowEncoder.apply(schema);
-        gs = new GorSpark(inputHeader, nor, schema, pushdownGorPipe, gorSparkSession.getProjectContext().getRoot(), uri, jobId);
+        gs = new GorSpark(inputHeader, nor, schema, pushdownGorPipe, gorSparkSession.getProjectContext().getProjectRoot(), uri, jobId);
         pushdownGorPipe = null;
         dataset = ((Dataset<Row>) dr).mapPartitions(gs, encoder);
 
@@ -1112,7 +1104,7 @@ public class SparkRowSource extends ProcessSource {
         Dataset<? extends Row> dr = checkRowFormat(dataset);
 
         String inputHeader = String.join("\t", dataset.schema().fieldNames());
-        GorSparkExternalFunction gsef = new GorSparkExternalFunction(inputHeader,query,null/*gorSparkSession.getProjectContext().getRoot()*/);
+        GorSparkExternalFunction gsef = new GorSparkExternalFunction(inputHeader,query,gorSparkSession.getProjectContext().getProjectRoot());
         gsef.setFetchHeader(true);
         Row r = ((Dataset<Row>) dr).mapPartitions(gsef, SparkGOR.gorrowEncoder()).head();
         gsef.setFetchHeader(false);
