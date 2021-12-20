@@ -36,7 +36,7 @@ class GorQueryRDD(sparkSession: SparkSession, commandsToExecute: Array[String], 
     val projectPath = Paths.get(projectDirectory)
     val cacheFilePath = Paths.get(cacheFile)
     val absCacheFilePath = if( projectDirectory.nonEmpty && !cacheFilePath.isAbsolute ) projectPath.resolve(cacheFile) else cacheFilePath
-    val cacheFileMd5Path = absCacheFilePath.getParent.resolve(absCacheFilePath.getFileName+".md5")
+    //val cacheFileMd5Path = absCacheFilePath.getParent.resolve(absCacheFilePath.getFileName+".md5")
     val cacheFileMetaPath = absCacheFilePath.getParent.resolve(absCacheFilePath.getFileName+".meta")
     if(Files.isDirectory(absCacheFilePath)) {
       val sparkGorMonitor = GorSparkUtilities.getSparkGorMonitor(jobId, redisUri, redisKey)
@@ -44,7 +44,7 @@ class GorQueryRDD(sparkSession: SparkSession, commandsToExecute: Array[String], 
       engine.execute()
     } else if (!Files.exists(absCacheFilePath)) {
       val temp_cacheFile = if(absCacheFilePath.getFileName.toString.startsWith("tmp")) absCacheFilePath else absCacheFilePath.getParent.resolve("tmp"+UUID.randomUUID()+absCacheFilePath.getFileName.toString)
-      val temp_cacheMd5File = temp_cacheFile.getParent.resolve(temp_cacheFile.getFileName.toString+".md5")
+      //val temp_cacheMd5File = temp_cacheFile.getParent.resolve(temp_cacheFile.getFileName.toString+".md5")
       val temp_cacheMetaFile = temp_cacheFile.getParent.resolve(temp_cacheFile.getFileName.toString+".meta")
       val tempFile_absolutepath = temp_cacheFile.toAbsolutePath.normalize()
       try {
@@ -53,7 +53,7 @@ class GorQueryRDD(sparkSession: SparkSession, commandsToExecute: Array[String], 
         engine.execute()
         if (!Files.exists(absCacheFilePath)) {
           Files.move(temp_cacheFile, absCacheFilePath)
-          if(Files.exists(temp_cacheMd5File) && !Files.exists(cacheFileMd5Path)) Files.move(temp_cacheMd5File, cacheFileMd5Path)
+          //if(Files.exists(temp_cacheMd5File) && !Files.exists(cacheFileMd5Path)) Files.move(temp_cacheMd5File, cacheFileMd5Path)
           if(Files.exists(temp_cacheMetaFile) && !Files.exists(cacheFileMetaPath)) Files.move(temp_cacheMetaFile, cacheFileMetaPath)
         }
       } catch {

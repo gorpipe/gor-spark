@@ -87,8 +87,6 @@ project(':spark') {
             exclude group: 'org.apache.thrift', module: 'libthrift'
         }
         implementation group: 'org.apache.thrift', name: 'libthrift', version: '0.15.0'
-        //implementation group: 'io.delta', name: 'delta-core_2.12', version: '1.0.0'
-        //implementation group: 'com.google.dagger', name: 'dagger', version: '2.40'
 
         implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.11.0'
         implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.0'
@@ -102,12 +100,11 @@ project(':spark') {
         }
         compile group: 'org.broadinstitute', name: 'gatk-native-bindings', version: '1.0.0'*/
 
-        implementation group: 'org.apache.logging.log4j', name: 'log4j', version: '2.13.3', ext: 'pom'
-        implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.13.3', ext: 'pom'
-        implementation group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.13.3', ext: 'pom'
-        implementation group: 'org.apache.logging.log4j', name: 'log4j-jcl', version: '2.13.3', ext: 'pom'
-        implementation group: 'org.apache.logging.log4j', name: 'log4j-slf4j-impl', version: '2.13.3'
-        implementation group: 'org.apache.logging.log4j', name: 'log4j-1.2-api', version: '2.13.3'
+        implementation "org.apache.logging.log4j:log4j:_"
+        implementation "org.apache.logging.log4j:log4j-core:_"
+        implementation "org.apache.logging.log4j:log4j-api:_"
+        implementation "org.apache.logging.log4j:log4j-slf4j-impl:_"
+        implementation "org.apache.logging.log4j:log4j-1.2-api:_"
 
         implementation ('org.apache.hadoop:hadoop-common:_') {
             exclude group: 'com.google.guava', module: 'guava'
@@ -138,25 +135,6 @@ project(':spark') {
 
         runtimeOnly "io.prometheus.jmx:jmx_prometheus_javaagent:_"
         runtimeOnly "${gorArtifactGroupId}:gor-drivers:${gorVersion}"
-
-        /*compile group: 'com.typesafe.scala-logging', name: 'scala-logging_2.12', version: '3.9.2'
-        compile group: 'org.jdbi', name: 'jdbi', version: '2.78'
-        compile group: 'org.seqdoop', name: 'hadoop-bam', version: '7.10.0'
-
-        compile group: 'com.clearspring.analytics', name: 'stream', version: '2.9.8'
-        compile group: 'com.esotericsoftware', name: 'kryo-shaded', version: '4.0.2'
-        compile group: 'org.lz4', name: 'lz4-java', version: '1.7.0'
-        compile group: 'org.apache.xbean', name: 'xbean-asm7-shaded', version: '4.15'
-        compile group: 'com.univocity', name: 'univocity-parsers', version: '2.8.4'
-        compile group: 'org.fusesource.leveldbjni', name: 'leveldbjni', version: '1.8'
-
-        compile "org.codehaus.janino:janino:_"
-        compile "org.codehaus.janino:commons-compiler:_"
-
-        compile "org.json4s:json4s-core_2.12:_"
-        compile "org.json4s:json4s-ast_2.12:_"
-        compile "org.json4s:json4s-jackson_2.12:_"
-        compile "org.apache.commons:commons-lang3:_"*/
 
         implementation 'io.kubernetes:client-java:_'
 

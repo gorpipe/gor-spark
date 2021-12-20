@@ -80,7 +80,19 @@ public class GorSparkUtilities {
             initPy4jServer();
             GorSparkUtilities.getSparkSession();
 
-            ProcessBuilder pb = new ProcessBuilder("jupyter-lab", "--NotebookApp.allow_origin='https://colab.research.google.com'","--port=8888","--NotebookApp.port_retries=0");
+            var plist = new ArrayList<>(List.of("jupyter-lab", "--ip=0.0.0.0", "--NotebookApp.allow_origin='*'","--port=8888","--NotebookApp.port_retries=0"));
+            var notebookdir = System.getenv("JUPYTER_NOTEBOOK_DIR");
+            if(notebookdir==null) notebookdir = System.getProperty("JUPYTER_NOTEBOOK_DIR");
+            if (notebookdir!=null&&!notebookdir.isEmpty()) {
+                plist.add("--notebook-dir="+notebookdir);
+            }
+            var baseurl = System.getenv("JUPYTER_BASE_URL");
+            if(baseurl==null) baseurl = System.getProperty("JUPYTER_BASE_URL");
+            if (baseurl!=null&&!baseurl.isEmpty()) {
+                plist.add("--NotebookApp.base_url=/"+baseurl);
+                plist.add("--LabApp.base_url=/"+baseurl);
+            }
+            ProcessBuilder pb = new ProcessBuilder(plist);
             standaloneRoot.ifPresent(sroot -> pb.directory(Paths.get(sroot).toFile()));
             Map<String,String> env = pb.environment();
             env.put("PYSPARK_GATEWAY_PORT",Integer.toString(GorSparkUtilities.getPyServerPort()));
@@ -158,7 +170,7 @@ public class GorSparkUtilities {
         sparkConf.set("spark.hadoop.fs.s3a.committer.name","partitioned");
         sparkConf.set("spark.hadoop.fs.s3a.committer.staging.conflict-mode","replace");
         sparkConf.set("spark.delta.logStore.class","org.apache.spark.sql.delta.storage.S3SingleDriverLogStore");
-        sparkConf.set("spark.hadoop.fs.s3a.aws.credentials.provider","org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider");
+        //sparkConf.set("spark.hadoop.fs.s3a.aws.credentials.provider","org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider");
         SparkSession.Builder ssb = SparkSession.builder();
         if(!sparkConf.contains("spark.master")) {
             ssb = workers>0 ? ssb.master("local["+workers+"]") : ssb.master("local[*]");

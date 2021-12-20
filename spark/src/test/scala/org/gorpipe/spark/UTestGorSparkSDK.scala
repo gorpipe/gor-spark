@@ -31,28 +31,28 @@ class UTestGorSparkSDK {
     def testSelectCmdEmpty(): Unit = {
         val res = sparkGorSession.dataframe("select * from <(cmd {date})")
         val res2 = res.collect().mkString("\n")
-        Assert.assertEquals("Wrong results from select norrows","",res2)
+        Assert.assertEquals("Wrong results from select empty cmd","",res2)
     }
 
     @Test
     def testSelectCmd(): Unit = {
         val res = sparkGorSession.dataframe("select * from <(cmd -n {bash -c 'for i in {10..12}; do echo $i; done;'})")
         val res2 = res.collect().mkString("\n")
-        Assert.assertEquals("Wrong results from select norrows","[11]\n[12]",res2)
+        Assert.assertEquals("Wrong results from select cmd","[11]\n[12]",res2)
     }
 
     @Test
     def testSelectCmdHeaderless(): Unit = {
         val res = sparkGorSession.dataframe("select * from <(cmd -n -h {bash -c 'for i in {1..2}; do echo $i; done;'})")
         val res2 = res.collect().mkString("\n")
-        Assert.assertEquals("Wrong results from select norrows","[1]\n[2]",res2)
+        Assert.assertEquals("Wrong results from select cmd no header","[1]\n[2]",res2)
     }
 
     @Test
     def testSelectCmdHeaderlessString(): Unit = {
         val res = sparkGorSession.dataframe("select * from <(cmd -n -h {bash -c 'for i in {1..2}; do echo \"hey$i\"; done;'})")
         val res2 = res.collect().mkString("\n")
-        Assert.assertEquals("Wrong results from select norrows","[hey1]\n[hey2]",res2)
+        Assert.assertEquals("Wrong results from select cmd no header string","[hey1]\n[hey2]",res2)
     }
 
     @Test
