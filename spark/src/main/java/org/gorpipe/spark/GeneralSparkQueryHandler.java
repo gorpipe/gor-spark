@@ -135,6 +135,8 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
             /*if (redisUri!=null && redisUri.length()>0) {
                 progressCancelMonitor();
             }*/
+            var cmds = String.join(" ", commandsToExecute);
+            sparkSession.sparkContext().setJobDescription(cmds);
 
             if (sparkJobs.size() == 0 && gorJobs.size() > 0) {
                 otherRes.call();

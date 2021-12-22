@@ -94,7 +94,7 @@ public class SparkSessionFactory extends GorSessionFactory {
         if(configFile.isPresent()) projectContextBuilder = projectContextBuilder.setConfigFile(configFile.get());
         if(aliasFile.isPresent()) projectContextBuilder = projectContextBuilder.setAliasFile(aliasFile.get());
         projectContextBuilder = projectContextBuilder
-            .setRoot(root+securityContext)
+            .setRoot(securityContext != null ? root+securityContext : root)
             .setCacheDir(cacheDir)
             .setFileReader(new DriverBackedFileReader(securityContext, root, null))
             .setFileCache(new LocalFileCacheClient(cachePath.isAbsolute() ? cachePath : Paths.get(root).resolve(cacheDir)))
