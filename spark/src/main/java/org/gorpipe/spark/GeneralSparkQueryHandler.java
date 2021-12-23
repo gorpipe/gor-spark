@@ -152,7 +152,7 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
                 progressCancelMonitor();
             }*/
             var cmds = String.join(" ", commandsToExecute);
-            sparkSession.sparkContext().setJobGroup("gor-spark", cmds, true);
+            sparkSession.sparkContext().setJobDescription(cmds);
 
             if (sparkJobs.size() == 0 && gorJobs.size() > 0) {
                 otherRes.call();
