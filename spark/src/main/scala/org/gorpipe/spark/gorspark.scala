@@ -631,16 +631,24 @@ object SparkGOR {
     new GorSpark(null, false, null, q, null)
   }
 
-  def createSession(sparkSession: SparkSession, root: String, cache: String, gorconfig: String, goralias: String): GorSparkSession = {
+  def createSession(sparkSession: SparkSession, root: String, cache: String, gorconfig: String, goralias: String, securityContext: String): GorSparkSession = {
     val standalone = System.getProperty("sm.standalone")
     if (standalone == null || standalone.isEmpty) System.setProperty("sm.standalone", root)
-    val sessionFactory = new SparkSessionFactory(sparkSession, root, cache, gorconfig, goralias, null, null)
+    val sessionFactory = new SparkSessionFactory(sparkSession, root, cache, gorconfig, goralias, securityContext, null)
     val sparkGorSession = sessionFactory.create().asInstanceOf[GorSparkSession]
     sparkGorSession
   }
 
+  def createSession(sparkSession: SparkSession, root: String, cache: String, gorconfig: String, goralias: String): GorSparkSession = {
+    createSession(sparkSession, root, cache, gorconfig, goralias, "")
+  }
+
   def createSession(sparkSession: SparkSession): GorSparkSession = {
     createSession(sparkSession, Paths.get("").toAbsolutePath.toString, Paths.get(System.getProperty("java.io.tmpdir")).toString, null, null)
+  }
+
+  def createSession(sparkSession: SparkSession, gorconfig: String, goralias: String, securityContext: String): GorSparkSession = {
+    createSession(sparkSession, Paths.get("").toAbsolutePath.toString, Paths.get(System.getProperty("java.io.tmpdir")).toString, gorconfig, goralias, securityContext)
   }
 
   def createSession(sparkSession: SparkSession, gorconfig: String, goralias: String): GorSparkSession = {
