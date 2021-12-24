@@ -278,7 +278,7 @@ public class SparkRowSource extends ProcessSource {
                     dataset = ((Dataset<org.apache.spark.sql.Row>) dataset).filter((FilterFunction<org.apache.spark.sql.Row>) row -> chr.equals(row.getString(0)) && row.getInt(1) >= pos);
                 }
             }
-            gorSparkSession.getSparkSession().sparkContext().setJobGroup("a|b|gorsql|c", sql, true);
+            gorSparkSession.getSparkSession().sparkContext().setJobDescription( sql);
         }
         boolean checknor = checkNor(dataset.schema().fields());
         setHeader((nor || checknor ? "chrNOR\tposNOR\t" : "") + correctHeader(dataset.columns()));

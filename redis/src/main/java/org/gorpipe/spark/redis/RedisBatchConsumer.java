@@ -23,8 +23,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -91,6 +94,7 @@ public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long>, Au
         }
         String configFile = gss.getProjectContext() != null ? gss.getProjectContext().getGorConfigFile() : null;
         String aliasFile = gss.getProjectContext() != null ? gss.getProjectContext().getGorAliasFile() : null;
+
         GorQueryRDD gorQueryRDD = new GorQueryRDD(gss.sparkSession(), newCommands, newFingerprints, newCacheFiles, projectDirStr, "result_cache", configFile, aliasFile, newJobIds, newSecCtxs, gss.redisUri(), gss.streamKey());
         return gorQueryRDD.toJavaRDD().collectAsync();
     }
@@ -110,7 +114,7 @@ public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long>, Au
 
         ProjectContext.Builder projectContextBuilder = new ProjectContext.Builder();
         ProjectContext prjctx = projectContextBuilder
-                .setRoot(projectDirStr+securityContext)
+                .setRoot(securityContext != null ? projectDirStr+securityContext : projectDirStr)
                 .setCacheDir(cacheDir)
                 .setFileReader(new DriverBackedFileReader(securityContext, projectDirStr, null))
                 .setConfigFile(configFile)
@@ -147,6 +151,21 @@ public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long>, Au
             String[] securityCtxs = lstr.stream().map(l -> l[6]).toArray(String[]::new);
 
             mont.setValue(jobIds, "status", "RUNNING");
+
+            var cmds = String.join(";", queries);
+            try {
+                var jobs = Arrays.stream(jobIds).map(j -> {
+                    var jsplit = j.split(":");
+                    return jsplit[jsplit.length-1];
+                }).sorted().collect(Collectors.joining(";"));
+                MessageDigest md = MessageDigest.getInstance("MD5");
+                md.update(jobs.getBytes());
+                var big = new BigInteger(md.digest()).abs();
+                var groupId = big.toString(16);
+                gss.sparkSession().sparkContext().setJobGroup(groupId, cmds, true);
+            } catch(NoSuchAlgorithmException e) {
+                // Ignore
+            }
 
             final Set<Integer> gorJobs = new TreeSet<>();
             for (int i = 0; i < queries.length; i++) {
@@ -202,6 +221,13 @@ public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long>, Au
             }
             return new String[0];
         }).collect(Collectors.toList());
+
+        rr.stream().filter(r -> r.getString(2).equals("cancelflag")).parallel().forEach(r -> {
+            String groupId = r.getString(3);
+            if (!groupId.equals("CANCEL")) {
+                gss.sparkSession().sparkContext().cancelJobGroup(groupId);
+            }
+        });
 
         Map<String,Future<List<String>>> futMap = runJobBatch(lstr);
         futMap.forEach((key, value) -> mont.addJob(key, value));
