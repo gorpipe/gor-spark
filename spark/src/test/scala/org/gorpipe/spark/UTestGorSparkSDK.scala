@@ -119,6 +119,18 @@ class UTestGorSparkSDK {
     }
 
     @Test
+    def testWriteGorrows(): Unit = {
+        val path = Files.createTempFile("gor",".gorz");
+        try {
+            val res = sparkGorSession.dataframe("gorrows -p chr1:1-5").gor("write " + path)(sparkGorSession)
+            val res2 = res.collect().mkString("\n")
+            Assert.assertEquals("Wrong results from nested gorrows", "", res2)
+        } finally {
+            Files.deleteIfExists(path);
+        }
+    }
+
+    @Test
     def testGorWhereDouble(): Unit = {
         val res = sparkGorSession.dataframe("gor gor/genes.gor | calc f 1.0").gor("where gene_end > 29805.0 | where f < 2")(sparkGorSession)
         val res2 = res.limit(1).collect().mkString("\n")
@@ -137,18 +149,6 @@ class UTestGorSparkSDK {
       val res = sparkGorSession.dataframe("gor gor/genes.gor").gor("where gene_end > 29805")(sparkGorSession).gor("where gene_end < 29807")(sparkGorSession)
       val res2 = res.collect().mkString("\n")
       Assert.assertEquals("Wrong results from nested norrows","[chr1,14362,29806,WASH7P]",res2)
-    }
-
-    @Test
-    def testWriteGorrows(): Unit = {
-        val path = Files.createTempFile("gor",".gorz");
-        try {
-            val res = sparkGorSession.dataframe("gorrows -p chr1:1-5").gor("write " + path)(sparkGorSession)
-            val res2 = res.collect().mkString("\n")
-            Assert.assertEquals("Wrong results from nested gorrows", "", res2)
-        } finally {
-            Files.deleteIfExists(path);
-        }
     }
 
     @Test

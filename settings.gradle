@@ -20,7 +20,7 @@ rootProject.name = 'gor-spark'
 rootProject.buildFileName = "build.gradle"
 
 include 'spark'
-//include 'redis'
+include 'redis'
 
 //include 'querydialogs'
 include 'gorscripts'

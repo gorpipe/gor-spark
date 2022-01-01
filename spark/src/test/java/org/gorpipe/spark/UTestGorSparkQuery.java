@@ -2,7 +2,6 @@ package org.gorpipe.spark;
 
 import gorsat.process.PipeOptions;
 import gorsat.process.SparkPipeInstance;
-import io.projectglow.Glow;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.gorpipe.gor.session.GorSession;
@@ -35,7 +34,7 @@ public class UTestGorSparkQuery {
                 .config("spark.delta.logStore.class","org.apache.spark.sql.delta.storage.S3SingleDriverLogStore")
                 .config("spark.hadoop.fs.s3a.aws.credentials.provider","org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider")
                 .master("local[2]").getOrCreate();
-        Glow.register(spark, false);
+        //Glow.register(spark, false);
         SparkSessionFactory sparkSessionFactory = new SparkSessionFactory(spark, Paths.get(".").toAbsolutePath().normalize().toString(), System.getProperty("java.io.tmpdir"), null, null,null, null);
         GorSession session = sparkSessionFactory.create();
         sparkGorSession = (GorSparkSession) session;
@@ -401,6 +400,11 @@ public class UTestGorSparkQuery {
     @Test
     public void testGorSparkQueryWithCalcContext() {
         testSparkQuery("select * from ../tests/data/gor/genes.gor | calc t time() | top 1 | hide t", "chr1\t11868\t14412\tDDX11L1");
+    }
+
+    @Test
+    public void testGorSparkQueryWithVarjoin() {
+        testSparkQuery("select * from ../tests/data/gor/dbsnp_test.gorz limit 1 | varjoin ../tests/data/gor/dbsnp_test.gorz", "chr1\t10179\tC\tCC\trs367896724\t10179\tC\tCC\trs367896724");
     }
 
     @Test

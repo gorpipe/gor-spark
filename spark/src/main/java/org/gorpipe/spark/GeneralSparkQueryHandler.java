@@ -3,7 +3,9 @@ package org.gorpipe.spark;
 import gorsat.Commands.CommandParseUtilities;
 import gorsat.process.PipeOptions;
 import gorsat.process.SparkPipeInstance;
+import gorsat.process.SparkRowSource;
 import org.apache.spark.sql.SparkSession;
+import org.gorpipe.gor.model.GenomicIterator;
 import org.gorpipe.gor.model.GorParallelQueryHandler;
 import org.gorpipe.gor.monitor.GorMonitor;
 import org.gorpipe.gor.session.GorRunner;
@@ -43,7 +45,7 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
         return lastQueryLower.startsWith("select ") || lastQueryLower.startsWith("spark ") || lastQueryLower.startsWith("gorspark ") || lastQueryLower.startsWith("norspark ") || lastQuery.contains("/*+");
     }
 
-    public static String[] executeSparkBatch(GorSparkSession session, String projectDir, String cacheDir, String[] fingerprints, String[] commandsToExecute, String[] jobIds, String[] cacheFiles) {
+    public static String[] executeSparkBatch(GorSparkSession session, String projectDir, String cacheDir, String[] fingerprints, String[] commandsToExecute, String[] jobIds, String[] batchGroupNames, String[] cacheFiles) {
         SparkSession sparkSession = session.getSparkSession();
         String redisUri = session.getRedisUri();
         String redisKey = session.streamKey();
@@ -88,7 +90,13 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
                 pi.theInputSource().pushdownWrite(cacheFile);
                 GorRunner runner = session.getSystemContext().getRunnerFactory().create();
                 try {
+                    GenomicIterator gi = pi.theInputSource();
                     runner.run(pi.getIterator(), pi.getPipeStep());
+                    if (gi instanceof SparkRowSource) {
+                        SparkRowSource srs = (SparkRowSource)gi;
+                        var tmpName = batchGroupNames[i];
+                        srs.getDataset().createOrReplaceTempView(tmpName.substring(1,tmpName.length()-1));
+                    }
                 } catch (Exception e) {
                     try {
                         if (Files.exists(cachePath))
@@ -118,6 +126,7 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
             String[] newFingerprints = new String[gorJobs.size()];
             String[] newCacheFiles = new String[gorJobs.size()];
             String[] newJobIds = new String[gorJobs.size()];
+            String[] newBatch = new String[gorJobs.size()];
 
             int k = 0;
             for (int i : gorJobs) {
@@ -125,9 +134,16 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
                 newFingerprints[k] = fingerprints[i];
                 newJobIds[k] = jobIds[i];
                 newCacheFiles[k] = cacheFiles[i];
+                newBatch[k] = batchGroupNames[i];
                 k++;
             }
             GorQueryRDD queryRDD = new GorQueryRDD(sparkSession, newCommands, newFingerprints, newCacheFiles, projectDir, cacheDir, session.getProjectContext().getGorConfigFile(), session.getProjectContext().getGorAliasFile(), newJobIds, null, redisUri, redisKey);
+            /*for (int u  = 0; u < res.length; u++) {
+                var split = res[u].split("\t");
+                var batch = newBatch[u];
+                var batchName = batch.substring(1,batch.length()-1);
+                session.dataframe("pgor " + split[3], null).createOrReplaceTempView(batchName);
+            }*/
             return (String[]) queryRDD.collect();
         };
 
@@ -179,7 +195,7 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
             cacheFileList.add(cachePath);
         });
         String[] jobIds = Arrays.copyOf(fingerprints, fingerprints.length);
-        String[] res = executeSparkBatch(gpSession, projectDir, cacheDir, fingerprints, commandsToExecute, jobIds, cacheFileList.toArray(new String[0]));
+        String[] res = executeSparkBatch(gpSession, projectDir, cacheDir, fingerprints, commandsToExecute, jobIds, batchGroupNames, cacheFileList.toArray(new String[0]));
         return Arrays.stream(res).map(s -> s.split("\t")[2]).toArray(String[]::new);
     }
 

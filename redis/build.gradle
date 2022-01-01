@@ -62,21 +62,22 @@ dependencies {
         exclude group: 'ch.qos.logback', module: 'logback-classic'
         exclude group: 'ch.qos.logback', module: 'logback-core'
     }
-    implementation("${gorArtifactGroupId}:gor-base:${gorVersion}") {
+    implementation(project(':base')) {
         exclude group: 'ch.qos.logback', module: 'logback-classic'
         exclude group: 'ch.qos.logback', module: 'logback-core'
     }
-    implementation("${gorArtifactGroupId}:gor-model:${gorVersion}") {
+    implementation(project(':util')) {
         exclude group: 'ch.qos.logback', module: 'logback-classic'
         exclude group: 'ch.qos.logback', module: 'logback-core'
     }
-    implementation("${gorArtifactGroupId}:gor-gortools:${gorVersion}") {
+    implementation(project(':model')) {
         exclude group: 'ch.qos.logback', module: 'logback-classic'
         exclude group: 'ch.qos.logback', module: 'logback-core'
     }
-    implementation("${gorArtifactGroupId}:gor-util:${gorVersion}") {
+    implementation(project(':gortools')) {
         exclude group: 'ch.qos.logback', module: 'logback-classic'
         exclude group: 'ch.qos.logback', module: 'logback-core'
+        exclude group: 'net.sourceforge.f2j', module: 'arpack_combined_all'
     }
 
     implementation ("org.apache.spark:spark-core_${scalaVersion}:_") {
@@ -136,7 +137,7 @@ dependencies {
     implementation 'io.kubernetes:client-java:_'
 
     implementation("redis.clients:jedis:_")
-    implementation "com.redislabs:spark-redis_${scalaVersion}:_"
+    implementation "com.redislabs:spark-redis_2.12:_"
 
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.11.0'
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.0'
