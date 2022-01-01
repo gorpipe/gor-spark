@@ -38,6 +38,34 @@ class UTestGorSparkSDK {
     }
 
     @Test
+    def testSelectCmdEmpty(): Unit = {
+        val res = sparkGorSession.dataframe("select * from <(cmd {date})")
+        val res2 = res.collect().mkString("\n")
+        Assert.assertEquals("Wrong results from select empty cmd","",res2)
+    }
+
+    @Test
+    def testSelectCmd(): Unit = {
+        val res = sparkGorSession.dataframe("select * from <(cmd -n {bash -c 'for i in {10..12}; do echo $i; done;'})")
+        val res2 = res.collect().mkString("\n")
+        Assert.assertEquals("Wrong results from select cmd","[11]\n[12]",res2)
+    }
+
+    @Test
+    def testSelectCmdHeaderless(): Unit = {
+        val res = sparkGorSession.dataframe("select * from <(cmd -n -h {bash -c 'for i in {1..2}; do echo $i; done;'})")
+        val res2 = res.collect().mkString("\n")
+        Assert.assertEquals("Wrong results from select cmd no header","[1]\n[2]",res2)
+    }
+
+    @Test
+    def testSelectCmdHeaderlessString(): Unit = {
+        val res = sparkGorSession.dataframe("select * from <(cmd -n -h {bash -c 'for i in {1..2}; do echo \"hey$i\"; done;'})")
+        val res2 = res.collect().mkString("\n")
+        Assert.assertEquals("Wrong results from select cmd no header string","[hey1]\n[hey2]",res2)
+    }
+
+    @Test
     def testSelectNorrows(): Unit = {
         val res = sparkGorSession.dataframe("select * from <(norrows 2)")
         val res2 = res.collect().mkString("\n")
@@ -88,6 +116,27 @@ class UTestGorSparkSDK {
         val res = sparkGorSession.dataframe("nor <(norrows 2)").gor("calc x 'x'")(sparkGorSession)
         val res2 = res.collect().mkString("\n")
         Assert.assertEquals("Wrong results from nested norrows","0\tx\n1\tx",res2)
+    }
+
+    @Test
+    def testGorWhereDouble(): Unit = {
+        val res = sparkGorSession.dataframe("gor gor/genes.gor | calc f 1.0").gor("where gene_end > 29805.0 | where f < 2")(sparkGorSession)
+        val res2 = res.limit(1).collect().mkString("\n")
+        Assert.assertEquals("Wrong results from nested norrows","[chr1,14362,29806,WASH7P,1.0]",res2)
+    }
+
+    @Test
+    def testGorWhere(): Unit = {
+      val res = sparkGorSession.dataframe("gor gor/genes.gor").gor("where gene_end > 29805")(sparkGorSession)
+      val res2 = res.limit(1).collect().mkString("\n")
+      Assert.assertEquals("Wrong results from nested norrows","[chr1,14362,29806,WASH7P]",res2)
+    }
+
+    @Test
+    def testGorWhere2(): Unit = {
+      val res = sparkGorSession.dataframe("gor gor/genes.gor").gor("where gene_end > 29805")(sparkGorSession).gor("where gene_end < 29807")(sparkGorSession)
+      val res2 = res.collect().mkString("\n")
+      Assert.assertEquals("Wrong results from nested norrows","[chr1,14362,29806,WASH7P]",res2)
     }
 
     @Test

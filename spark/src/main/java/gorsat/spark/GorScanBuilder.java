@@ -6,6 +6,7 @@ import org.apache.spark.sql.types.StructType;
 public abstract class GorScanBuilder implements ScanBuilder, Scan, Batch, SupportsPushDownFilters {
     StructType schema;
     String redisUri;
+    String streamKey;
     String jobId;
     String cacheFile;
     String useCpp;
@@ -15,9 +16,10 @@ public abstract class GorScanBuilder implements ScanBuilder, Scan, Batch, Suppor
     String aliasFile;
     String securityContext;
 
-    public GorScanBuilder(StructType schema, String redisUri, String jobId, String cacheFile, String projectRoot, String cacheDir, String configFile, String aliasFile, String securityContext, String useCpp) {
+    public GorScanBuilder(StructType schema, String redisUri, String streamKey, String jobId, String cacheFile, String projectRoot, String cacheDir, String configFile, String aliasFile, String securityContext, String useCpp) {
         this.schema = schema;
         this.redisUri = redisUri;
+        this.streamKey = streamKey;
         this.jobId = jobId;
         this.cacheFile = cacheFile;
         this.useCpp = useCpp;
@@ -45,6 +47,6 @@ public abstract class GorScanBuilder implements ScanBuilder, Scan, Batch, Suppor
 
     @Override
     public PartitionReaderFactory createReaderFactory() {
-        return new GorReaderFactory(schema, redisUri, jobId, cacheFile, projectRoot, cacheDir, configFile, aliasFile, securityContext, useCpp);
+        return new GorReaderFactory(schema, redisUri, streamKey, jobId, cacheFile, projectRoot, cacheDir, configFile, aliasFile, securityContext, useCpp);
     }
 }

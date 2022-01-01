@@ -15,11 +15,10 @@ import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.types.*;
 import org.gorpipe.gor.binsearch.CompressionType;
 import org.gorpipe.gor.binsearch.Unzipper;
-import org.gorpipe.gor.driver.DataSource;
-import org.gorpipe.gor.model.DriverBackedFileReader;
 import org.gorpipe.gor.model.FileReader;
 import org.gorpipe.gor.model.ParquetLine;
 import org.gorpipe.gor.model.Row;
+import org.gorpipe.gor.table.util.PathUtils;
 import org.gorpipe.spark.GorSparkSession;
 import org.gorpipe.spark.GorzFlatMapFunction;
 import org.gorpipe.spark.RowDataType;
@@ -45,7 +44,7 @@ import java.util.zip.GZIPInputStream;
 import static org.apache.spark.sql.types.DataTypes.*;
 
 public class SparkRowUtilities {
-    static final String[] allowedGorSQLFileEndings = {".json",".csv",".tsv",".gor",".gorz",".gor.gz",".gord",".txt",".vcf",".bgen"};
+    static final String[] allowedGorSQLFileEndings = {".json",".csv",".tsv",".gor",".gorz",".gor.gz",".gord",".txt",".vcf",".bgen",".xml",".mt",".parquet",".adam",".link"};
     static final String csvDataSource = "csv";
     static final String gordatasourceClassname = "gorsat.spark.GorDataSource";
 
@@ -78,7 +77,7 @@ public class SparkRowUtilities {
         String prekey = usegorpipe + fileName;
         String key = filter == null ? prekey : filter + prekey;
         String ret = chr == null ? key : chr + pos + end + key;
-        ret += inst.stream().map(Instant::toString).collect(Collectors.joining());
+        if (inst!=null) ret += inst.stream().map(Instant::toString).collect(Collectors.joining());
         var hash = Math.abs(ret.hashCode());
         return "g" + hash;
     }
@@ -121,10 +120,28 @@ public class SparkRowUtilities {
         return gorDataTypeToStructType(gorDataType);
     }
 
-    public static RowDataType translatePath(String fn, Path fileroot, String standalone) {
+    public static RowDataType translatePath(String fn, Path fileroot, String standalone, FileReader fr) throws IOException {
         RowDataType ret;
-        if (fn.contains("://")) {
-            ret = new RowDataType(fn,null);
+        if (!PathUtils.isLocal(fn)) {
+            List<Instant> inst = Collections.emptyList();
+            if (fr!=null) {
+                fn = fn.replace("s3://", "s3a://");
+                var ds = fr.resolveUrl(fn);
+                if (ds.isDirectory()) { //!ds.exists()
+                    var fnl = fn.toLowerCase();
+                    if (fnl.endsWith(".parquet")) {
+                        ds = fr.resolveUrl(fn + "/_SUCCESS");
+                    } else if (fnl.endsWith(".parquet/")) {
+                        ds = fr.resolveUrl(fn + "_SUCCESS");
+                    } else if (fnl.endsWith(".gord")) {
+                        ds = fr.resolveUrl(fn + "/thedict.gord");
+                    } else if (fnl.endsWith(".gord/")) {
+                        ds = fr.resolveUrl(fn + "thedict.gord");
+                    }
+                }
+                if (ds.exists()) inst = Collections.singletonList(Instant.ofEpochMilli(ds.getSourceMetadata().getLastModified()));
+            }
+            ret = new RowDataType(fn,inst);
         } else {
             Path filePath = Paths.get(fn);
             if (!filePath.isAbsolute()) {
@@ -138,6 +155,10 @@ public class SparkRowUtilities {
                         filePath = fileroot.resolve(filePath).normalize().toAbsolutePath();
                     }
                 }
+            }
+            var linkPath = Path.of(filePath +".link");
+            if (!Files.exists(filePath) && Files.exists(linkPath)) {
+                return translatePath(Files.readString(linkPath), fileroot, standalone, fr);
             }
             List<Instant> inst;
             try {
@@ -166,7 +187,7 @@ public class SparkRowUtilities {
         Stream<Stream<String>> lstr = sdrs.map(drs -> StreamSupport.stream(Spliterators.spliteratorUnknownSize(drs, Spliterator.ORDERED), false).map(Object::toString).onClose(drs::close));
 
         String query = gorcmds[0];
-        boolean nor = query.toLowerCase().startsWith("nor ") || query.toLowerCase().startsWith("norrows ");
+        boolean nor = query.toLowerCase().startsWith("nor ") || query.toLowerCase().startsWith("norrows ") || query.toLowerCase().startsWith("norcmd ") || query.toLowerCase().startsWith("cmd -n ");
         DynIterator.DynamicRowSource drs = new DynIterator.DynamicRowSource(query, gorSparkSession.getGorContext(), false);
         String header = drs.getHeader();
         List<String> usedFiles = JavaConverters.seqAsJavaList(drs.usedFiles());
@@ -179,7 +200,7 @@ public class SparkRowUtilities {
         return gdt;
     }
 
-    public static Dataset<? extends org.apache.spark.sql.Row> registerFile(String[] fns, String name, String profile, GorSparkSession gorSparkSession, String standalone, Path fileroot, Path cacheDir, boolean usestreaming, String filter, String filterFile, String filterColumn, String splitFile, final boolean nor, final String chr, final int pos, final int end, final String jobid, String cacheFile, boolean cpp, boolean tag, StructType schema) throws IOException, DataFormatException {
+    public static Dataset<? extends org.apache.spark.sql.Row> registerFile(String[] fns, String name, String profile, GorSparkSession gorSparkSession, String standalone, Path fileroot, Path cacheDir, boolean usestreaming, String filter, String filterFile, String filterColumn, String splitFile, final boolean nor, final String chr, final int pos, final int end, final String jobid, String cacheFile, boolean cpp, boolean tag, StructType schema, Map<String,String> readOptions) throws IOException, DataFormatException {
         String fn = fns[0];
         boolean curlyQuery = fn.startsWith("{");
         boolean nestedQuery = fn.startsWith("<(") || curlyQuery;
@@ -202,7 +223,8 @@ public class SparkRowUtilities {
             }).filter(Objects::nonNull).collect(Collectors.toList());
             tempViewName = generateTempViewName(fileName, usestreaming, filter, chr, pos, end, inst);
         } else {
-            var rdt = translatePath(fn, fileroot, standalone);
+            var fr = gorSparkSession.getProjectContext().getFileReader();
+            var rdt = translatePath(fn, fileroot, standalone, fr);
             fileName = rdt.path;
             inst = rdt.getTimestamp();
             tempViewName = generateTempViewName(fileName, usestreaming, filter, chr, pos, end, inst);
@@ -339,7 +361,7 @@ public class SparkRowUtilities {
                     gor = sparkRowSource.getDataset();
                     dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
                     //gor = registerFile();
-                } else if (fileName.startsWith("pgor ") || fileName.startsWith("partgor ") || fileName.startsWith("parallel ") || fileName.startsWith("gor ") || fileName.startsWith("nor ") || fileName.startsWith("gorrows ") || fileName.startsWith("norrows ")) {
+                } else if (fileName.startsWith("pgor ") || fileName.startsWith("partgor ") || fileName.startsWith("parallel ") || fileName.startsWith("gor ") || fileName.startsWith("nor ") || fileName.startsWith("gorrows ") || fileName.startsWith("norrows ") || fileName.startsWith("cmd ") || fileName.startsWith("norcmd ") || fileName.startsWith("gorcmd ")) {
                     DataFrameReader dfr = gorSparkSession.getSparkSession().read().format(gordatasourceClassname);
                     dfr.option("query", fileName);
                     if (tag) dfr.option("tag", true);
@@ -349,6 +371,13 @@ public class SparkRowUtilities {
                     if (securityContext!=null) dfr.option("securityContext", securityContext);
                     dfr.option("aliasfile", gorSparkSession.getProjectContext().getGorAliasFile());
                     dfr.option("configfile", gorSparkSession.getProjectContext().getGorConfigFile());
+                    if (gorSparkSession.getRedisUri() != null && gorSparkSession.getRedisUri().length() > 0) {
+                        dfr.option("redis", gorSparkSession.getRedisUri());
+                    }
+                    if (gorSparkSession.streamKey() != null && gorSparkSession.streamKey().length() > 0) {
+                        dfr.option("streamkey", gorSparkSession.streamKey());
+                    }
+                    if (jobid!=null) dfr.option("jobid", jobid);
                     if(schema!=null) dfr.schema(schema);
                     gor = dfr.load();
                     dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
@@ -371,6 +400,15 @@ public class SparkRowUtilities {
                     //io.projectglow.vcf.VCFFileFormat f;
                     String bgenDataSource = "io.projectglow.bgen.BgenFileFormat"; //vcf
                     gor = gorSparkSession.getSparkSession().read().format(bgenDataSource).load(fileName);
+                    dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
+                } else if (fileName.toLowerCase().endsWith(".xml")) {
+                    String bgenDataSource = "xml";
+                    var dfr = gorSparkSession.getSparkSession().read().format(bgenDataSource);
+                    if (schema!=null) dfr.schema(schema);
+                    for (Map.Entry<String,String> entry : readOptions.entrySet()) {
+                        dfr = dfr.option(entry.getKey(),entry.getValue());
+                    }
+                    gor = dfr.load(fileName);
                     dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
                 } else if (splitFile == null && (fileName.toLowerCase().endsWith(".gor") || fileName.toLowerCase().endsWith(".nor") || fileName.toLowerCase().endsWith(".tsv") || fileName.toLowerCase().endsWith(".csv"))) {
                     DataFrameReader dfr = gorSparkSession.getSparkSession().read().format("csv").option("header",true);
@@ -432,6 +470,13 @@ public class SparkRowUtilities {
                                 if (fileroot != null) dfr.option("projectroot", fileroot.toString());
                                 dfr.option("aliasfile", gorSparkSession.getProjectContext().getGorAliasFile());
                                 dfr.option("configfile", gorSparkSession.getProjectContext().getGorConfigFile());
+                                if (gorSparkSession.getRedisUri() != null && gorSparkSession.getRedisUri().length() > 0) {
+                                    dfr.option("redis", gorSparkSession.getRedisUri());
+                                }
+                                if (gorSparkSession.streamKey() != null && gorSparkSession.streamKey().length() > 0) {
+                                    dfr.option("streamkey", gorSparkSession.streamKey());
+                                }
+                                dfr.option("jobid", jobid);
                                 var securityContext = gorSparkSession.getProjectContext().getFileReader().getSecurityContext();
                                 if (securityContext != null) dfr = dfr.option("securityContext", securityContext);
                                 if (filter != null) dfr = dfr.option("f", filter);
@@ -470,6 +515,7 @@ public class SparkRowUtilities {
                                 DataFrameReader dfr = gorSparkSession.getSparkSession().read().format(gordatasourceClassname).schema(schema);
                                 if (gorSparkSession.getRedisUri() != null && gorSparkSession.getRedisUri().length() > 0) {
                                     dfr = dfr.option("redis", gorSparkSession.getRedisUri())
+                                            .option("streamkey", gorSparkSession.streamKey())
                                             .option("jobid", jobid)
                                             .option("cachefile", cacheFile)
                                             .option("native", Boolean.toString(cpp));

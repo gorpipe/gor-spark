@@ -17,9 +17,13 @@ public class SparkGorRedisMonitor extends SparkGorMonitor implements Serializabl
 
     private JedisPool jedisPool;
     private String uri;
+    private String key;
     boolean working = true;
+    private int count = 0;
+    private int max = 32;
+    private long lasttime = System.currentTimeMillis();
 
-    public SparkGorRedisMonitor(String uri, String jobId) {
+    public SparkGorRedisMonitor(String uri, String jobId, String key) {
         super(jobId);
         JedisPool jedisPool = null;
         if (uri != null && uri.length() > 0) {
@@ -29,22 +33,34 @@ public class SparkGorRedisMonitor extends SparkGorMonitor implements Serializabl
                 working = false;
             }
         } else working = false;
-        init(uri, jedisPool);
+        init(uri, key, jedisPool);
     }
 
-    public SparkGorRedisMonitor(String uri, String jobId, JedisPool jedisPool) {
+    public SparkGorRedisMonitor(String uri, String jobId, String key, JedisPool jedisPool) {
         super(jobId);
-        init(uri, jedisPool);
+        init(uri, key, jedisPool);
     }
 
-    public void init(String uri, JedisPool jedisPool) {
+    public void init(String uri, String key, JedisPool jedisPool) {
         this.uri = uri;
         this.jedisPool = jedisPool;
+        this.key = key;
     }
 
     @Override
     public boolean isCancelled() {
-        return getValue(JobField.CancelFlag) != null;
+        if (count++ > max) {
+            long t = System.currentTimeMillis();
+            if (t-lasttime < 1000) {
+                max *= 2;
+            } else {
+                max = Math.max(1,max/2);
+            }
+            lasttime = t;
+            count = 0;
+            return getValue(JobField.CancelFlag) != null;
+        }
+        return false;
     }
 
     public String getRedisUri() {
@@ -52,7 +68,7 @@ public class SparkGorRedisMonitor extends SparkGorMonitor implements Serializabl
     }
 
     private String getJobKey(String jobId) {
-        return getKey("JOB", jobId);
+        return getKey(key, "DC", "JOB", jobId);
     }
 
     public Duration getJobExpiration() {
@@ -109,11 +125,11 @@ public class SparkGorRedisMonitor extends SparkGorMonitor implements Serializabl
     }
 
     String getKey(String... parts) {
-        return "resque:DC:" + String.join(":", parts);
+        return String.join(":", parts);
     }
 
     String getPrivateLogKey(String jobId) {
-        return getKey("JOB", jobId, "LOG");
+        return getKey(key, "DC", "JOB", jobId, "LOG");
     }
 
     @Override

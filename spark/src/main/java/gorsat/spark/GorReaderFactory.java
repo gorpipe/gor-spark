@@ -11,6 +11,7 @@ import org.apache.spark.sql.types.StructType;
 public class GorReaderFactory implements PartitionReaderFactory {
     StructType schema;
     String redisUri;
+    String streamKey;
     String jobId;
     String cacheFile;
     String useCpp;
@@ -20,9 +21,10 @@ public class GorReaderFactory implements PartitionReaderFactory {
     String aliasFile;
     String securityContext;
 
-    public GorReaderFactory(StructType schema, String redisUri, String jobId, String cacheFile, String projectRoot, String cacheDir, String configFile, String aliasFile, String securityContext, String useCpp) {
+    public GorReaderFactory(StructType schema, String redisUri, String streamKey, String jobId, String cacheFile, String projectRoot, String cacheDir, String configFile, String aliasFile, String securityContext, String useCpp) {
         this.schema = schema;
         this.redisUri = redisUri;
+        this.streamKey = streamKey;
         this.jobId = jobId;
         this.cacheFile = cacheFile;
         this.useCpp = useCpp;
@@ -41,15 +43,15 @@ public class GorReaderFactory implements PartitionReaderFactory {
         if(useCpp != null && useCpp.equalsIgnoreCase("blue")) {
             partitionReader = new NativePartitionReader(fields,p);
         } else if(fields.length>1) {
-            partitionReader = new GorPartitionReader(schema,p,redisUri,jobId,projectRoot,cacheDir,configFile,aliasFile,securityContext,useCpp);
+            partitionReader = new GorPartitionReader(schema,p,redisUri,streamKey,jobId,projectRoot,cacheDir,configFile,aliasFile,securityContext,useCpp);
         } else if(fields[0].dataType().equals(DataTypes.IntegerType)) {
-            partitionReader = new GorIntegerPartitionReader(schema,p,redisUri,jobId,projectRoot,cacheDir,configFile,aliasFile,securityContext,useCpp);
+            partitionReader = new GorIntegerPartitionReader(schema,p,redisUri,streamKey,jobId,projectRoot,cacheDir,configFile,aliasFile,securityContext,useCpp);
         } else if(fields[0].dataType().equals(DataTypes.LongType)) {
-            partitionReader = new GorLongPartitionReader(schema,p,redisUri,jobId,projectRoot,cacheDir,configFile,aliasFile,securityContext,useCpp);
+            partitionReader = new GorLongPartitionReader(schema,p,redisUri,streamKey,jobId,projectRoot,cacheDir,configFile,aliasFile,securityContext,useCpp);
         } else if(fields[0].dataType().equals(DataTypes.DoubleType)) {
-            partitionReader = new GorDoublePartitionReader(schema,p,redisUri,jobId,projectRoot,cacheDir,configFile,aliasFile,securityContext,useCpp);
+            partitionReader = new GorDoublePartitionReader(schema,p,redisUri,streamKey,jobId,projectRoot,cacheDir,configFile,aliasFile,securityContext,useCpp);
         } else {
-            partitionReader = new GorStringPartitionReader(schema,p,redisUri,jobId,projectRoot,cacheDir,configFile,aliasFile,securityContext,useCpp);
+            partitionReader = new GorStringPartitionReader(schema,p,redisUri,streamKey,jobId,projectRoot,cacheDir,configFile,aliasFile,securityContext,useCpp);
         }
         return partitionReader;
     }

@@ -54,6 +54,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
     int fstart = 0;
     int fstop = -1;
     String redisUri;
+    String streamKey;
     String jobId;
     String cacheFile;
     String securityContext;
@@ -68,12 +69,12 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
     FileSystem fs;
     boolean hadoopInfer;
 
-    public GorBatchTable(String query, boolean tag, String path, String filter, String filterFile, String filterColumn, String splitFile, String seek, String redisUri, String jobId, String cacheFile, String securityContext, String useCpp, boolean hadoopInfer) throws IOException {
-        init(query,tag,path,filter,filterFile,filterColumn,splitFile,seek,redisUri,jobId,cacheFile,securityContext,useCpp,hadoopInfer);
+    public GorBatchTable(String query, boolean tag, String path, String filter, String filterFile, String filterColumn, String splitFile, String seek, String redisUri, String streamKey, String jobId, String cacheFile, String securityContext, String useCpp, boolean hadoopInfer) throws IOException {
+        init(query,tag,path,filter,filterFile,filterColumn,splitFile,seek,redisUri,streamKey,jobId,cacheFile,securityContext,useCpp,hadoopInfer);
     }
 
-    public GorBatchTable(String query, boolean tag, String path, String filter, String filterFile, String filterColumn, String splitFile, String seek, StructType schema, String redisUri, String jobId, String cacheFile, String securityContext, String useCpp, boolean hadoopInfer) throws IOException {
-        init(query,tag,path,filter,filterFile,filterColumn,splitFile,seek,redisUri,jobId,cacheFile,securityContext,useCpp,hadoopInfer);
+    public GorBatchTable(String query, boolean tag, String path, String filter, String filterFile, String filterColumn, String splitFile, String seek, StructType schema, String redisUri, String streamKey, String jobId, String cacheFile, String securityContext, String useCpp, boolean hadoopInfer) throws IOException {
+        init(query,tag,path,filter,filterFile,filterColumn,splitFile,seek,redisUri,streamKey,jobId,cacheFile,securityContext,useCpp,hadoopInfer);
         this.schema = schema;
     }
 
@@ -107,7 +108,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
         }
     }
 
-    void init(String query, boolean tag, String path, String filter, String filterFile, String filterColumn, String splitFile, String seek, String redisUri, String jobId, String cacheFile, String securityContext, String useCpp, boolean hadoopInfer) throws IOException {
+    void init(String query, boolean tag, String path, String filter, String filterFile, String filterColumn, String splitFile, String seek, String redisUri, String streamKey, String jobId, String cacheFile, String securityContext, String useCpp, boolean hadoopInfer) throws IOException {
         this.query = query;
         this.projectRoot = Paths.get(".").toAbsolutePath().normalize().toString();
         this.cacheDir = "result_cache";
@@ -118,6 +119,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
         this.filterColumn = filterColumn;
         this.splitFile = splitFile;
         this.redisUri = redisUri;
+        this.streamKey = streamKey;
         this.jobId = jobId;
         this.cacheFile = cacheFile;
         this.securityContext = securityContext;
@@ -253,7 +255,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
     @Override
     public ScanBuilder newScanBuilder(CaseInsensitiveStringMap caseInsensitiveStringMap) {
         if(schema==null) schema();
-        return new GorScanBuilder(schema, redisUri, jobId, cacheFile, projectRoot, cacheDir, configFile, aliasFile, securityContext, useCpp) {
+        return new GorScanBuilder(schema, redisUri, streamKey, jobId, cacheFile, projectRoot, cacheDir, configFile, aliasFile, securityContext, useCpp) {
             Filter[] pushedFilters = new Filter[0];
             String filterChrom = fchrom;
             int start = fstart;

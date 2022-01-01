@@ -44,11 +44,8 @@ public class GorSparkShellSessionFactory extends GorShellSessionFactory {
     private boolean fileCacheEnabled = true;
     private boolean requestStatsEnabled = false;
 
-    public GorSparkShellSessionFactory() {
-        cacheDir = System.getProperty("java.io.tmpdir");
-    }
-
     public GorSparkShellSessionFactory(String root) {
+        super(root);
         this.root = root;
         cacheDir = System.getProperty("java.io.tmpdir");
     }

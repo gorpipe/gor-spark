@@ -2,7 +2,6 @@ package org.gorpipe.spark;
 
 import gorsat.process.PipeOptions;
 import gorsat.process.SparkPipeInstance;
-import io.projectglow.Glow;
 import org.apache.spark.sql.SparkSession;
 import org.gorpipe.gor.model.Row;
 import org.gorpipe.gor.session.GorSession;
@@ -24,7 +23,7 @@ public class UTestSparkPCA {
     @Before
     public void init() {
         spark = SparkSession.builder().master("local[2]").getOrCreate();
-        Glow.register(spark, false);
+        //Glow.register(spark, false);
         SparkSessionFactory sparkSessionFactory = new SparkSessionFactory(spark, Paths.get(".").toAbsolutePath().normalize().toString(), System.getProperty("java.io.tmpdir"), null, null, null,null);
         GorSession session = sparkSessionFactory.create();
         pi = new SparkPipeInstance(session.getGorContext());

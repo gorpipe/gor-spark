@@ -7,12 +7,11 @@ import redis.clients.jedis.JedisPool;
 import java.util.*;
 
 public class RedisSparkQueryHandler extends GeneralSparkQueryHandler {
-    GorSparkSession gpSession;
-
     GorClusterBase cluster;
     public static final String queue = "GOR_CLUSTER";
 
     String sparkRedisUri;
+    String key;
     private JedisPool jedisPool;
 
     public RedisSparkQueryHandler(GorSparkSession gorPipeSession, String sparkRedisUri) {
@@ -28,6 +27,7 @@ public class RedisSparkQueryHandler extends GeneralSparkQueryHandler {
     @Override
     public void init(GorSparkSession gorPipeSession) {
         super.init(gorPipeSession);
+        key = gorPipeSession.streamKey();
         if (sparkRedisUri != null && sparkRedisUri.length() > 0) {
             jedisPool = SharedRedisPools.getJedisPool(JedisURIHelper.create(sparkRedisUri));
             gorPipeSession.redisUri_$eq(sparkRedisUri);
@@ -41,7 +41,7 @@ public class RedisSparkQueryHandler extends GeneralSparkQueryHandler {
     public String[] executeBatch(String[] fingerprints, String[] commandsToExecute, String[] batchGroupNames, String[] cacheFiles, GorMonitor mon) {
         String[] jobIds = Arrays.copyOf(fingerprints, fingerprints.length);
         if (jedisPool != null) {
-            GorLogSubscription subscription = new RedisLogSubscription(cluster, new GorMonitorGorLogForwarder(mon), jobIds);
+            GorLogSubscription subscription = new RedisLogSubscription(cluster, new GorMonitorGorLogForwarder(mon), jobIds, key);
             subscription.start();
         }
         return super.executeBatch(fingerprints,commandsToExecute,batchGroupNames,cacheFiles,mon);

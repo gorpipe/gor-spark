@@ -97,6 +97,9 @@ public class SparkRow extends GorSparkRowBase implements Serializable {
 
     @Override
     public double doubleValue(int col) {
+        if( schema().fields()[col].dataType() != DataTypes.DoubleType) {
+            return longValue(col);
+        }
         return row.getDouble(col);
     }
 
@@ -112,12 +115,12 @@ public class SparkRow extends GorSparkRowBase implements Serializable {
 
     @Override
     public double colAsDouble(int colNum) {
-        return row.getDouble(colNum);
+        return doubleValue(colNum);
     }
 
     @Override
     public long colAsLong(int colNum) {
-        return row.getLong(colNum);
+        return longValue(colNum);
     }
 
     @Override

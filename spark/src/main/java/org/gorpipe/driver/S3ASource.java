@@ -68,7 +68,7 @@ public class S3ASource implements StreamSource {
         conf.set("fs.s3a.committer.name","partitioned");
         conf.set("fs.s3a.committer.staging.conflict-mode","replace");
         conf.set("spark.delta.logStore.class","org.apache.spark.sql.delta.storage.S3SingleDriverLogStore");
-        conf.set("fs.s3a.aws.credentials.provider","org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider");
+        //conf.set("fs.s3a.aws.credentials.provider","org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider");
 
         try {
             this.fs = path.getFileSystem(conf);
@@ -132,13 +132,21 @@ public class S3ASource implements StreamSource {
 
     @Override
     public boolean exists() {
-        boolean exists = false;
         try {
-            exists = fs.exists(path);
+            return fs.exists(path);
         } catch (IOException e) {
             throw new GorResourceException("Hadoop s3 exists failed",path.toString(),e);
         }
-        return exists;
+    }
+
+    @Override
+    public boolean isDirectory() {
+        try {
+            FileStatus fileStatus = fs.getFileStatus(path);
+            return fileStatus.isDirectory();
+        } catch (IOException e) {
+            throw new GorResourceException("Hadoop s3 isDirectory failed",path.toString(),e);
+        }
     }
 
     @Override

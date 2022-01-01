@@ -36,9 +36,15 @@ class WriteSpark extends CommandInfo("WRITE",
   CommandOptions(gorCommand = true, norCommand = true, verifyCommand = true)) {
   override def processArguments(context: GorContext, argString: String, iargs: Array[String], args: Array[String], executeNor: Boolean, forcedInputHeader: String): CommandParsingResult = {
 
-    val fileName = replaceSingleQuotes(iargs.mkString(" "))
-    if (context.getSession.getSystemContext.getServer) {
-      context.getSession.getProjectContext.validateWriteAllowed(fileName)
+    var fileName = replaceSingleQuotes(iargs.mkString(" "))
+    val useFolder = if (hasOption(args, "-d")) {
+      Option.apply(stringValueOfOption(args, "-d"))
+    } else if(fileName.toLowerCase.endsWith(".gord")) {
+      val fn = fileName
+      fileName = ""
+      Option.apply(fn)
+    } else {
+      Option.empty
     }
 
     var forkCol = -1
@@ -52,7 +58,6 @@ class WriteSpark extends CommandInfo("WRITE",
 
     if (hasOption(args, "-f")) forkCol = columnOfOption(args, "-f", forcedInputHeader, executeNor)
     remove = hasOption(args, "-r")
-    val useFolder = if (hasOption(args, "-d")) Option.apply(stringValueOfOption(args, "-d")) else Option.empty
     columnCompress = hasOption(args, "-c")
     md5 = hasOption(args, "-m")
     passthrough = hasOption(args, "-p")
@@ -60,13 +65,6 @@ class WriteSpark extends CommandInfo("WRITE",
     val link = stringValueOfOptionWithDefault(args,"-link","")
 
     if(fileName.isEmpty && useFolder.isEmpty) throw new GorResourceException("No file or folder specified","");
-
-    var indexing = "NONE"
-
-    if (hasOption(args, "-i")) {
-      indexing = stringValueOfOptionWithErrorCheck(args, "-i", Array("NONE", "CHROM", "FULL", "TABIX"))
-    }
-
     val card = stringValueOfOptionWithDefault(args, "-card", null)
 
     var prefixFile: Option[String] = None
@@ -77,15 +75,37 @@ class WriteSpark extends CommandInfo("WRITE",
       else prefixFile = Option(prfx)
     }
 
+    if (hasOption(args, "-t") && !hasOption(args, "-f")) {
+      throw new GorParsingException("Option -t is only valid with the -f option.", "-t")
+    }
+
     val forkTagArray = replaceSingleQuotes(stringValueOfOptionWithDefault(args, "-t", "")).split(",", -1).map(x => x.trim).distinct
+
     val dictTagArray = replaceSingleQuotes(stringValueOfOptionWithDefault(args, "-tags", "")).split(",", -1).map(x => x.trim).distinct
 
-    indexing match {
-      case "NONE" => idx = GorIndexType.NONE
-      case "CHROM" => idx = GorIndexType.CHROMINDEX
-      case "FULL" => idx = GorIndexType.FULLINDEX
-      case "TABIX" => idx = GorIndexType.TABIX
+    def handleIndex = {
+      var indexing = "NONE"
+
+      if (hasOption(args, "-i")) {
+        indexing = stringValueOfOptionWithErrorCheck(args, "-i", Array("NONE", "CHROM", "FULL", "TABIX"))
+      }
+
+      indexing match {
+        case "NONE" => idx = GorIndexType.NONE
+        case "CHROM" => idx = GorIndexType.CHROMINDEX
+        case "FULL" => idx = GorIndexType.FULLINDEX
+        case "TABIX" => idx = GorIndexType.TABIX
+      }
+
+      if (idx == GorIndexType.NONE && context.getSession != null) {
+        val dataSource = context.getSession.getProjectContext.getFileReader.resolveUrl(fileName, true)
+        if (dataSource != null) {
+          idx = dataSource.useIndex()
+        }
+      }
     }
+
+    handleIndex
 
     skipHeader = hasOption(args, "-noheader")
     val fileType = FilenameUtils.getExtension(fileName)

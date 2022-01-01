@@ -34,7 +34,7 @@ public class SparkSessionFactory extends GorSessionFactory {
     private String securityContext;
     private int workers;
 
-    public SparkSessionFactory(String root, String cacheDir, String configFile, String aliasFile, String securityContext, SparkGorMonitor sparkMonitor) {
+    public SparkSessionFactory(String root, String cacheDir, String configFile, String aliasFile, String securityContext, GorMonitor sparkMonitor) {
         this(GorSparkUtilities.getSparkSession(), root, cacheDir, configFile, aliasFile, securityContext, sparkMonitor);
     }
 
@@ -94,7 +94,7 @@ public class SparkSessionFactory extends GorSessionFactory {
         if(configFile.isPresent()) projectContextBuilder = projectContextBuilder.setConfigFile(configFile.get());
         if(aliasFile.isPresent()) projectContextBuilder = projectContextBuilder.setAliasFile(aliasFile.get());
         projectContextBuilder = projectContextBuilder
-            .setRoot(root)
+            .setRoot(securityContext != null ? root+securityContext : root)
             .setCacheDir(cacheDir)
             .setFileReader(new DriverBackedFileReader(securityContext, root, null))
             .setFileCache(new LocalFileCacheClient(cachePath.isAbsolute() ? cachePath : Paths.get(root).resolve(cacheDir)))

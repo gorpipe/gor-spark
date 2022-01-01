@@ -1,5 +1,6 @@
 package org.gorpipe.spark.redis;
 
+import org.apache.spark.sql.streaming.StreamingQuery;
 import org.gorpipe.exceptions.ExceptionUtilities;
 import org.gorpipe.spark.platform.JedisURIHelper;
 import org.gorpipe.spark.platform.SharedRedisPools;
@@ -15,10 +16,17 @@ class MonitorThread implements Callable<String> {
     boolean running = true;
     private JedisPool jedisPool;
     private Map<String,Future<List<String>>> futureActionSet;
+    private StreamingQuery query;
+    private int maxTimeoutCount;
 
     public MonitorThread(String redisUri) {
         futureActionSet = new ConcurrentHashMap<>();
         if(redisUri!=null&&redisUri.length()>0) jedisPool = SharedRedisPools.getJedisPool(JedisURIHelper.create(redisUri));
+    }
+
+    public void setQuery(StreamingQuery query, int timeoutCount) {
+        this.query = query;
+        this.maxTimeoutCount = timeoutCount;
     }
 
     public void stopRunning() {
@@ -58,12 +66,14 @@ class MonitorThread implements Callable<String> {
         try {
             String reskey = null;
 
+            int timeoutCount = 0;
             while(running) {
                 for (String key : futureActionSet.keySet()) {
                     Future<List<String>> fut = futureActionSet.get(key);
                     String[] jobIds = key.split(",");
                     try {
                         List<String> res = fut.get(500, TimeUnit.MILLISECONDS);
+                        timeoutCount = 0;
                         reskey = key;
                         String[] cacheFiles = res.stream().map(s -> s.split("\t")).map(s -> s[2]).toArray(String[]::new);
                         setValues(jobIds, "result", cacheFiles);
@@ -75,7 +85,12 @@ class MonitorThread implements Callable<String> {
                         setValue(jobIds, "status", "FAILED");
                         break;
                     } catch (TimeoutException e) {
-                        // do nothing
+                        if (query != null) {
+                            timeoutCount++;
+                            if (timeoutCount > maxTimeoutCount) {
+                                query.stop();
+                            }
+                        }
                     }
                 }
 

@@ -136,7 +136,8 @@ class GorDatasetFunctions[T: ClassTag](ds: Dataset[T])(implicit tag: ClassTag[T]
       val gsm = new GorSparkMaterialize(header, nor, SparkGOR.gorrowEncoder.schema, cmd, sgs.getProjectContext.getRoot, 100)
       val mu = if(nor) ds.asInstanceOf[Dataset[Row]].map(row => new NorSparkRow(row).asInstanceOf[org.gorpipe.gor.model.Row])(SparkGOR.gorrowEncoder) else ds.asInstanceOf[Dataset[Row]].map(row => new GorSparkRow(row).asInstanceOf[org.gorpipe.gor.model.Row])(SparkGOR.gorrowEncoder)
 
-      val row = mu.mapPartitions(gsm, SparkGOR.gorrowEncoder).limit(100).reduce(gr)
+      var row = mu.mapPartitions(gsm, SparkGOR.gorrowEncoder).limit(100).reduce(gr)
+      if (row.chr != null) row = gr.infer(row, row)
       val schema = SparkRowSource.schemaFromRow(gs.query().getHeader().split("\t"), row)
       val encoder = RowEncoder.apply(schema)
       gs.setSchema(schema)
@@ -398,7 +399,7 @@ class QueryRDD(private val sparkSession: SparkSession, private val sqlContext: S
         var extension: String = null
         val fileReader = new DriverBackedFileReader(null, projectDirectory, null)
         val tableHeader = new TableHeader
-        tableHeader.setTableColumns(TableHeader.DEFULT_RANGE_TABLE_HEADER)
+        tableHeader.setColumns(Array("filepath","alias","startchrom","startpos","endchrom","endpos","tags"))
         if (commandToExecute.startsWith("gordictpart")) {
           overheadTime = 1000 * 60 * 10 // 10 minutes
           val w = commandToExecute.split(" ")
@@ -630,16 +631,24 @@ object SparkGOR {
     new GorSpark(null, false, null, q, null)
   }
 
-  def createSession(sparkSession: SparkSession, root: String, cache: String, gorconfig: String, goralias: String): GorSparkSession = {
+  def createSession(sparkSession: SparkSession, root: String, cache: String, gorconfig: String, goralias: String, securityContext: String): GorSparkSession = {
     val standalone = System.getProperty("sm.standalone")
     if (standalone == null || standalone.isEmpty) System.setProperty("sm.standalone", root)
-    val sessionFactory = new SparkSessionFactory(sparkSession, root, cache, gorconfig, goralias, null, null)
+    val sessionFactory = new SparkSessionFactory(sparkSession, root, cache, gorconfig, goralias, securityContext, null)
     val sparkGorSession = sessionFactory.create().asInstanceOf[GorSparkSession]
     sparkGorSession
   }
 
+  def createSession(sparkSession: SparkSession, root: String, cache: String, gorconfig: String, goralias: String): GorSparkSession = {
+    createSession(sparkSession, root, cache, gorconfig, goralias, "")
+  }
+
   def createSession(sparkSession: SparkSession): GorSparkSession = {
     createSession(sparkSession, Paths.get("").toAbsolutePath.toString, Paths.get(System.getProperty("java.io.tmpdir")).toString, null, null)
+  }
+
+  def createSession(sparkSession: SparkSession, gorconfig: String, goralias: String, securityContext: String): GorSparkSession = {
+    createSession(sparkSession, Paths.get("").toAbsolutePath.toString, Paths.get(System.getProperty("java.io.tmpdir")).toString, gorconfig, goralias, securityContext)
   }
 
   def createSession(sparkSession: SparkSession, gorconfig: String, goralias: String): GorSparkSession = {

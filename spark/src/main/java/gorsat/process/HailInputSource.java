@@ -17,7 +17,6 @@ import org.gorpipe.gor.session.GorSession;
 import org.gorpipe.model.gor.iterators.RowSource;
 import org.gorpipe.spark.GorSparkRow;
 import scala.Option;
-import scala.collection.Seq;
 import scala.collection.immutable.Set;
 
 import java.util.*;

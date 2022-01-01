@@ -36,7 +36,7 @@ public class GORzip extends Output {
     @Override
     public void setup() {
         GorMeta meta = getMeta();
-        if (cardCol != null) meta.initCardCol(cardCol, header);
+        if (cardCol != null) meta.initMetaStats(cardCol, header);
         if (header != null & !skipHeader) {
             try {
                 out.setHeader(header);
@@ -48,7 +48,7 @@ public class GORzip extends Output {
 
     @Override
     public void process(Row r) {
-        getMeta().updateRange(r);
+        getMeta().updateMetaStats(r);
         try {
             out.write(r);
         } catch (IOException e) {
@@ -62,7 +62,7 @@ public class GORzip extends Output {
         try {
             out.close();
             getMeta().setMd5(out.getMd5());
-            if(getMeta().linesWritten()) {
+            if(getMeta().getLineCount()!=-1) {
                 FSDataOutputStream metaout = fs.create(metapath);
                 metaout.write(getMeta().toString().getBytes());
                 metaout.close();

@@ -5,10 +5,12 @@ import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.python.Py4JServer;
 import org.apache.spark.ml.linalg.SQLDataTypes;
+import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
 import org.gorpipe.gor.model.Row;
+import org.gorpipe.gor.monitor.GorMonitor;
 import org.gorpipe.spark.udfs.CharToDoubleArray;
 import org.gorpipe.spark.udfs.CharToDoubleArrayParallel;
 import org.gorpipe.spark.udfs.CommaToDoubleArray;
@@ -18,10 +20,11 @@ import org.gorpipe.util.standalone.GorStandalone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-//import io.projectglow.GlowBase;
-
 import java.io.*;
+import java.math.BigInteger;
 import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -74,11 +77,24 @@ public class GorSparkUtilities {
 
     public static void initPySpark(Optional<String> standaloneRoot) {
         var pyspark = System.getenv("PYSPARK_PIN_THREAD");
+        if(pyspark==null) pyspark = System.getProperty("PYSPARK_PIN_THREAD");
         if (py4jServer==null&&pyspark!=null&&pyspark.length()>0) {
             initPy4jServer();
-            GorSparkUtilities.getSparkSession();
+            var spark = GorSparkUtilities.getSparkSession();
 
-            ProcessBuilder pb = new ProcessBuilder("jupyter-lab"); //"jupyter","notebook","--NotebookApp.allow_origin='https://colab.research.google.com'","--port=8888","--NotebookApp.port_retries=0");
+            var plist = new ArrayList<>(List.of("jupyter-lab", "--ip=0.0.0.0", "--NotebookApp.allow_origin='*'","--port=8888","--NotebookApp.port_retries=0"));
+            var notebookdir = System.getenv("JUPYTER_NOTEBOOK_DIR");
+            if(notebookdir==null) notebookdir = System.getProperty("JUPYTER_NOTEBOOK_DIR");
+            if (notebookdir!=null&&!notebookdir.isEmpty()) {
+                plist.add("--notebook-dir="+notebookdir);
+            }
+            var baseurl = System.getenv("JUPYTER_BASE_URL");
+            if(baseurl==null) baseurl = System.getProperty("JUPYTER_BASE_URL");
+            if (baseurl!=null&&!baseurl.isEmpty()) {
+                plist.add("--NotebookApp.base_url=/"+baseurl);
+                plist.add("--LabApp.base_url=/"+baseurl);
+            }
+            ProcessBuilder pb = new ProcessBuilder(plist);
             standaloneRoot.ifPresent(sroot -> pb.directory(Paths.get(sroot).toFile()));
             Map<String,String> env = pb.environment();
             env.put("PYSPARK_GATEWAY_PORT",Integer.toString(GorSparkUtilities.getPyServerPort()));
@@ -93,7 +109,8 @@ public class GorSparkUtilities {
                     try (InputStream is = p.getInputStream()) {
                         InputStreamReader isr = new InputStreamReader(is);
                         BufferedReader br = new BufferedReader(isr);
-                        jupyterPath = br.lines().peek(System.err::println).map(String::trim).filter(s -> s.startsWith("http://localhost:8888/?token=")).findFirst();
+                        jupyterPath = br.lines().peek(System.err::println).map(String::trim).filter(s -> s.startsWith("http://:") && s.contains("?token=")).findFirst();
+                        jupyterPath.ifPresent(jp -> spark.createDataset(Collections.singletonList(jp), Encoders.STRING()).createOrReplaceTempView("jupyterpath"));
                     }
                     return null;
                 });
@@ -101,7 +118,8 @@ public class GorSparkUtilities {
                     try (InputStream is = p.getErrorStream()) {
                         InputStreamReader isr = new InputStreamReader(is);
                         BufferedReader br = new BufferedReader(isr);
-                        jupyterPath = br.lines().peek(System.err::println).map(String::trim).filter(s -> s.startsWith("http://localhost:8888/?token=")).findFirst();
+                        jupyterPath = br.lines().peek(System.err::println).map(String::trim).filter(s -> s.startsWith("http://:") && s.contains("?token=")).findFirst();
+                        jupyterPath.ifPresent(jp -> spark.createDataset(Collections.singletonList(jp), Encoders.STRING()).createOrReplaceTempView("jupyterpath"));
                     }
                     return null;
                 });
@@ -124,6 +142,23 @@ public class GorSparkUtilities {
         return sparkRedisHost != null && sparkRedisHost.length() > 0 ? constructRedisUri(sparkRedisHost) : "";
     }
 
+    public static GorMonitor getSparkGorMonitor(String jobId, String redisUri, String key) {
+        if (SparkGorMonitor.localProgressMonitor != null) {
+            return SparkGorMonitor.localProgressMonitor;
+        } else {
+            var srvList = ServiceLoader.load(SparkMonitorFactory.class).stream().collect(Collectors.toList());
+            if (srvList.size() > 0) {
+                SparkMonitorFactory sparkMonitorFactory;
+                sparkMonitorFactory = srvList.get(0).get();
+                if (srvList.size() > 1 && sparkMonitorFactory instanceof SparkGorMonitorFactory && redisUri != null && redisUri.length() > 0) {
+                    sparkMonitorFactory = srvList.get(1).get();
+                }
+                return sparkMonitorFactory.createSparkGorMonitor(jobId, redisUri, key);
+            }
+            return null;
+        }
+    }
+
     private static SparkSession newSparkSession(int workers) {
         SparkConf sparkConf = new SparkConf();
         sparkConf.set("spark.sql.execution.arrow.pyspark.enabled","true");
@@ -139,7 +174,7 @@ public class GorSparkUtilities {
         sparkConf.set("spark.hadoop.fs.s3a.committer.name","partitioned");
         sparkConf.set("spark.hadoop.fs.s3a.committer.staging.conflict-mode","replace");
         sparkConf.set("spark.delta.logStore.class","org.apache.spark.sql.delta.storage.S3SingleDriverLogStore");
-        sparkConf.set("spark.hadoop.fs.s3a.aws.credentials.provider","org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider");
+        //sparkConf.set("spark.hadoop.fs.s3a.aws.credentials.provider","org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider");
         SparkSession.Builder ssb = SparkSession.builder();
         if(!sparkConf.contains("spark.master")) {
             ssb = workers>0 ? ssb.master("local["+workers+"]") : ssb.master("local[*]");

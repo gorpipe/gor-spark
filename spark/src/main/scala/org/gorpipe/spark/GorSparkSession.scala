@@ -26,6 +26,7 @@ class GorSparkSession(requestId: String, workers: Int = 0) extends GorSession(re
   var creates = ""
   val datasetMap = new ConcurrentHashMap[String, RowDataType]
   var redisUri: String = _
+  var streamKey: String = "resque"
   var fileAliasMap: java.util.Map[String,String] = _
 
   if (GorInputSources.getInfo("SPARK") == null) {

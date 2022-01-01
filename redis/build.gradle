@@ -1,0 +1,154 @@
+plugins {
+    id 'gor.java-library'
+    id 'gor.common'
+    id 'com.google.cloud.tools.jib'
+}
+
+version 'unspecified'
+
+repositories {
+    mavenCentral()
+}
+
+jib {
+    from {
+        image = 'registry.gitlab.com/wuxi-nextcode/wxnc-gor/gor-spark/nextcode/ubuntubasepyspark:3.2.0'
+        if (project.hasProperty('REGISTRY_USER')) {
+            auth {
+                username = project.findProperty('REGISTRY_USER')
+                password = project.findProperty('REGISTRY_PASSWORD')
+            }
+        }
+    }
+    to {
+        image = project.findProperty('APPLICATION_REPOSITORY') ?: "nextcode/spark"
+        //credHelper = 'osxkeychain'
+        tags = [project.findProperty('APPLICATION_TAG') ?: "${version}"]
+        if (project.hasProperty('REGISTRY_USER')) {
+            auth {
+                username = project.findProperty('REGISTRY_USER')
+                password = project.findProperty('REGISTRY_PASSWORD')
+            }
+        }
+    }
+    containerizingMode = 'packaged'
+    pluginExtensions {
+        pluginExtension {
+            implementation = 'com.google.cloud.tools.jib.gradle.extension.ownership.JibOwnershipExtension'
+            configuration {
+                rules {
+                    rule {
+                        glob = '/opt/spark/**'
+                        ownership = '3000:3000'
+                    }
+                }
+            }
+        }
+    }
+    container {
+        user = 'app'
+        entrypoint = '/opt/entrypoint.sh'
+        workingDirectory = '/opt/spark/work-dir/'
+        appRoot = '/opt/spark/'
+        environment = [SPARK_EXTRA_CLASSPATH:'/opt/spark/classpath/*']
+    }
+    extraDirectories {
+        permissions = ['/usr/bin/spark-operator':'777','/usr/bin/entrypoint.sh':'777','/usr/bin/gencerts.sh':'777']
+    }
+}
+
+dependencies {
+    internal(project(":spark")) {
+        exclude group: 'ch.qos.logback', module: 'logback-classic'
+        exclude group: 'ch.qos.logback', module: 'logback-core'
+    }
+    implementation("${gorArtifactGroupId}:gor-base:${gorVersion}") {
+        exclude group: 'ch.qos.logback', module: 'logback-classic'
+        exclude group: 'ch.qos.logback', module: 'logback-core'
+    }
+    implementation("${gorArtifactGroupId}:gor-model:${gorVersion}") {
+        exclude group: 'ch.qos.logback', module: 'logback-classic'
+        exclude group: 'ch.qos.logback', module: 'logback-core'
+    }
+    implementation("${gorArtifactGroupId}:gor-gortools:${gorVersion}") {
+        exclude group: 'ch.qos.logback', module: 'logback-classic'
+        exclude group: 'ch.qos.logback', module: 'logback-core'
+    }
+    implementation("${gorArtifactGroupId}:gor-util:${gorVersion}") {
+        exclude group: 'ch.qos.logback', module: 'logback-classic'
+        exclude group: 'ch.qos.logback', module: 'logback-core'
+    }
+
+    implementation ("org.apache.spark:spark-core_${scalaVersion}:_") {
+        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
+        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
+        exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
+    }
+    implementation ("org.apache.spark:spark-sql_${scalaVersion}:_") {
+        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
+        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
+        exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
+    }
+    implementation ("org.apache.spark:spark-mllib_${scalaVersion}:_") {
+        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
+        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
+        exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
+    }
+    implementation ("org.apache.spark:spark-tags_${scalaVersion}:_") {
+        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
+        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
+        exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
+    }
+    implementation ("org.apache.spark:spark-kubernetes_${scalaVersion}:_") {
+        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
+        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
+        exclude group: 'org.apache.spark', module: "spark-tags_${scalaVersion}"
+        exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
+    }
+    implementation ("org.apache.spark:spark-catalyst_${scalaVersion}:_") {
+        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
+        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
+        exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
+    }
+    implementation ("org.apache.spark:spark-repl_${scalaVersion}:_") {
+        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
+        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
+        exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
+    }
+    implementation ("org.apache.spark:spark-hive_${scalaVersion}:_") {
+        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
+        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
+        exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
+        exclude group: 'com.google.guava', module: 'guava'
+        exclude group: 'org.apache.thrift', module: 'libthrift'
+    }
+    implementation ("org.apache.spark:spark-hive-thriftserver_${scalaVersion}:_") {
+        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
+        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
+        exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
+        exclude group: 'com.google.guava', module: 'guava'
+        exclude group: 'org.apache.thrift', module: 'libthrift'
+    }
+
+    annotationProcessor 'com.google.auto.service:auto-service:_'
+    implementation 'com.google.auto.service:auto-service:_'
+
+    implementation 'io.kubernetes:client-java:_'
+
+    implementation("redis.clients:jedis:_")
+    implementation "com.redislabs:spark-redis_${scalaVersion}:_"
+
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.11.0'
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.0'
+    implementation "com.fasterxml.jackson.module:jackson-module-scala_${scalaVersion}:2.11.0"
+
+    //testImplementation("${gorArtifactGroupId}:gor-test:${gorVersion}") {
+    //    exclude group: 'ch.qos.logback', module: 'logback-classic'
+    //}
+    //testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.0'
+    //testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.0'
+}
+
+test {
+    useJUnitPlatform()
+}
