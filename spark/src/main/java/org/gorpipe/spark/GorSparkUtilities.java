@@ -3,6 +3,7 @@ package org.gorpipe.spark;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.python.Py4JServer;
 import org.apache.spark.ml.linalg.SQLDataTypes;
+import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
@@ -77,7 +78,7 @@ public class GorSparkUtilities {
         if(pyspark==null) pyspark = System.getProperty("PYSPARK_PIN_THREAD");
         if (py4jServer==null&&pyspark!=null&&pyspark.length()>0) {
             initPy4jServer();
-            GorSparkUtilities.getSparkSession();
+            var spark = GorSparkUtilities.getSparkSession();
 
             var plist = new ArrayList<>(List.of("jupyter-lab", "--ip=0.0.0.0", "--NotebookApp.allow_origin='*'","--port=8888","--NotebookApp.port_retries=0"));
             var notebookdir = System.getenv("JUPYTER_NOTEBOOK_DIR");
@@ -106,7 +107,8 @@ public class GorSparkUtilities {
                     try (InputStream is = p.getInputStream()) {
                         InputStreamReader isr = new InputStreamReader(is);
                         BufferedReader br = new BufferedReader(isr);
-                        jupyterPath = br.lines().peek(System.err::println).map(String::trim).filter(s -> s.startsWith("http://localhost:") && s.contains("?token=")).findFirst();
+                        jupyterPath = br.lines().peek(System.err::println).map(String::trim).filter(s -> s.startsWith("http://:") && s.contains("?token=")).findFirst();
+                        jupyterPath.ifPresent(jp -> spark.createDataset(Collections.singletonList(jp), Encoders.STRING()).createOrReplaceTempView("jupyterpath"));
                     }
                     return null;
                 });
@@ -114,7 +116,8 @@ public class GorSparkUtilities {
                     try (InputStream is = p.getErrorStream()) {
                         InputStreamReader isr = new InputStreamReader(is);
                         BufferedReader br = new BufferedReader(isr);
-                        jupyterPath = br.lines().peek(System.err::println).map(String::trim).filter(s -> s.startsWith("http://localhost:") && s.contains("?token=")).findFirst();
+                        jupyterPath = br.lines().peek(System.err::println).map(String::trim).filter(s -> s.startsWith("http://:") && s.contains("?token=")).findFirst();
+                        jupyterPath.ifPresent(jp -> spark.createDataset(Collections.singletonList(jp), Encoders.STRING()).createOrReplaceTempView("jupyterpath"));
                     }
                     return null;
                 });
