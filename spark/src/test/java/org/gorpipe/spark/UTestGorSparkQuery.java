@@ -222,6 +222,13 @@ public class UTestGorSparkQuery {
     }
 
     @Test
+    public void testGetJupyterPath() {
+        var res = sparkGorSession.dataframe("spark jupyterpath", null);
+        var sres = res.collectAsList().stream().map(Row::toString).collect(Collectors.joining("\n"));
+        Assert.assertEquals("Wrong result","[]",sres);
+    }
+
+    @Test
     public void testGorSparkSQLQuery() {
         testSparkQuery("spark select * from ../tests/data/gor/genes.gor limit 5", "chr1\t11868\t14412\tDDX11L1\n" +
                 "chr1\t14362\t29806\tWASH7P\n" +
