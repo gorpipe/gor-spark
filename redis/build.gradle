@@ -52,6 +52,9 @@ jib {
         appRoot = '/opt/spark/'
         environment = [SPARK_EXTRA_CLASSPATH:'/opt/spark/classpath/*']
     }
+    extraDirectories {
+        permissions = ['/usr/bin/spark-operator':'777','/usr/bin/entrypoint.sh':'777','/usr/bin/gencerts.sh':'777']
+    }
 }
 
 dependencies {
