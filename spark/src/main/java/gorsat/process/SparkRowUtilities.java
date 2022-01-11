@@ -158,7 +158,7 @@ public class SparkRowUtilities {
             }
             var linkPath = Path.of(filePath +".link");
             if (!Files.exists(filePath) && Files.exists(linkPath)) {
-                return translatePath(Files.readString(linkPath), fileroot, standalone, fr);
+                return translatePath(Files.readString(linkPath).trim(), fileroot, standalone, fr);
             }
             List<Instant> inst;
             try {
