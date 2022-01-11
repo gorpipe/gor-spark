@@ -27,4 +27,8 @@ object ScalaUtils {
   def columns(colNames: Array[String]): Seq[Column] = {
     colNames.map(c => org.apache.spark.sql.functions.col(c)).toSeq
   }
+
+  def toSeq(list: Array[String]): Seq[String] = {
+    list.toSeq
+  }
 }

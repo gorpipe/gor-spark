@@ -15,6 +15,9 @@ import java.util.zip.DataFormatException;
 
 import com.databricks.spark.xml.util.XSDToSchema;
 import gorsat.commands.PysparkAnalysis;
+import io.projectglow.Glow;
+import io.projectglow.common.VariantSchemas;
+import io.projectglow.transformers.blockvariantsandsamples.VariantSampleBlockMaker;
 import org.apache.spark.ml.feature.Normalizer;
 import org.apache.spark.ml.feature.PCA;
 import org.apache.spark.ml.feature.PCAModel;
@@ -26,6 +29,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.spark.sql.*;
 import org.apache.spark.sql.expressions.UserDefinedFunction;
 
+import org.apache.spark.sql.expressions.Window;
 import org.gorpipe.exceptions.GorResourceException;
 import org.gorpipe.gor.driver.DataSource;
 import org.gorpipe.gor.driver.providers.stream.datatypes.bam.BamIterator;
@@ -52,6 +56,11 @@ import org.gorpipe.spark.udfs.CharToDoubleArray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.spark.sql.functions.col;
+import static org.apache.spark.sql.functions.lit;
+import static org.apache.spark.sql.functions.row_number;
+import static org.apache.spark.sql.functions.concat_ws;
+import static org.apache.spark.sql.functions.size;
 import static org.apache.spark.sql.types.DataTypes.*;
 
 /**
@@ -1104,22 +1113,98 @@ public class SparkRowSource extends ProcessSource {
         } else if (gor.startsWith("split_multiallelics")) {
             Map<String, String> options = new HashMap<>();
             //ret = Glow.transform("split_multiallelics", dataset, options);
-        } else if (gor.startsWith("block_variants_and_samples")) {
+        } else if (gor.startsWith("glowtransform")) {
             Map<String, String> options = new HashMap<>();
-            String cmd = gor.substring("block_variants_and_samples".length()).trim();
+            String cmd = gor.substring("glowtransform".length()).trim();
             String[] pipe_options = cmd.split(" ");
-            for (String popt : pipe_options) {
+            var transformcmd = pipe_options[0].trim();
+            for (int i = 0; i < pipe_options.length; i++) {
+                var popt = pipe_options[i].trim();
                 String[] psplit = popt.split("=");
                 if (psplit[1].startsWith("'"))
                     options.put(psplit[0], psplit[1].substring(1, psplit[1].length() - 1));
                 else options.put(psplit[0], psplit[1]);
             }
-            //ret = Glow.transform("block_variants_and_samples", dataset, options);
+            ret = Glow.transform(transformcmd, dataset, options);
+        } else if (gor.startsWith("block_variants_and_samples")) {
+            var split = gor.substring("make_sample_blocks".length()).split(" ");
+            var variantsPerBlock = Integer.parseInt(split[0].trim());
+            var sampleBlockCount = Integer.parseInt(split[1].trim());
+            ret = makeVariantAndSampleBlocks(dataset, variantsPerBlock, sampleBlockCount);
         } else if (gor.startsWith("make_sample_blocks")) {
             int sampleCount = Integer.parseInt(gor.substring("make_sample_blocks".length()).trim());
-            //ret = VariantSampleBlockMaker.makeSampleBlocks(dataset, sampleCount);
+            ret = VariantSampleBlockMaker.makeSampleBlocks(dataset, sampleCount);
         }
         return ret;
+    }
+
+    public static Dataset<org.apache.spark.sql.Row> makeVariantAndSampleBlocks(
+            Dataset<org.apache.spark.sql.Row> variantDf,
+            int variantsPerBlock,
+            int sampleBlockCount) {
+        var windowSpec = Window
+                .partitionBy(VariantSchemas.contigNameField().name(), VariantSchemas.sampleBlockIdField().name())
+                .orderBy(VariantSchemas.startField().name(), VariantSchemas.refAlleleField().name(), VariantSchemas.alternateAllelesField().name());
+
+        var seq = ScalaUtils.toSeq(new String[] {"mean", "stdDev"});
+        var baseDf = VariantSampleBlockMaker.filterOneDistinctValue(VariantSampleBlockMaker.validateNumValues(variantDf))
+                .withColumn(
+                        VariantSchemas.sortKeyField().name(),
+                        col(VariantSchemas.startField().name()).cast(IntegerType)
+                )
+                .withColumn(
+                        VariantSchemas.headerField().name(),
+                        concat_ws(
+                                ":",
+                                col(VariantSchemas.contigNameField().name()),
+                                col(VariantSchemas.startField().name()),
+                                col(VariantSchemas.refAlleleField().name()),
+                                col(VariantSchemas.alternateAllelesField().name())
+                        )
+                )
+                .withColumn(
+                        "stats",
+                        io.projectglow.functions.subset_struct(
+                                io.projectglow.functions.array_summary_stats(
+                                        col(VariantSchemas.valuesField().name())
+                                ),
+                                seq
+                        )
+                )
+                .withColumn(
+                        VariantSchemas.meanField().name(),
+                        col("stats.mean")
+                )
+                .withColumn(
+                        VariantSchemas.stdDevField().name(),
+                        col("stats.stdDev")
+                );
+
+        return VariantSampleBlockMaker.makeSampleBlocks(baseDf, sampleBlockCount)
+                .withColumn(
+                        VariantSchemas.sizeField().name(),
+                        size(col(VariantSchemas.valuesField().name()))
+                )
+                .withColumn(
+                        VariantSchemas.headerBlockIdField().name(),
+                        concat_ws(
+                                "_",
+                                lit("chr"),
+                                col(VariantSchemas.contigNameField().name()),
+                                lit("block"),
+                                ((row_number().over(windowSpec).minus(1)).divide(variantsPerBlock)).cast(IntegerType)
+                        )
+                )
+                .select(
+                        col(VariantSchemas.headerField().name()),
+                        col(VariantSchemas.sizeField().name()),
+                        col(VariantSchemas.valuesField().name()),
+                        col(VariantSchemas.headerBlockIdField().name()),
+                        col(VariantSchemas.sampleBlockIdField().name()),
+                        col(VariantSchemas.sortKeyField().name()),
+                        col(VariantSchemas.meanField().name()),
+                        col(VariantSchemas.stdDevField().name())
+                );
     }
 
     private Dataset<org.apache.spark.sql.Row> pcatransform(Dataset<org.apache.spark.sql.Row> dataset, String modelpath) {
