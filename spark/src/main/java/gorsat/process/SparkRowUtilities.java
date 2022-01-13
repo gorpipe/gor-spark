@@ -45,11 +45,12 @@ import static org.apache.spark.sql.types.DataTypes.*;
 
 public class SparkRowUtilities {
     static final String[] allowedGorSQLFileEndings = {".json",".csv",".tsv",".gor",".gorz",".gor.gz",".gord",".txt",".vcf",".bgen",".xml",".mt",".parquet",".adam",".link"};
+    static final String[] preservedTables = {"jupyterpath","securitycontext"};
     static final String csvDataSource = "csv";
     static final String gordatasourceClassname = "gorsat.spark.GorDataSource";
 
     public static Predicate<String> getFileEndingPredicate() {
-        return p -> Arrays.stream(allowedGorSQLFileEndings).map(e -> p.toLowerCase().endsWith(e)).reduce((a,b) -> a || b).get() || p.startsWith("<(");
+        return p -> Arrays.stream(allowedGorSQLFileEndings).map(e -> p.toLowerCase().endsWith(e)).reduce((a,b) -> a || b).get() || p.startsWith("<(") || Arrays.stream(preservedTables).map(p::equals).reduce((a, b) -> a || b).get();
     }
 
     public static String createMapString(Map<String,String> createMap, Map<String,String> defMap, String creates) {
