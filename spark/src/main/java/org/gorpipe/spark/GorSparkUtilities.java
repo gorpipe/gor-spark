@@ -19,10 +19,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
-import java.math.BigInteger;
 import java.nio.file.Paths;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -73,11 +71,9 @@ public class GorSparkUtilities {
         return py4jServer;
     }
 
-    static synchronized void setJupyterPath(Optional<String> jp) {
-        if (jupyterPath.isEmpty()&&jp.isPresent()) {
-            jupyterPath = jp;
-            spark.createDataset(Collections.singletonList(jp.get()), Encoders.STRING()).createOrReplaceTempView("jupyterpath");
-        }
+    static synchronized void setJupyterPath(String jp) {
+        jupyterPath = Optional.of(jp);
+        spark.createDataset(Collections.singletonList(jp), Encoders.STRING()).createOrReplaceTempView("jupyterpath");
     }
 
     public static void initPySpark(Optional<String> standaloneRoot) {
@@ -114,7 +110,7 @@ public class GorSparkUtilities {
                     try (InputStream is = p.getInputStream()) {
                         InputStreamReader isr = new InputStreamReader(is);
                         BufferedReader br = new BufferedReader(isr);
-                        setJupyterPath(br.lines().peek(System.err::println).map(String::trim).filter(s -> s.startsWith("http://:") && s.contains("?token=")).findFirst());
+                        br.lines().peek(System.err::println).map(String::trim).filter(s -> s.startsWith("http://") && s.contains("?token=")).forEach(GorSparkUtilities::setJupyterPath);
                     }
                     return null;
                 });
@@ -122,7 +118,7 @@ public class GorSparkUtilities {
                     try (InputStream is = p.getErrorStream()) {
                         InputStreamReader isr = new InputStreamReader(is);
                         BufferedReader br = new BufferedReader(isr);
-                        setJupyterPath(br.lines().peek(System.err::println).map(String::trim).filter(s -> s.startsWith("http://:") && s.contains("?token=")).findFirst());
+                        br.lines().peek(System.err::println).map(String::trim).filter(s -> s.startsWith("http://") && s.contains("?token=")).forEach(GorSparkUtilities::setJupyterPath);
                     }
                     return null;
                 });
