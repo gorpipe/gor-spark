@@ -15,22 +15,25 @@ import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.types.*;
 import org.gorpipe.gor.binsearch.CompressionType;
 import org.gorpipe.gor.binsearch.Unzipper;
-import org.gorpipe.gor.driver.GorDriverFactory;
-import org.gorpipe.gor.driver.meta.SourceReference;
-import org.gorpipe.gor.driver.providers.stream.sources.StreamSource;
+import org.gorpipe.gor.model.FileReader;
 import org.gorpipe.gor.model.ParquetLine;
 import org.gorpipe.gor.model.Row;
+import org.gorpipe.gor.table.util.PathUtils;
 import org.gorpipe.spark.GorSparkSession;
+import org.gorpipe.spark.GorzFlatMapFunction;
 import org.gorpipe.spark.RowDataType;
 import org.gorpipe.spark.RowGorRDD;
 import org.gorpipe.util.collection.ByteArray;
 import scala.collection.JavaConverters;
 
 import java.io.*;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -41,8 +44,13 @@ import java.util.zip.GZIPInputStream;
 import static org.apache.spark.sql.types.DataTypes.*;
 
 public class SparkRowUtilities {
+    static final String[] allowedGorSQLFileEndings = {".json",".csv",".tsv",".gor",".gorz",".gor.gz",".gord",".txt",".vcf",".bgen",".xml",".mt",".parquet",".adam",".link"};
     static final String csvDataSource = "csv";
     static final String gordatasourceClassname = "gorsat.spark.GorDataSource";
+
+    public static Predicate<String> getFileEndingPredicate() {
+        return p -> Arrays.stream(allowedGorSQLFileEndings).map(e -> p.toLowerCase().endsWith(e)).reduce((a,b) -> a || b).get() || p.startsWith("<(");
+    }
 
     public static String createMapString(Map<String,String> createMap, Map<String,String> defMap, String creates) {
         String mcreates = createMap.size() > 0 ? createMap.entrySet().stream().map(e -> "create "+e.getKey()+" = "+e.getValue()).collect(Collectors.joining("; ","",";")) : "";
@@ -62,11 +70,16 @@ public class SparkRowUtilities {
     }
 
     public static String generateTempViewName(String fileName, boolean usegorpipe, String filter, String chr, int pos, int end) {
-        String fixName = fileName;
-        String prekey = usegorpipe + fixName;
+        return generateTempViewName(fileName, usegorpipe, filter, chr, pos, end, Collections.emptyList());
+    }
+
+    public static String generateTempViewName(String fileName, boolean usegorpipe, String filter, String chr, int pos, int end, List<Instant> inst) {
+        String prekey = usegorpipe + fileName;
         String key = filter == null ? prekey : filter + prekey;
         String ret = chr == null ? key : chr + pos + end + key;
-        return "g" + Math.abs(ret.hashCode());
+        if (inst!=null) ret += inst.stream().map(Instant::toString).collect(Collectors.joining());
+        var hash = Math.abs(ret.hashCode());
+        return "g" + hash;
     }
 
     public static StructType gor2Schema(String header, Row types) {
@@ -83,14 +96,13 @@ public class SparkRowUtilities {
         return new StructType(fields);
     }
 
-    public static StructType inferSchema(Path filePath, String fileName, boolean nor, boolean isGorz) throws IOException, DataFormatException {
-        GorDataType gorDataType = inferDataTypes(filePath, fileName, isGorz, nor);
+    public static StructType gorDataTypeToStructType(GorDataType gorDataType) {
         String[] headerArray = gorDataType.header;
         Map<Integer, DataType> dataTypeMap = gorDataType.dataTypeMap;
 
         DataType[] dataTypes = new DataType[headerArray.length];
         int start = 0;
-        if (!nor) {
+        if (!gorDataType.nor) {
             dataTypes[0] = StringType;
             dataTypes[1] = IntegerType;
             start = 2;
@@ -103,10 +115,33 @@ public class SparkRowUtilities {
         return new StructType(fields);
     }
 
-    public static String translatePath(String fn, Path fileroot, String standalone) {
-        String fileName;
-        if (fn.contains("://")) {
-            fileName = fn;
+    public static StructType inferSchema(InputStream fileStream, String fileName, boolean nor, boolean isGorz) throws IOException, DataFormatException {
+        GorDataType gorDataType = inferDataTypes(fileStream, fileName, isGorz, nor);
+        return gorDataTypeToStructType(gorDataType);
+    }
+
+    public static RowDataType translatePath(String fn, Path fileroot, String standalone, FileReader fr) throws IOException {
+        RowDataType ret;
+        if (!PathUtils.isLocal(fn)) {
+            List<Instant> inst = Collections.emptyList();
+            if (fr!=null) {
+                fn = fn.replace("s3://", "s3a://");
+                var ds = fr.resolveUrl(fn);
+                if (ds.isDirectory()) { //!ds.exists()
+                    var fnl = fn.toLowerCase();
+                    if (fnl.endsWith(".parquet")) {
+                        ds = fr.resolveUrl(fn + "/_SUCCESS");
+                    } else if (fnl.endsWith(".parquet/")) {
+                        ds = fr.resolveUrl(fn + "_SUCCESS");
+                    } else if (fnl.endsWith(".gord")) {
+                        ds = fr.resolveUrl(fn + "/thedict.gord");
+                    } else if (fnl.endsWith(".gord/")) {
+                        ds = fr.resolveUrl(fn + "thedict.gord");
+                    }
+                }
+                if (ds.exists()) inst = Collections.singletonList(Instant.ofEpochMilli(ds.getSourceMetadata().getLastModified()));
+            }
+            ret = new RowDataType(fn,inst);
         } else {
             Path filePath = Paths.get(fn);
             if (!filePath.isAbsolute()) {
@@ -121,9 +156,19 @@ public class SparkRowUtilities {
                     }
                 }
             }
-            fileName = filePath.toString();
+            var linkPath = Path.of(filePath +".link");
+            if (!Files.exists(filePath) && Files.exists(linkPath)) {
+                return translatePath(Files.readString(linkPath).trim(), fileroot, standalone, fr);
+            }
+            List<Instant> inst;
+            try {
+                inst = Collections.singletonList(Files.getLastModifiedTime(filePath).toInstant());
+            } catch (IOException e) {
+                inst = Collections.emptyList();
+            }
+            ret = new RowDataType(filePath.toString(),inst);
         }
-        return fileName;
+        return ret;
     }
 
     public static GorDataType gorCmdSchema(String gorcmd, GorSparkSession gorSparkSession, boolean nor) {
@@ -137,11 +182,12 @@ public class SparkRowUtilities {
     }
 
     public static GorDataType gorCmdSchema(String[] gorcmds, GorSparkSession gorSparkSession) {
-        Stream<DynIterator.DynamicRowSource> sdrs = Arrays.stream(gorcmds).map(d -> new DynIterator.DynamicRowSource(d, gorSparkSession.getGorContext(), false));
+        var topcmds = Arrays.asList(gorcmds); //Arrays.stream(gorcmds).map(cmd -> CommandParseUtilities.quoteSafeReplace(cmd,"|","| top 1000 |")).collect(Collectors.toList());
+        Stream<DynIterator.DynamicRowSource> sdrs = topcmds.stream().map(d -> new DynIterator.DynamicRowSource(d, gorSparkSession.getGorContext(), false));
         Stream<Stream<String>> lstr = sdrs.map(drs -> StreamSupport.stream(Spliterators.spliteratorUnknownSize(drs, Spliterator.ORDERED), false).map(Object::toString).onClose(drs::close));
 
         String query = gorcmds[0];
-        boolean nor = query.toLowerCase().startsWith("nor ") || query.toLowerCase().startsWith("norrows ");
+        boolean nor = query.toLowerCase().startsWith("nor ") || query.toLowerCase().startsWith("norrows ") || query.toLowerCase().startsWith("norcmd ") || query.toLowerCase().startsWith("cmd -n ");
         DynIterator.DynamicRowSource drs = new DynIterator.DynamicRowSource(query, gorSparkSession.getGorContext(), false);
         String header = drs.getHeader();
         List<String> usedFiles = JavaConverters.seqAsJavaList(drs.usedFiles());
@@ -154,19 +200,35 @@ public class SparkRowUtilities {
         return gdt;
     }
 
-    public static Dataset<? extends org.apache.spark.sql.Row> registerFile(String[] fns, String name, String profile, GorSparkSession gorSparkSession, String standalone, Path fileroot, Path cacheDir, boolean usestreaming, String filter, String filterFile, String filterColumn, String splitFile, final boolean nor, final String chr, final int pos, final int end, final String jobid, String cacheFile, boolean cpp, boolean tag, StructType schema) throws IOException, DataFormatException {
+    public static Dataset<? extends org.apache.spark.sql.Row> registerFile(String[] fns, String name, String profile, GorSparkSession gorSparkSession, String standalone, Path fileroot, Path cacheDir, boolean usestreaming, String filter, String filterFile, String filterColumn, String splitFile, final boolean nor, final String chr, final int pos, final int end, final String jobid, String cacheFile, boolean cpp, boolean tag, StructType schema, Map<String,String> readOptions) throws IOException, DataFormatException {
         String fn = fns[0];
         boolean curlyQuery = fn.startsWith("{");
         boolean nestedQuery = fn.startsWith("<(") || curlyQuery;
         Path filePath = null;
         String fileName;
+        String tempViewName;
+        List<Instant> inst;
         if (nestedQuery) {
             fileName = fn.substring(curlyQuery ? 1 : 2, fn.length() - 1);
+            var gorpred = getFileEndingPredicate();
+            java.util.function.Function<String, Stream<String>> gorfileflat;
+            gorfileflat = p -> p.startsWith("(") ? Arrays.stream(CommandParseUtilities.quoteCurlyBracketsSafeSplit(p.substring(1, p.length() - 1), ' ')).filter(gorpred) : Stream.of(p);
+            var cmdsplit = CommandParseUtilities.quoteCurlyBracketsSafeSplit(fileName, ' ');
+            inst = Arrays.stream(cmdsplit).flatMap(gorfileflat).filter(gorpred).map(Paths::get).map(p -> p.isAbsolute() ? p : fileroot.resolve(p)).map(p -> {
+                try {
+                    return Files.getLastModifiedTime(p).toInstant();
+                } catch (IOException e) {
+                   return null;
+                }
+            }).filter(Objects::nonNull).collect(Collectors.toList());
+            tempViewName = generateTempViewName(fileName, usestreaming, filter, chr, pos, end, inst);
         } else {
-            fileName = translatePath(fn, fileroot, standalone);
-            filePath = Paths.get(fileName);
+            var fr = gorSparkSession.getProjectContext().getFileReader();
+            var rdt = translatePath(fn, fileroot, standalone, fr);
+            fileName = rdt.path;
+            inst = rdt.getTimestamp();
+            tempViewName = generateTempViewName(fileName, usestreaming, filter, chr, pos, end, inst);
         }
-        String tempViewName = generateTempViewName(fileName, usestreaming, filter, chr, pos, end);
 
         Map<Integer, DataType> dataTypeMap;
         DataType[] dataTypes;
@@ -299,16 +361,32 @@ public class SparkRowUtilities {
                     gor = sparkRowSource.getDataset();
                     dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
                     //gor = registerFile();
-                } else if (fileName.startsWith("pgor ") || fileName.startsWith("partgor ") || fileName.startsWith("parallel ") || fileName.startsWith("gor ") || fileName.startsWith("nor ") || fileName.startsWith("gorrows ") || fileName.startsWith("norrows ")) {
+                } else if (fileName.startsWith("pgor ") || fileName.startsWith("partgor ") || fileName.startsWith("parallel ") || fileName.startsWith("gor ") || fileName.startsWith("nor ") || fileName.startsWith("gorrows ") || fileName.startsWith("norrows ") || fileName.startsWith("cmd ") || fileName.startsWith("norcmd ") || fileName.startsWith("gorcmd ")) {
                     DataFrameReader dfr = gorSparkSession.getSparkSession().read().format(gordatasourceClassname);
                     dfr.option("query", fileName);
                     if (tag) dfr.option("tag", true);
-                    dfr.option("projectroot", fileroot.toString());
-                    dfr.option("cachedir", cacheDir.toString());
+                    if (fileroot != null) dfr.option("projectroot", fileroot.toString());
+                    if (cacheDir != null) dfr.option("cachedir", cacheDir.toString());
+                    var securityContext = gorSparkSession.getProjectContext().getFileReader().getSecurityContext();
+                    if (securityContext!=null) dfr.option("securityContext", securityContext);
                     dfr.option("aliasfile", gorSparkSession.getProjectContext().getGorAliasFile());
                     dfr.option("configfile", gorSparkSession.getProjectContext().getGorConfigFile());
+                    if (gorSparkSession.getRedisUri() != null && gorSparkSession.getRedisUri().length() > 0) {
+                        dfr.option("redis", gorSparkSession.getRedisUri());
+                    }
+                    if (gorSparkSession.streamKey() != null && gorSparkSession.streamKey().length() > 0) {
+                        dfr.option("streamkey", gorSparkSession.streamKey());
+                    }
+                    if (jobid!=null) dfr.option("jobid", jobid);
                     if(schema!=null) dfr.schema(schema);
                     gor = dfr.load();
+                    dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
+                } else if (fileName.toLowerCase().endsWith(".json")) {
+                    var dfr = gorSparkSession.getSparkSession().read().format("json");
+                    if(schema!=null) {
+                        dfr = dfr.schema(schema);
+                    }
+                    gor = dfr.load(fileName);
                     dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
                 } else if (fileName.toLowerCase().endsWith(".parquet")) {
                     gor = gorSparkSession.getSparkSession().read().format("org.apache.spark.sql.execution.datasources.v2.parquet.ParquetDataSourceV2").load(fileName);
@@ -323,19 +401,31 @@ public class SparkRowUtilities {
                     String bgenDataSource = "io.projectglow.bgen.BgenFileFormat"; //vcf
                     gor = gorSparkSession.getSparkSession().read().format(bgenDataSource).load(fileName);
                     dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
-                } else if (splitFile != null && (fileName.toLowerCase().endsWith(".gor") || fileName.toLowerCase().endsWith(".nor") || fileName.toLowerCase().endsWith(".tsv") || fileName.toLowerCase().endsWith(".csv"))) {
-                    DataFrameReader dfr = gorSparkSession.getSparkSession().read();
-                    //if(fileName.toLowerCase().startsWith("s3")) dfr = dfr.format("s3selectCSV");
-                    //else
-                        dfr = dfr.format("csv");
-                    dfr = dfr.option("header",true).option("inferSchema",true);
+                } else if (fileName.toLowerCase().endsWith(".xml")) {
+                    String bgenDataSource = "xml";
+                    var dfr = gorSparkSession.getSparkSession().read().format(bgenDataSource);
+                    if (schema!=null) dfr.schema(schema);
+                    for (Map.Entry<String,String> entry : readOptions.entrySet()) {
+                        dfr = dfr.option(entry.getKey(),entry.getValue());
+                    }
+                    gor = dfr.load(fileName);
+                    dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
+                } else if (splitFile == null && (fileName.toLowerCase().endsWith(".gor") || fileName.toLowerCase().endsWith(".nor") || fileName.toLowerCase().endsWith(".tsv") || fileName.toLowerCase().endsWith(".csv"))) {
+                    DataFrameReader dfr = gorSparkSession.getSparkSession().read().format("csv").option("header",true);
+                    if(schema==null) {
+                        dfr = dfr.option("inferSchema", true);
+                    } else {
+                        dfr = dfr.schema(schema);
+                    }
                     if(!fileName.toLowerCase().endsWith(".csv")) dfr = dfr.option("delimiter","\t");
                     gor = dfr.load(fileName);
+                    var firstCol = gor.columns()[0];
+                    if (firstCol.startsWith("#")) gor = gor.withColumnRenamed(firstCol,firstCol.substring(1));
                     dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
                 } else {
                     boolean isGorz = fileName.toLowerCase().endsWith(".gorz");
                     boolean isGorgz = fileName.toLowerCase().endsWith(".gor.gz") || fileName.toLowerCase().endsWith(".gor.bgz");
-                    GorDataType gorDataType = inferDataTypes(filePath, fileName, isGorz, nor);
+                    GorDataType gorDataType = inferDataTypes(gorSparkSession.getProjectContext().getFileReader(), fileName, isGorz, nor);
                     String[] headerArray = gorDataType.header;
                     dataTypeMap = gorDataType.dataTypeMap;
 
@@ -380,6 +470,15 @@ public class SparkRowUtilities {
                                 if (fileroot != null) dfr.option("projectroot", fileroot.toString());
                                 dfr.option("aliasfile", gorSparkSession.getProjectContext().getGorAliasFile());
                                 dfr.option("configfile", gorSparkSession.getProjectContext().getGorConfigFile());
+                                if (gorSparkSession.getRedisUri() != null && gorSparkSession.getRedisUri().length() > 0) {
+                                    dfr.option("redis", gorSparkSession.getRedisUri());
+                                }
+                                if (gorSparkSession.streamKey() != null && gorSparkSession.streamKey().length() > 0) {
+                                    dfr.option("streamkey", gorSparkSession.streamKey());
+                                }
+                                dfr.option("jobid", jobid);
+                                var securityContext = gorSparkSession.getProjectContext().getFileReader().getSecurityContext();
+                                if (securityContext != null) dfr = dfr.option("securityContext", securityContext);
                                 if (filter != null) dfr = dfr.option("f", filter);
                                 if (filterFile != null) dfr = dfr.option("ff", filterFile);
                                 if (splitFile != null) dfr = dfr.option("split", splitFile);
@@ -416,6 +515,7 @@ public class SparkRowUtilities {
                                 DataFrameReader dfr = gorSparkSession.getSparkSession().read().format(gordatasourceClassname).schema(schema);
                                 if (gorSparkSession.getRedisUri() != null && gorSparkSession.getRedisUri().length() > 0) {
                                     dfr = dfr.option("redis", gorSparkSession.getRedisUri())
+                                            .option("streamkey", gorSparkSession.streamKey())
                                             .option("jobid", jobid)
                                             .option("cachefile", cacheFile)
                                             .option("native", Boolean.toString(cpp));
@@ -466,51 +566,8 @@ public class SparkRowUtilities {
 
                             ExpressionEncoder<org.apache.spark.sql.Row> encoder = RowEncoder.apply(schema);
 
-                            final boolean withStart = gorDataType.withStart;
-                            gor = ((Dataset<org.apache.spark.sql.Row>) gor).<org.apache.spark.sql.Row>flatMap((FlatMapFunction<org.apache.spark.sql.Row, org.apache.spark.sql.Row>) row -> {
-                                String zip = withStart ? row.getString(3) : row.getString(2);
-                                char tp = zip.charAt(0);
-                                final CompressionType compressionLibrary = (tp & 0x02) == 0 ? CompressionType.ZLIB : CompressionType.ZSTD;
-                                String zipo = zip.substring(1);
-                                byte[] bb;
-                                try {
-                                    bb = Base64.getDecoder().decode(zipo);
-                                } catch (Exception e) {
-                                    bb = ByteArray.to8Bit(zipo.getBytes());
-                                }
-                                Unzipper unzip = new Unzipper();
-                                unzip.setType(compressionLibrary);
-                                unzip.setRawInput(bb, 0, bb.length);
-                                int unzipLen = unzip.decompress(unzipBuffer, 0, unzipBuffer.length);
-                                ByteArrayInputStream bais = new ByteArrayInputStream(unzipBuffer, 0, unzipLen);
-                                InputStreamReader isr = new InputStreamReader(bais);
-                                BufferedReader br = new BufferedReader(isr);
-                                return (nor ? br.lines().map(line -> {
-                                    String[] split = line.split("\t");
-                                    Object[] objs = new Object[split.length];
-                                    for (int i = 0; i < split.length; i++) {
-                                        if (dataTypeMap.containsKey(i)) {
-                                            if (dataTypeMap.get(i) == IntegerType)
-                                                objs[i] = Integer.parseInt(split[i]);
-                                            else objs[i] = Double.parseDouble(split[i]);
-                                        } else objs[i] = split[i];
-                                    }
-                                    return RowFactory.create(objs);
-                                }) : br.lines().map(line -> {
-                                    String[] split = line.split("\t");
-                                    Object[] objs = new Object[split.length];
-                                    objs[0] = split[0];
-                                    objs[1] = Integer.parseInt(split[1]);
-                                    for (int i = 2; i < split.length; i++) {
-                                        if (dataTypeMap.containsKey(i)) {
-                                            if (dataTypeMap.get(i) == IntegerType)
-                                                objs[i] = Integer.parseInt(split[i]);
-                                            else objs[i] = Double.parseDouble(split[i]);
-                                        } else objs[i] = split[i];
-                                    }
-                                    return RowFactory.create(objs);
-                                })).iterator();
-                            }, encoder);
+                            GorzFlatMapFunction gorzFlatMap = new GorzFlatMapFunction(gorDataType);
+                            gor = ((Dataset<org.apache.spark.sql.Row>) gor).<org.apache.spark.sql.Row>flatMap(gorzFlatMap, encoder);
                             if (chr != null) {
                                 gor = ((Dataset<org.apache.spark.sql.Row>) gor).filter((FilterFunction<org.apache.spark.sql.Row>) row -> {
                                     int p = row.getInt(1);
@@ -531,24 +588,20 @@ public class SparkRowUtilities {
                 gor.createOrReplaceTempView(name);
             }
             gor.createOrReplaceTempView(tempViewName);
-            gorSparkSession.datasetMap().put(tempViewName, new RowDataType(gor, dataTypes));
+            gorSparkSession.datasetMap().put(tempViewName, new RowDataType(gor, dataTypes, fileName, inst));
         }
         return gor;
     }
 
     static byte[] unzipBuffer = new byte[1 << 17];
 
-    public static GorDataType inferDataTypes(Path filePath, String fileName, boolean isGorz, boolean nor) throws IOException, DataFormatException {
-        boolean isUrl = fileName.contains("://");
-        InputStream is = null;
-        if (isUrl) {
-            SourceReference sr = new SourceReference(fileName);
-            is = ((StreamSource) GorDriverFactory.fromConfig().getDataSource(sr)).open();
-        } else if (Files.exists(filePath)) {
-            is = Files.newInputStream(filePath);
-        }
+    public static GorDataType inferDataTypes(FileReader fileReader, String fileName, boolean isGorz, boolean nor) throws IOException, DataFormatException {
+        InputStream is = fileReader.getInputStream(fileName);
+        return inferDataTypes(is, fileName, isGorz, nor);
+    }
 
-        String fileLow = filePath.getFileName().toString().toLowerCase();
+    public static GorDataType inferDataTypes(InputStream is, String fileName, boolean isGorz, boolean nor) throws IOException, DataFormatException {
+        String fileLow = fileName.toLowerCase();
         boolean isCompressed = fileLow.endsWith(".gz") || fileLow.endsWith(".bgz");
         if (isCompressed) is = new GZIPInputStream(is);
 
@@ -589,31 +642,35 @@ public class SparkRowUtilities {
                     }
                     is.close();
                     byte[] baosArray = baos.toByteArray();
-                    byte[] bb;
+                    ByteBuffer bb;
                     try {
-                        bb = Base64.getDecoder().decode(baosArray);
+                        bb = ByteBuffer.wrap(Base64.getDecoder().decode(baosArray));
                     } catch (Throwable e) {
                         base128 = true;
-                        bb = ByteArray.to8Bit(baosArray);
+                        bb = ByteBuffer.wrap(ByteArray.to8Bit(baosArray));
                     }
-                    Unzipper unzip = new Unzipper();
+                    Unzipper unzip = new Unzipper(false);
                     unzip.setType(compressionLibrary);
-                    unzip.setRawInput(bb, 0, bb.length);
-                    int unzipLen = unzip.decompress(unzipBuffer, 0, unzipBuffer.length);
-                    String str = new String(unzipBuffer, 0, unzipLen);
-                    StringReader strreader = new StringReader(str);
-                    linestream = new BufferedReader(strreader).lines();
+                    unzip.setInput(bb, 0, bb.capacity());
+                    int unzipLen = unzip.decompress(0);
+                    ByteArrayInputStream bais = new ByteArrayInputStream(unzip.out.array(), 0, unzipLen);
+                    InputStreamReader isr = new InputStreamReader(bais);
+                    //String str = new String(unzipBuffer, 0, unzipLen);
+                    //StringReader strreader = new StringReader(str);
+                    linestream = new BufferedReader(isr).lines();
                 } else linestream = Stream.empty();
             } else {
-                is.close();
-                if (isUrl) {
+                //is.close();
+                //is = fileReader.getInputStream(fileName);
+                linestream = new BufferedReader(new InputStreamReader(is)).lines();
+                /*if (isUrl) {
                     SourceReference sr = new SourceReference(fileName);
                     is = ((StreamSource) GorDriverFactory.fromConfig().getDataSource(sr)).open();
                     if (isCompressed) is = new GZIPInputStream(is);
                     linestream = new BufferedReader(new InputStreamReader(is)).lines().skip(1);
                 } else if (Files.exists(filePath)) {
                     linestream = isCompressed ? new BufferedReader(new InputStreamReader(new GZIPInputStream(Files.newInputStream(filePath)))).lines().skip(1) : Files.newBufferedReader(filePath).lines().skip(1);
-                }
+                }*/
             }
         }
         return typeFromStream(linestream, withStart, headerArray, nor, base128);
@@ -638,7 +695,7 @@ public class SparkRowUtilities {
                 gortypes[i] = "S";
             }
         }
-        return new GorDataType(dataTypeMap, withStart, header, gortypes);
+        return new GorDataType(dataTypeMap, withStart, header, gortypes, false);
     }
 
     public static GorDataType typeFromStream(Stream<String> linestream, boolean withStart, String[] headerArray, final boolean nor) {
@@ -711,6 +768,6 @@ public class SparkRowUtilities {
             return dataTypeMap.size() > 0;
         });
 
-        return new GorDataType(dataTypeMap, withStart, headerArray, gortypes, base128);
+        return new GorDataType(dataTypeMap, withStart, headerArray, gortypes, base128, nor);
     }
 }

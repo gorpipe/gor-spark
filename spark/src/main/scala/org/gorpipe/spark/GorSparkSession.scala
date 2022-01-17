@@ -19,25 +19,28 @@ import org.gorpipe.gor.session.{EventLogger, GorSession, GorSessionCache, Projec
 
 import scala.collection.JavaConverters
 
-class GorSparkSession(requestId: String) extends GorSession(requestId) with AutoCloseable {
+class GorSparkSession(requestId: String, workers: Int = 0) extends GorSession(requestId) with AutoCloseable {
   var sparkSession: SparkSession = _
   val createMap = new java.util.HashMap[String,String]
   val defMap = new java.util.HashMap[String,String]
   var creates = ""
   val datasetMap = new ConcurrentHashMap[String, RowDataType]
   var redisUri: String = _
+  var streamKey: String = "resque"
   var fileAliasMap: java.util.Map[String,String] = _
 
   if (GorInputSources.getInfo("SPARK") == null) {
-      GorInputSources.register()
-      GorInputSources.addInfo(new Spark.Spark)
-      GorInputSources.addInfo(new Spark.Select)
+    GorInputSources.register()
+    GorInputSources.addInfo(new Spark.Spark)
+    GorInputSources.addInfo(new Spark.Select)
 
-      //GorPipeCommands.addInfo(new Pyspark())
+    GorPipeCommands.register()
+    GorPipeCommands.addInfo(new gorsat.Commands.WriteSpark)
+    //GorPipeCommands.addInfo(new Pyspark())
   }
 
   def getSparkSession: SparkSession = {
-    if(sparkSession == null) sparkSession = GorSparkUtilities.getSparkSession
+    if(sparkSession == null) sparkSession = GorSparkUtilities.getSparkSession(workers)
     sparkSession
   }
 
@@ -116,7 +119,7 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
 
   def replaceAliases(gorcmd: String): String = {
     val qryspl = CommandParseUtilities.quoteSafeSplit(gorcmd, ';')
-    if(fileAliasMap!=null) {
+    if(gorcmd.nonEmpty && fileAliasMap!=null) {
       val tmpFileAliasMap = new util.HashMap[String, String](fileAliasMap)
       AnalysisUtilities.checkAliasNameReplacement(qryspl, tmpFileAliasMap) //needs a test
       replaceAllAliases(gorcmd, tmpFileAliasMap)
@@ -125,7 +128,7 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
 
   def getCreateQueries(increates: String): String = {
     val allcreates = SparkRowUtilities.createMapString(createMap, defMap, creates + increates)
-    replaceAliases(allcreates)
+    if(allcreates.nonEmpty) replaceAliases(allcreates) else allcreates
   }
 
   def showCreateAndDefs(): List[String] = {
@@ -141,8 +144,12 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
     val lastqry : String = replaceAllAliases(qryspl.last.trim, fileAliasMap)
     val slicecreates = qryspl.slice(0,qryspl.length-1)
     val increates = if(slicecreates.length > 0) slicecreates.mkString("",";",";") else ""
-    val query = if(!lastqry.toLowerCase.startsWith("spark ") && !lastqry.toLowerCase.startsWith("select ")) {
+    val lastqrylwr = lastqry.toLowerCase
+    val query = if(!lastqrylwr.startsWith("spark ") && !lastqrylwr.startsWith("select ")) {
       (if(sc!=null) "spark -schema {"+sc.toDDL+"} " else "spark ") + "{"+lastqry+"}"
+    } else if(sc!=null && !lastqrylwr.contains(" -schema ")) {
+      val li = lastqry.indexOf(' ')
+      lastqry.substring(0,li) + " -schema {"+sc.toDDL+"}" + lastqry.substring(li)
     } else lastqry
     val createQueries = getCreateQueries(increates)
     val fullQuery = if (createQueries.nonEmpty) createQueries + query else query
@@ -282,7 +289,7 @@ class GorSparkSession(requestId: String) extends GorSession(requestId) with Auto
   def stream(qry: String, sc: StructType, nor: Boolean, parallel: Boolean): java.util.stream.Stream[org.gorpipe.gor.model.Row] = {
     val pi = new PipeInstance(this.getGorContext)
     val createQueries = SparkRowUtilities.createMapString(createMap, defMap, creates)
-    var fullQuery = if( createQueries.length > 0 ) createQueries+qry else qry
+    var fullQuery = if( createQueries.nonEmpty ) createQueries+qry else qry
 
     val querySplit = fullQuery.split(";")
     val lastQuery = querySplit(querySplit.length-1).trim

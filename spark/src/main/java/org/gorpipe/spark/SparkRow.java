@@ -97,6 +97,9 @@ public class SparkRow extends GorSparkRowBase implements Serializable {
 
     @Override
     public double doubleValue(int col) {
+        if( schema().fields()[col].dataType() != DataTypes.DoubleType) {
+            return longValue(col);
+        }
         return row.getDouble(col);
     }
 
@@ -112,12 +115,12 @@ public class SparkRow extends GorSparkRowBase implements Serializable {
 
     @Override
     public double colAsDouble(int colNum) {
-        return row.getDouble(colNum);
+        return doubleValue(colNum);
     }
 
     @Override
     public long colAsLong(int colNum) {
-        return row.getLong(colNum);
+        return longValue(colNum);
     }
 
     @Override
@@ -216,10 +219,17 @@ public class SparkRow extends GorSparkRowBase implements Serializable {
     public void writeRowToStream(OutputStream outputStream) throws IOException {
         int i = 0;
         for( ; i < row.length()-1; i++ ) {
-            outputStream.write(row.get(i).toString().getBytes());
+            var r = row.get(i);
+            if(r!=null) outputStream.write(r.toString().getBytes());
             outputStream.write('\t');
         }
-        outputStream.write(row.get(i).toString().getBytes());
+        var r = row.get(i);
+        if(r!=null) outputStream.write(r.toString().getBytes());
+    }
+
+    @Override
+    public void writeNorRowToStream(OutputStream outputStream) throws IOException {
+        writeRowToStream(outputStream);
     }
 
     @Override

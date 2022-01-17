@@ -10,7 +10,6 @@ import org.apache.spark.sql.sources.SchemaRelationProvider
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 
-import scala.collection.Seq
 import scala.collection.immutable.Map
 import java.io.IOException
 import java.util.zip.DataFormatException
@@ -19,7 +18,7 @@ import java.util.zip.DataFormatException
 class GorDataSource extends FileDataSourceV2 with RelationProvider with SchemaRelationProvider { //TableProvider, RelationProvider, SchemaRelationProvider, DataSourceRegister {
   override def getTable(options: CaseInsensitiveStringMap): Table = {
     try {
-      val batchTable = new GorBatchTable(options.get("query"), options.getBoolean("tag", false), options.get("path"), options.get("f"), options.get("ff"), options.get("s"), options.get("split"), options.get("p"), options.get("redis"), options.get("jobid"), options.get("cachefile"), options.get("native")) {}
+      val batchTable = new GorBatchTable(options.get("query"), options.getBoolean("tag", false), options.get("path"), options.get("f"), options.get("ff"), options.get("s"), options.get("split"), options.get("p"), options.get("redis"), options.get("streamkey"), options.get("jobid"), options.get("cachefile"), options.get("securityContext"), options.get("native"), options.getBoolean("hadoop",false)) {}
       val projectroot = options.get("projectroot")
       if (projectroot != null) batchTable.setProjectRoot(projectroot)
       val cachedir = options.get("cachedir")
@@ -35,7 +34,7 @@ class GorDataSource extends FileDataSourceV2 with RelationProvider with SchemaRe
   }
 
   override def getTable(options: CaseInsensitiveStringMap, schema: StructType): Table = {
-    val batchTable = new GorBatchTable(options.get("query"), options.getBoolean("tag", false), options.get("path"), options.get("f"), options.get("ff"), options.get("s"), options.get("split"), options.get("p"), schema, options.get("redis"), options.get("jobid"), options.get("cachefile"), options.get("native")) {}
+    val batchTable = new GorBatchTable(options.get("query"), options.getBoolean("tag", false), options.get("path"), options.get("f"), options.get("ff"), options.get("s"), options.get("split"), options.get("p"), schema, options.get("redis"), options.get("streamkey"), options.get("jobid"), options.get("cachefile"), options.get("securityContext"), options.get("native"), options.getBoolean("hadoop",false)) {}
     val projectroot = options.get("projectroot")
     if (projectroot != null) batchTable.setProjectRoot(projectroot)
     val cachedir = options.get("cachedir")

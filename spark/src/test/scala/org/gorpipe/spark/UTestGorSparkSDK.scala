@@ -1,5 +1,7 @@
 package org.gorpipe.spark
 
+import org.apache.spark.sql.types.{DoubleType, IntegerType, StringType, StructField, StructType}
+
 import java.nio.file.{Files, Path, Paths}
 import java.util.stream.Collectors
 import org.apache.spark.sql.{Encoders, SparkSession}
@@ -36,9 +38,45 @@ class UTestGorSparkSDK {
     }
 
     @Test
+    def testSelectCmdEmpty(): Unit = {
+        val res = sparkGorSession.dataframe("select * from <(cmd {date})")
+        val res2 = res.collect().mkString("\n")
+        Assert.assertEquals("Wrong results from select empty cmd","",res2)
+    }
+
+    @Test
+    def testSelectCmd(): Unit = {
+        val res = sparkGorSession.dataframe("select * from <(cmd -n {bash -c 'for i in {10..12}; do echo $i; done;'})")
+        val res2 = res.collect().mkString("\n")
+        Assert.assertEquals("Wrong results from select cmd","[11]\n[12]",res2)
+    }
+
+    @Test
+    def testSelectCmdHeaderless(): Unit = {
+        val res = sparkGorSession.dataframe("select * from <(cmd -n -h {bash -c 'for i in {1..2}; do echo $i; done;'})")
+        val res2 = res.collect().mkString("\n")
+        Assert.assertEquals("Wrong results from select cmd no header","[1]\n[2]",res2)
+    }
+
+    @Test
+    def testSelectCmdHeaderlessString(): Unit = {
+        val res = sparkGorSession.dataframe("select * from <(cmd -n -h {bash -c 'for i in {1..2}; do echo \"hey$i\"; done;'})")
+        val res2 = res.collect().mkString("\n")
+        Assert.assertEquals("Wrong results from select cmd no header string","[hey1]\n[hey2]",res2)
+    }
+
+    @Test
     def testSelectNorrows(): Unit = {
         val res = sparkGorSession.dataframe("select * from <(norrows 2)")
         val res2 = res.collect().mkString("\n")
+        Assert.assertEquals("Wrong results from select norrows","[0]\n[1]",res2)
+    }
+
+    @Test
+    def testSelectWithSchema(): Unit = {
+        val res = sparkGorSession.dataframe("select * from <(norrows 2)",StructType.fromDDL("hey int"))
+        val res2 = res.collect().mkString("\n")
+        Assert.assertEquals("StructField(hey,IntegerType,true)",res.schema.mkString)
         Assert.assertEquals("Wrong results from select norrows","[0]\n[1]",res2)
     }
 
@@ -79,6 +117,87 @@ class UTestGorSparkSDK {
         val res2 = res.collect().mkString("\n")
         Assert.assertEquals("Wrong results from nested norrows","0\tx\n1\tx",res2)
     }
+
+    @Test
+    def testWriteGorrows(): Unit = {
+        val path = Files.createTempFile("gor",".gorz");
+        try {
+            val res = sparkGorSession.dataframe("gorrows -p chr1:1-5").gor("write " + path)(sparkGorSession)
+            val res2 = res.collect().mkString("\n")
+            Assert.assertEquals("Wrong results from nested gorrows", "", res2)
+        } finally {
+            Files.deleteIfExists(path);
+        }
+    }
+
+    @Test
+    def testGorWhereDouble(): Unit = {
+        val res = sparkGorSession.dataframe("gor gor/genes.gor | calc f 1.0").gor("where gene_end > 29805.0 | where f < 2")(sparkGorSession)
+        val res2 = res.limit(1).collect().mkString("\n")
+        Assert.assertEquals("Wrong results from nested norrows","[chr1,14362,29806,WASH7P,1.0]",res2)
+    }
+
+    @Test
+    def testGorWhere(): Unit = {
+      val res = sparkGorSession.dataframe("gor gor/genes.gor").gor("where gene_end > 29805")(sparkGorSession)
+      val res2 = res.limit(1).collect().mkString("\n")
+      Assert.assertEquals("Wrong results from nested norrows","[chr1,14362,29806,WASH7P]",res2)
+    }
+
+    @Test
+    def testGorWhere2(): Unit = {
+      val res = sparkGorSession.dataframe("gor gor/genes.gor").gor("where gene_end > 29805")(sparkGorSession).gor("where gene_end < 29807")(sparkGorSession)
+      val res2 = res.collect().mkString("\n")
+      Assert.assertEquals("Wrong results from nested norrows","[chr1,14362,29806,WASH7P]",res2)
+    }
+
+    @Test
+    def testGorrowsWithSchema(): Unit = {
+        val df = sparkGorSession.dataframe("gorrows -p chr1:1-5")
+        val res = df.gorschema("where pos > 3",df.schema)(sparkGorSession)
+        val res2 = res.collect().mkString("\n")
+        Assert.assertEquals("Wrong results from nested gorrows", "[chr1,4]", res2)
+    }
+
+    @Test
+    def testAdjustCommandWithSchema(): Unit = {
+        val wanted = "CHROM\tPOS\tP_VAlUES\tGC\tQQ\tBONF\tHOLM\tSS\tSD\tBH\tBY\n" +
+          "chr1\t1\t0.02\t0.40413\t0.1\t0.1\t0.1\t0.096079\t0.096079\t0.1\t0.22833\n" +
+          "chr1\t2\t0.04\t0.46142\t0.3\t0.2\t0.16\t0.18463\t0.15065\t0.1\t0.22833\n" +
+          "chr1\t3\t0.06\t0.5\t0.5\t0.3\t0.18\t0.2661\t0.16942\t0.1\t0.22833\n" +
+          "chr1\t4\t0.08\t0.53011\t0.7\t0.4\t0.18\t0.34092\t0.16942\t0.1\t0.22833\n" +
+          "chr1\t5\t0.1\t0.55527\t0.9\t0.5\t0.18\t0.40951\t0.16942\t0.1\t0.22833\n"
+        val cont = "CHROM\tPOS\tP_VAlUES\nchr1\t1\t0.02\n" +
+          "chr1\t2\t0.04\n" +
+          "chr1\t3\t0.06\n" +
+          "chr1\t4\t0.08\n" +
+          "chr1\t5\t0.1\n"
+
+        val p = Paths.get("basic.gor")
+        try {
+            Files.writeString(p, cont)
+
+            val schema = StructType(
+                Array(StructField("CHROM", StringType, nullable = true),
+                    StructField("POS", IntegerType, nullable = true),
+                    StructField("P_VALUES", DoubleType, nullable = true),
+                    StructField("GC", DoubleType, nullable = true),
+                    StructField("QQ", DoubleType, nullable = true),
+                    StructField("BONF", DoubleType, nullable = true),
+                    StructField("HOLM", DoubleType, nullable = true),
+                    StructField("SS", DoubleType, nullable = true),
+                    StructField("SD", DoubleType, nullable = true),
+                    StructField("BH", DoubleType, nullable = true),
+                    StructField("BY", DoubleType, nullable = true)))
+            val df = sparkGorSession.dataframe("gor "+p.toAbsolutePath.toString).gorschema("adjust -pc 3 -gcc -bonf -holm -ss -sd -bh -by -qq", schema)(sparkGorSession)
+            val res2 = df.collect().mkString("\n")
+            val expected: String = wanted.split("\n").drop(1).map(s => '['+s.replace("\t",",")+']').mkString("\n")
+            Assert.assertEquals("Wrong results from nested gorrows", expected, res2)
+        } finally {
+            Files.deleteIfExists(p)
+        }
+    }
+
 
     @Test
     def testGorAlias() {
@@ -125,6 +244,15 @@ class UTestGorSparkSDK {
     }
 
     @Test
+    def testSparkReadWithGorSchema(): Unit = {
+        val spark = sparkGorSession.sparkSession
+        val dbsnpDf = spark.read.parquet("../tests/data/parquet/dbsnp_test.parquet")
+        val myVars = dbsnpDf.gorschema("where Chrom = 'chr1'",dbsnpDf.schema)(sparkGorSession)
+        val str = myVars.schema
+        System.err.println(str.toString())
+    }
+
+    @Test
     @Ignore("Timeout")
     def testPaperQuery(): Unit = {
         val spark = sparkGorSession.sparkSession
@@ -155,6 +283,65 @@ class UTestGorSparkSDK {
         val snpCount = exonSnps.collect().mkString("\n")
 
         Assert.assertEquals("Wrong result","[BRCA1]\n[BRCA2]",snpCount)
+    }
+
+    @Test
+    @Ignore("Slow test")
+    def testTempTableQueryCacheTest(): Unit = {
+        val spark = sparkGorSession.sparkSession
+        import spark.implicits._
+        var myGenes = List("BRCA1","BRCA2").toDF("gene")
+        myGenes.createOrReplaceTempView("brcaGenes")
+        var exonSnps = sparkGorSession.dataframe("create #mygenes# = select gene from brcaGenes; nor [#mygenes#]")
+        var snpCount = exonSnps.sort("gene").collect().mkString("\n")
+        Assert.assertEquals("Wrong result","[BRCA1]\n[BRCA2]",snpCount)
+
+        myGenes = List("BRCA1","BRCA2","BRCA3").toDF("gene")
+        myGenes.createOrReplaceTempView("brcaGenes")
+        exonSnps = sparkGorSession.dataframe("create #mygenes# = select gene from brcaGenes; nor [#mygenes#]")
+        snpCount = exonSnps.sort("gene").collect().mkString("\n")
+
+        Assert.assertEquals("Wrong result","[BRCA1]\n[BRCA2]\n[BRCA3]",snpCount)
+    }
+
+    @Test
+    @Ignore("Slow test")
+    def testTempTableFileQueryCacheTest(): Unit = {
+        val brcaPath = Paths.get("../tests/data/brcaGenes.tsv")
+        try {
+            Files.writeString(brcaPath, "#gene\nBRCA1\nBRCA2\n");
+            var exonSnps = sparkGorSession.dataframe("create #mygenes# = select * from brcaGenes.tsv; nor [#mygenes#]")
+            var snpCount = exonSnps.sort("gene").collect().mkString("\n")
+            Assert.assertEquals("Wrong result", "[BRCA1]\n[BRCA2]", snpCount)
+
+            Files.writeString(brcaPath, "#gene\nBRCA1\nBRCA2\nBRCA3\n")
+            exonSnps = sparkGorSession.dataframe("create #mygenes# = select * from brcaGenes.tsv; nor [#mygenes#]")
+            snpCount = exonSnps.sort("gene").collect().mkString("\n")
+
+            Assert.assertEquals("Wrong result", "[BRCA1]\n[BRCA2]\n[BRCA3]", snpCount)
+        } finally {
+            Files.deleteIfExists(brcaPath)
+        }
+    }
+
+    @Test
+    @Ignore("Slow test")
+    def testTempTableFileNestedQueryCacheTest(): Unit = {
+        val brcaPath = Paths.get("../tests/data/brcaGenes.tsv")
+        try {
+            Files.writeString(brcaPath, "#gene\nBRCA1\nBRCA2\n");
+            var exonSnps = sparkGorSession.dataframe("create #mygenes# = select * from <(nor brcaGenes.tsv); nor [#mygenes#]")
+            var snpCount = exonSnps.sort("gene").collect().mkString("\n")
+            Assert.assertEquals("Wrong result", "[BRCA1]\n[BRCA2]", snpCount)
+
+            Files.writeString(brcaPath, "#gene\nBRCA1\nBRCA2\nBRCA3\n")
+            exonSnps = sparkGorSession.dataframe("create #mygenes# = select * from <(nor brcaGenes.tsv); nor [#mygenes#]")
+            snpCount = exonSnps.sort("gene").collect().mkString("\n")
+
+            Assert.assertEquals("Wrong result", "[BRCA1]\n[BRCA2]\n[BRCA3]", snpCount)
+        } finally {
+            Files.deleteIfExists(brcaPath)
+        }
     }
 
     @Test

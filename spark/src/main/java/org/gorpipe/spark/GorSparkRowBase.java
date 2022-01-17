@@ -5,6 +5,7 @@ import org.gorpipe.gor.model.Row;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.Serializable;
 import java.io.Writer;
 
 public abstract class GorSparkRowBase extends Row implements org.apache.spark.sql.Row {

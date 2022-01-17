@@ -17,18 +17,28 @@ import org.gorpipe.gor.session.GorRunner;
 import org.gorpipe.gor.session.GorSession;
 import scala.Option;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Objects;
+import java.util.UUID;
 import java.util.zip.Deflater;
 
 public class SparkGorExecutionEngine extends GorExecutionEngine {
     private String query;
     private String projectDirectory;
     private String cacheDirectory;
-    private String outfile;
+    private Path outfile;
     private String configFile;
     private String aliasFile;
     private GorMonitor sparkMonitor;
+    private String securityContext;
+    private int workers;
 
-    public SparkGorExecutionEngine(String query, String projectDirectory, String cacheDirectory, String configFile, String aliasFile, String outfile, GorMonitor sparkMonitor) {
+    public SparkGorExecutionEngine(String query, String projectDirectory, String cacheDirectory, String configFile, String aliasFile, Path outfile, String securityContext, GorMonitor sparkMonitor) {
+        this(query, projectDirectory, cacheDirectory, configFile, aliasFile, outfile, securityContext, sparkMonitor, 0);
+    }
+
+    public SparkGorExecutionEngine(String query, String projectDirectory, String cacheDirectory, String configFile, String aliasFile, Path outfile, String securityContext, GorMonitor sparkMonitor, int workers) {
         this.query = query;
         this.projectDirectory = projectDirectory;
         this.cacheDirectory = cacheDirectory;
@@ -36,6 +46,8 @@ public class SparkGorExecutionEngine extends GorExecutionEngine {
         this.aliasFile = aliasFile;
         this.outfile = outfile;
         this.sparkMonitor = sparkMonitor;
+        this.workers = workers;
+        this.securityContext = securityContext;
     }
 
     @Override
@@ -69,18 +81,19 @@ public class SparkGorExecutionEngine extends GorExecutionEngine {
 
     @Override
     public GorSession createSession() {
-        SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectDirectory, cacheDirectory, configFile, aliasFile, sparkMonitor);
+        SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectDirectory, cacheDirectory, configFile, aliasFile, securityContext, sparkMonitor, workers);
         return sessionFactory.create();
     }
 
     @Override
     public PipeInstance createIterator(GorSession session) {
-        SparkPipeInstance pi = new SparkPipeInstance(session.getGorContext(), outfile);
-        pi.subProcessArguments(query, false, null, false, false, null);
+        SparkPipeInstance pi = new SparkPipeInstance(session.getGorContext(), outfile != null ? outfile.toString() : null);
+        pi.init(query, false, null, false, null);
         if(!pi.hasResourceHints()) {
             String theHeader = pi.getIterator().getHeader();
             if (outfile != null) {
-                Output ofile = OutFile.apply(outfile, theHeader, false, false, pi.isNorContext(), true, true, GorIndexType.NONE, Option.<String>empty(), Deflater.BEST_SPEED);
+                var outwritefile = ((!Files.exists(outfile) && outfile.toString().toLowerCase().endsWith(".gord")) || Files.isDirectory(outfile)) ? outfile.resolve(pi.isNorContext() ? UUID.randomUUID() +".tsv" : UUID.randomUUID() +".gorz") : outfile;
+                Output ofile = OutFile.apply(outwritefile.toString(), session.getProjectContext().getFileReader(), theHeader, false, false, pi.isNorContext(), true, false, GorIndexType.NONE, Option.<String>empty(), Deflater.BEST_SPEED);
                 pi.thePipeStep_$eq(pi.thePipeStep().$bar(ofile));
             } else {
                 String header = pi.getHeader();

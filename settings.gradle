@@ -1,25 +1,46 @@
+buildscript {
+    repositories {
+        maven { url "https://plugins.gradle.org/m2/" }
+    }
+    dependencies {
+        // Jib
+        classpath('com.google.cloud.tools:jib-ownership-extension-gradle:0.1.0')
+    }
+}
+
+plugins {
+    // See https://jmfayard.github.io/refreshVersions
+    id 'de.fayard.refreshVersions' version '0.23.0'
+    id 'com.google.cloud.tools.jib' version '3.1.4' apply false
+}
+
+enableFeaturePreview("VERSION_CATALOGS")
+
 rootProject.name = 'gor-spark'
 rootProject.buildFileName = "build.gradle"
 
 include 'spark'
+include 'redis'
 
 //include 'querydialogs'
+include 'gorscripts'
 include 'gortools'
 include 'model'
 //include 'gordrivers'
 include 'base'
-//include 'test'
+include 'test'
 
 include 'util'
 //include 'external'
 
 //include 'documentation'
 
+project(":gorscripts").projectDir = file("../gor/gorscipts")
 project(":gortools").projectDir = file("../gor/gortools")
 project(":model").projectDir = file("../gor/model")
 //project(":gordrivers").projectDir = file("../gor/drivers")
 project(":base").projectDir = file("../gor/base")
-//project(":test").projectDir = file("../gor/test")
+project(":test").projectDir = file("../gor/test")
 project(":util").projectDir = file("../gor/util")
 //project(":external").projectDir = file("../gor/external")
 //project(":documentation").projectDir = file("../gor/documentation")

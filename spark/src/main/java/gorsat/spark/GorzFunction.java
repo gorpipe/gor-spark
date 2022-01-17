@@ -2,10 +2,8 @@ package gorsat.spark;
 
 import java.io.Serializable;
 import java.util.Collection;
-import java.util.List;
 import java.util.Spliterator;
 import java.util.Spliterators;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -14,20 +12,18 @@ import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.analysis.SimpleAnalyzer$;
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
-import org.apache.spark.sql.catalyst.expressions.Attribute;
 import org.apache.spark.sql.execution.datasources.PartitionedFile;
 import org.apache.spark.sql.sources.EqualTo;
 import org.apache.spark.sql.sources.Filter;
 import org.apache.spark.sql.sources.GreaterThan;
 import org.apache.spark.sql.sources.LessThan;
 import org.apache.spark.sql.types.StructType;
+import org.gorpipe.spark.ScalaUtils;
 import org.gorpipe.gor.binsearch.Unzipper;
 import org.gorpipe.model.gor.RowObj;
 import org.gorpipe.spark.SparkGorRow;
 import scala.Function1;
 import scala.collection.Iterator;
-import scala.collection.JavaConverters;
-import scala.collection.Seq;
 
 class GorzFunction implements Function1<PartitionedFile, Iterator<InternalRow>>, Serializable {
     Function1<PartitionedFile, Iterator<InternalRow>> func;
@@ -43,12 +39,11 @@ class GorzFunction implements Function1<PartitionedFile, Iterator<InternalRow>>,
         this.func = func;
         this.unzipped = new byte[1<<17];
 
-        List<Attribute> lattr = JavaConverters.asJavaCollection(schema.toAttributes()).stream().map(Attribute::toAttribute).collect(Collectors.toList());
-        Seq sattr = JavaConverters.asScalaBuffer(lattr).toSeq();
+        var sattr = ScalaUtils.seqAttribute(schema.toAttributes());
 
         this.encoder = RowEncoder.apply(schema).resolveAndBind(sattr, SimpleAnalyzer$.MODULE$);
         this.serializer = encoder.createSerializer();
-        this.unzip = new Unzipper();
+        //this.unzip = new Unzipper(false);
         this.chrom = filters.stream().filter(f -> f instanceof EqualTo).map(f -> (EqualTo)f).filter(f -> f.attribute().equalsIgnoreCase("chrom")).map(EqualTo::value).map(Object::toString).findFirst().orElse(null);
         this.start = filters.stream().filter(f -> f instanceof GreaterThan).map(f -> (GreaterThan)f).filter(f -> f.attribute().equalsIgnoreCase("pos")).map(GreaterThan::value).map(f -> (Integer)f).findFirst().orElse(-1);
         this.stop = filters.stream().filter(f -> f instanceof LessThan).map(f -> (LessThan)f).filter(f -> f.attribute().equalsIgnoreCase("pos")).map(LessThan::value).map(f -> (Integer)f).findFirst().orElse(-1);
@@ -57,7 +52,7 @@ class GorzFunction implements Function1<PartitionedFile, Iterator<InternalRow>>,
     @Override
     public Iterator<InternalRow> apply(PartitionedFile v1) {
         Iterator<InternalRow> it = func.apply(v1);
-        Stream<String> stream = StreamSupport.stream(Spliterators.spliteratorUnknownSize(JavaConverters.asJavaIterator(it), Spliterator.ORDERED), false).map(ir -> ir.getString(0));
+        Stream<String> stream = StreamSupport.stream(Spliterators.spliteratorUnknownSize(ScalaUtils.iteratorJava(it), Spliterator.ORDERED), false).map(ir -> ir.getString(0));
 
         // Do not remove, reinsert when start building with jdk 11+
         /*stream = chrom != null ? stream.dropWhile(f -> {
@@ -110,7 +105,7 @@ class GorzFunction implements Function1<PartitionedFile, Iterator<InternalRow>>,
 
         Stream<InternalRow> istream = stream.map(RowObj::apply).map(r -> new SparkGorRow(r, encoder.schema())).map(r -> serializer.apply(r).copy());
         java.util.Iterator<InternalRow> iterator = istream.iterator();
-        return JavaConverters.asScalaIterator(iterator);
+        return ScalaUtils.iterator(iterator);
     }
 
     @Override

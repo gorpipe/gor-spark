@@ -1,5 +1,7 @@
 package org.gorpipe.spark
 
+import gorsat.Commands.CommandParseUtilities.quoteSafeSplit
+
 import java.nio.file.{Files, Paths}
 import gorsat.Commands.{Analysis, CommandParseUtilities}
 import org.gorpipe.model.gor.RowObj
@@ -8,9 +10,7 @@ import gorsat.Outputs.OutFile
 import gorsat.QueryHandlers.GeneralQueryHandler
 import gorsat.Script.{ScriptEngineFactory, ScriptExecutionEngine}
 import gorsat.Utilities.AnalysisUtilities
-import gorsat.Utilities.MacroUtilities.replaceAllAliases
 import gorsat.process._
-import gorsat.spark.ReceiveQueryHandler
 import gorsat.{BatchedPipeStepIteratorAdaptor, DynIterator}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
@@ -21,8 +21,8 @@ import org.apache.spark.{Partition, TaskContext}
 import org.gorpipe.gor.session.GorContext
 import org.gorpipe.gor.function.{GorRowFilterFunction, GorRowMapFunction}
 import org.gorpipe.gor.binsearch.GorIndexType
-import org.gorpipe.gor.model.{GenomicIterator, GenomicIteratorBase, RowBase}
-import org.gorpipe.model.gor.iterators.RowSource
+import org.gorpipe.gor.model.{DriverBackedFileReader, GenomicIteratorBase, RowBase}
+import org.gorpipe.gor.table.TableHeader
 
 import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
@@ -85,6 +85,27 @@ class GorDatasetFunctions[T: ClassTag](ds: Dataset[T])(implicit tag: ClassTag[T]
     ds2.map(gc, enc)
   }
 
+  def gorschema(gorcmd: String, schema: StructType)(implicit sgs: GorSparkSession): Dataset[org.gorpipe.gor.model.Row] = {
+    val ocmd = sgs.replaceAliases(gorcmd)
+    val nor = SparkRowSource.checkNor(ds.schema.fields)
+    val header = if(nor) "ChromNOR\tPosNOR\t"+ds.schema.fieldNames.mkString("\t") else ds.schema.fieldNames.mkString("\t")
+
+    val allquery = sgs.getCreateQueries("") + ocmd
+    val gorCommands = CommandParseUtilities.quoteSafeSplitAndTrim(allquery, ';')
+
+    val see: ScriptExecutionEngine = ScriptEngineFactory.create(sgs.getGorContext)
+    val fixedQuery = see.execute(gorCommands, false)
+    val fixedCommands = CommandParseUtilities.quoteSafeSplitAndTrim(fixedQuery, ';')
+    val cmd = fixedCommands.last
+
+    val gs = new GorSpark(header, nor, SparkGOR.gorrowEncoder.schema, cmd, sgs.getProjectContext.getRoot)
+    val mu = if(nor) ds.asInstanceOf[Dataset[Row]].map(row => new NorSparkRow(row).asInstanceOf[org.gorpipe.gor.model.Row])(SparkGOR.gorrowEncoder) else ds.asInstanceOf[Dataset[Row]].map(row => new GorSparkRow(row).asInstanceOf[org.gorpipe.gor.model.Row])(SparkGOR.gorrowEncoder)
+    val encoder = RowEncoder.apply(schema)
+    gs.setSchema(schema)
+    val rds = mu.mapPartitions(gs, encoder.asInstanceOf[Encoder[org.gorpipe.gor.model.Row]])
+    if(nor) rds.drop("ChromNOR","PosNOR").map(row => new SparkRow(row).asInstanceOf[org.gorpipe.gor.model.Row])(SparkGOR.gorrowEncoder) else rds
+  }
+
   def gor(gorcmd: String, inferschema: Boolean = true)(implicit sgs: GorSparkSession): Dataset[org.gorpipe.gor.model.Row] = {
     val ocmd = sgs.replaceAliases(gorcmd)
     val nor = SparkRowSource.checkNor(ds.schema.fields)
@@ -107,14 +128,16 @@ class GorDatasetFunctions[T: ClassTag](ds: Dataset[T])(implicit tag: ClassTag[T]
     val fixedCommands = CommandParseUtilities.quoteSafeSplitAndTrim(fixedQuery, ';')
     val cmd = fixedCommands.last
 
-    if (inferschema) {
+    val lastcmdwrite = quoteSafeSplit(gorcmd,'|').last.trim.toLowerCase.startsWith("write ")
+    if (inferschema && !lastcmdwrite) {
       val gs = new GorSpark(header, nor, SparkGOR.gorrowEncoder.schema, cmd, sgs.getProjectContext.getRoot)
       val gr = new GorSparkRowInferFunction()
 
       val gsm = new GorSparkMaterialize(header, nor, SparkGOR.gorrowEncoder.schema, cmd, sgs.getProjectContext.getRoot, 100)
       val mu = if(nor) ds.asInstanceOf[Dataset[Row]].map(row => new NorSparkRow(row).asInstanceOf[org.gorpipe.gor.model.Row])(SparkGOR.gorrowEncoder) else ds.asInstanceOf[Dataset[Row]].map(row => new GorSparkRow(row).asInstanceOf[org.gorpipe.gor.model.Row])(SparkGOR.gorrowEncoder)
 
-      val row = mu.mapPartitions(gsm, SparkGOR.gorrowEncoder).limit(100).reduce(gr)
+      var row = mu.mapPartitions(gsm, SparkGOR.gorrowEncoder).limit(100).reduce(gr)
+      if (row.chr != null) row = gr.infer(row, row)
       val schema = SparkRowSource.schemaFromRow(gs.query().getHeader().split("\t"), row)
       val encoder = RowEncoder.apply(schema)
       gs.setSchema(schema)
@@ -374,6 +397,9 @@ class QueryRDD(private val sparkSession: SparkSession, private val sqlContext: S
         // We are using absolute paths here
         val startTime = System.currentTimeMillis
         var extension: String = null
+        val fileReader = new DriverBackedFileReader(null, projectDirectory, null)
+        val tableHeader = new TableHeader
+        tableHeader.setColumns(Array("filepath","alias","startchrom","startpos","endchrom","endpos","tags"))
         if (commandToExecute.startsWith("gordictpart")) {
           overheadTime = 1000 * 60 * 10 // 10 minutes
           val w = commandToExecute.split(" ")
@@ -391,7 +417,9 @@ class QueryRDD(private val sparkSession: SparkSession, private val sqlContext: S
             // file, alias
             f + "\t" + part
           })
-          AnalysisUtilities.writeList(cpath, dictList)
+          val header = fileReader.readHeaderLine(dictFiles.head).split("\t")
+          tableHeader.setColumns(header)
+          AnalysisUtilities.writeList(cpath, tableHeader.formatHeader(), dictList)
           extension = ".gord"
         } else if (commandToExecute.startsWith("gordict")) {
           overheadTime = 1000 * 60 * 10 // 10 minutes
@@ -414,7 +442,9 @@ class QueryRDD(private val sparkSession: SparkSession, private val sqlContext: S
             // file, alias, chrom, startpos, chrom, endpos
             f + "\t" + chrI + "\t" + c + "\t" + sp + "\t" + c + "\t" + ep
           })
-          AnalysisUtilities.writeList(cpath, dictList)
+          val header = fileReader.readHeaderLine(dictFiles.head).split("\t")
+          tableHeader.setColumns(header)
+          AnalysisUtilities.writeList(cpath, tableHeader.formatHeader(), dictList)
           extension = ".gord"
         } else {
           val temp_cacheFile = AnalysisUtilities.getTempFileName(cacheFile)
@@ -432,7 +462,7 @@ class QueryRDD(private val sparkSession: SparkSession, private val sqlContext: S
             val nor = theSource.isNor
             val grc = if (gorPipeSession.getSystemContext.getRunnerFactory != null) gorPipeSession.getSystemContext.getRunnerFactory else new GenericRunnerFactory()
             val runner = grc.create()
-            runner.run(theSource, if (parquet != null) null else OutFile(oldName.toAbsolutePath.normalize().toString, theHeader, skipHeader = false, columnCompress = nor, nor = true, md5 = true, md5File = true, GorIndexType.NONE, Option.empty))
+            runner.run(theSource, if (parquet != null) null else OutFile(oldName.toAbsolutePath.normalize().toString, gorPipeSession.getProjectContext.getFileReader, theHeader, skipHeader = false, columnCompress = nor, nor = true, md5 = true, md5File = true, GorIndexType.NONE, Option.empty))
             Files.move(oldName, cpath)
           } catch {
             case e: Exception =>
@@ -601,16 +631,24 @@ object SparkGOR {
     new GorSpark(null, false, null, q, null)
   }
 
-  def createSession(sparkSession: SparkSession, root: String, cache: String, gorconfig: String, goralias: String): GorSparkSession = {
+  def createSession(sparkSession: SparkSession, root: String, cache: String, gorconfig: String, goralias: String, securityContext: String): GorSparkSession = {
     val standalone = System.getProperty("sm.standalone")
-    if (standalone == null || standalone.length == 0) System.setProperty("sm.standalone", root)
-    val sessionFactory = new SparkSessionFactory(sparkSession, root, cache, gorconfig, goralias, null)
+    if (standalone == null || standalone.isEmpty) System.setProperty("sm.standalone", root)
+    val sessionFactory = new SparkSessionFactory(sparkSession, root, cache, gorconfig, goralias, securityContext, null)
     val sparkGorSession = sessionFactory.create().asInstanceOf[GorSparkSession]
     sparkGorSession
   }
 
+  def createSession(sparkSession: SparkSession, root: String, cache: String, gorconfig: String, goralias: String): GorSparkSession = {
+    createSession(sparkSession, root, cache, gorconfig, goralias, "")
+  }
+
   def createSession(sparkSession: SparkSession): GorSparkSession = {
     createSession(sparkSession, Paths.get("").toAbsolutePath.toString, Paths.get(System.getProperty("java.io.tmpdir")).toString, null, null)
+  }
+
+  def createSession(sparkSession: SparkSession, gorconfig: String, goralias: String, securityContext: String): GorSparkSession = {
+    createSession(sparkSession, Paths.get("").toAbsolutePath.toString, Paths.get(System.getProperty("java.io.tmpdir")).toString, gorconfig, goralias, securityContext)
   }
 
   def createSession(sparkSession: SparkSession, gorconfig: String, goralias: String): GorSparkSession = {

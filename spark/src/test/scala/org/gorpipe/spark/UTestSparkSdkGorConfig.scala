@@ -52,7 +52,7 @@ class UTestSparkSdkGorConfig {
   def testDataSourceSQLPartitionQuery() {
     val ds = sparkGorSession.dataframe("select * from <(pgor "+genesPath+" | top 1) | selectExpr *,cos(gene_start)")
     val res2 = ds.collect();
-    Assert.assertEquals("Wrong number of lines from session query", 25, res2.length)
+    Assert.assertEquals("Wrong number of lines from session query", 38, res2.length)
   }
 
   @Test
@@ -66,7 +66,7 @@ class UTestSparkSdkGorConfig {
   def testDataSourcePartitionQuery() {
     val ds = sparkGorSession.dataframe("spark {pgor "+genesPath+" | top 1} | selectExpr *,cos(gene_start)")
     val res2 = ds.collect()
-    Assert.assertEquals("Wrong number of lines from session query", 25, res2.length)
+    Assert.assertEquals("Wrong number of lines from session query", 38, res2.length)
   }
 
   @After

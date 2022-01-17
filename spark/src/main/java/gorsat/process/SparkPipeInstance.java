@@ -1,7 +1,14 @@
 package gorsat.process;
 
+import gorsat.Analysis.PlaceHolder;
 import gorsat.Commands.CommandParseUtilities;
+import gorsat.DynIterator;
+import gorsat.Script.ScriptEngineFactory;
+import gorsat.Script.ScriptExecutionEngine;
+import gorsat.Script.ScriptParsers;
+import gorsat.script.SparkEngineFactory;
 import io.kubernetes.client.openapi.ApiException;
+import org.gorpipe.exceptions.GorParsingException;
 import org.gorpipe.exceptions.GorSystemException;
 import org.gorpipe.gor.driver.meta.SourceReferenceBuilder;
 import org.gorpipe.gor.driver.providers.stream.StreamSourceFile;
@@ -13,6 +20,7 @@ import org.gorpipe.gor.model.Row;
 import org.gorpipe.gor.monitor.GorMonitor;
 import org.gorpipe.gor.session.GorContext;
 import org.gorpipe.gor.session.GorSession;
+import org.gorpipe.gor.table.util.PathUtils;
 import org.gorpipe.model.gor.iterators.RowSource;
 import org.gorpipe.spark.GorSparkSession;
 import org.gorpipe.spark.SparkOperatorRunner;
@@ -36,6 +44,19 @@ public class SparkPipeInstance extends PipeInstance {
     public SparkPipeInstance(GorContext context, String cachePath) {
         this(context);
         this.cachePath = cachePath;
+    }
+
+    public static SparkPipeInstance createGorIterator(GorContext context) {
+        return new SparkPipeInstance(context);
+    }
+
+    public Path getRelativeCachePath() {
+        Path p = Paths.get(cachePath);
+        if(p.isAbsolute()) {
+            Path root = session.getProjectContext().getProjectRootPath();
+            return PathUtils.relativize(root, p);
+        }
+        return p;
     }
 
     public boolean hasResourceHints() {
@@ -88,6 +109,11 @@ public class SparkPipeInstance extends PipeInstance {
                 gi.close();
             }
         };
+    }
+
+    @Override
+    public ScriptExecutionEngine createScriptEngine(GorContext context) {
+        return SparkEngineFactory.create(context);
     }
 
     @Override
