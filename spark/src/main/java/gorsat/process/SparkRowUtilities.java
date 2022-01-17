@@ -9,6 +9,7 @@ import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.sql.DataFrameReader;
 import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
@@ -20,6 +21,7 @@ import org.gorpipe.gor.model.ParquetLine;
 import org.gorpipe.gor.model.Row;
 import org.gorpipe.gor.table.util.PathUtils;
 import org.gorpipe.spark.GorSparkSession;
+import org.gorpipe.spark.GorSparkUtilities;
 import org.gorpipe.spark.GorzFlatMapFunction;
 import org.gorpipe.spark.RowDataType;
 import org.gorpipe.spark.RowGorRDD;
@@ -45,11 +47,12 @@ import static org.apache.spark.sql.types.DataTypes.*;
 
 public class SparkRowUtilities {
     static final String[] allowedGorSQLFileEndings = {".json",".csv",".tsv",".gor",".gorz",".gor.gz",".gord",".txt",".vcf",".bgen",".xml",".mt",".parquet",".adam",".link"};
+    static final String[] preservedTables = {"jupyterpath","securitycontext"};
     static final String csvDataSource = "csv";
     static final String gordatasourceClassname = "gorsat.spark.GorDataSource";
 
     public static Predicate<String> getFileEndingPredicate() {
-        return p -> Arrays.stream(allowedGorSQLFileEndings).map(e -> p.toLowerCase().endsWith(e)).reduce((a,b) -> a || b).get() || p.startsWith("<(");
+        return p -> Arrays.stream(allowedGorSQLFileEndings).map(e -> p.toLowerCase().endsWith(e)).reduce((a,b) -> a || b).get() || p.startsWith("<(") || Arrays.stream(preservedTables).map(p::equals).reduce((a, b) -> a || b).get();
     }
 
     public static String createMapString(Map<String,String> createMap, Map<String,String> defMap, String creates) {
@@ -411,16 +414,30 @@ public class SparkRowUtilities {
                     gor = dfr.load(fileName);
                     dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
                 } else if (splitFile == null && (fileName.toLowerCase().endsWith(".gor") || fileName.toLowerCase().endsWith(".nor") || fileName.toLowerCase().endsWith(".tsv") || fileName.toLowerCase().endsWith(".csv"))) {
-                    DataFrameReader dfr = gorSparkSession.getSparkSession().read().format("csv").option("header",true);
-                    if(schema==null) {
+                    DataFrameReader dfr = gorSparkSession.getSparkSession().read().format("csv").option("header", true);
+                    if (schema == null) {
                         dfr = dfr.option("inferSchema", true);
                     } else {
                         dfr = dfr.schema(schema);
                     }
-                    if(!fileName.toLowerCase().endsWith(".csv")) dfr = dfr.option("delimiter","\t");
+                    if (!fileName.toLowerCase().endsWith(".csv")) dfr = dfr.option("delimiter", "\t");
                     gor = dfr.load(fileName);
                     var firstCol = gor.columns()[0];
-                    if (firstCol.startsWith("#")) gor = gor.withColumnRenamed(firstCol,firstCol.substring(1));
+                    if (firstCol.startsWith("#")) gor = gor.withColumnRenamed(firstCol, firstCol.substring(1));
+                    dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
+                } else if(fileName.endsWith("jupyterpath")) {
+                    StructField[] flds = {new StructField("jupyterpath", DataTypes.StringType, true, Metadata.empty())};
+                    schema = new StructType(flds);
+                    ExpressionEncoder<org.apache.spark.sql.Row> encoder = RowEncoder.apply(schema);
+                    var jupyterpath = GorSparkUtilities.getJupyterPath().orElse("");
+                    gor = gorSparkSession.sparkSession().createDataset(Collections.singletonList(RowFactory.create(jupyterpath)), encoder);
+                    dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
+                } else if(fileName.endsWith("securitycontext")) {
+                    StructField[] flds = {new StructField("securitycontext", DataTypes.StringType, true, Metadata.empty())};
+                    schema = new StructType(flds);
+                    ExpressionEncoder<org.apache.spark.sql.Row> encoder = RowEncoder.apply(schema);
+                    var securityContext = gorSparkSession.getProjectContext().getFileReader().getSecurityContext();
+                    gor = gorSparkSession.sparkSession().createDataset(Collections.singletonList(RowFactory.create(securityContext)), encoder);
                     dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
                 } else {
                     boolean isGorz = fileName.toLowerCase().endsWith(".gorz");

@@ -243,7 +243,7 @@ public class SparkRowSource extends ProcessSource {
                     if (p.toLowerCase().endsWith(".link")) {
                         String fileName = SparkRowUtilities.translatePath(p, fileroot, standalone, fileReader).path;
                         var path = Path.of(fileName);
-                        p = Files.readString(path);
+                        p = Files.readString(path).trim();
                     }
                     if (p.toLowerCase().endsWith(".parquet") && !(p.toLowerCase().startsWith("parquet.") || p.startsWith("s3a://") || p.startsWith("s3://"))) {
                         String fileName = SparkRowUtilities.translatePath(p, fileroot, standalone, fileReader).path;
