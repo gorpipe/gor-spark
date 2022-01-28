@@ -2,6 +2,8 @@ package org.gorpipe.spark;
 
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.python.Py4JServer;
+import org.apache.spark.api.r.RAuthHelper;
+import org.apache.spark.api.r.RBackend;
 import org.apache.spark.ml.linalg.SQLDataTypes;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.SparkSession;
@@ -17,6 +19,7 @@ import org.gorpipe.spark.udfs.CommaToIntArray;
 import org.gorpipe.util.standalone.GorStandalone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import scala.Tuple2;
 
 import java.io.*;
 import java.nio.file.Paths;
@@ -34,6 +37,7 @@ public class GorSparkUtilities {
     private static Py4JServer py4jServer;
     private static Optional<Process> jupyterProcess;
     private static Optional<String> jupyterPath = Optional.empty();
+    private static Optional<String> rPath = Optional.empty();
     private static ExecutorService es;
 
     private GorSparkUtilities() {}
@@ -51,6 +55,10 @@ public class GorSparkUtilities {
 
     public static Optional<String> getJupyterPath() {
         return jupyterPath;
+    }
+
+    public static Optional<String> getRPath() {
+        return rPath;
     }
 
     public static void closePySpark() {
@@ -126,6 +134,14 @@ public class GorSparkUtilities {
                 log.info(ie.getMessage());
                 jupyterProcess = Optional.empty();
             }
+        }
+
+        var sparkr = System.getenv("SPARKR_INIT");
+        if(sparkr==null) sparkr = System.getProperty("SPARKR_INIT");
+        if (sparkr!=null&&sparkr.length()>0) {
+            var rbackend = new RBackend();
+            Tuple2<Object, RAuthHelper> tuple = rbackend.init();
+            rPath = Optional.of(tuple._1 + ";" + tuple._2.secret());
         }
     }
 

@@ -45,7 +45,7 @@ import static org.apache.spark.sql.types.DataTypes.*;
 
 public class SparkRowUtilities {
     static final String[] allowedGorSQLFileEndings = {".json",".csv",".tsv",".gor",".gorz",".gor.gz",".gord",".txt",".vcf",".bgen",".xml",".mt",".parquet",".adam",".link"};
-    static final String[] preservedTables = {"jupyterpath","securitycontext"};
+    static final String[] preservedTables = {"rpath","jupyterpath","securitycontext"};
     static final String csvDataSource = "csv";
     static final String gordatasourceClassname = "gorsat.spark.GorDataSource";
 
@@ -60,8 +60,8 @@ public class SparkRowUtilities {
     }
 
     public static List<String> createMapList(Map<String,String> createMap, Map<String,String> defMap, String creates) {
-        List<String> lcreates = createMap.entrySet().stream().map(e -> "create "+e.getKey()+" = "+e.getValue()).collect(Collectors.toList());
-        List<String> ldefs = defMap.entrySet().stream().map(e -> "def "+e.getKey()+" = "+e.getValue()).collect(Collectors.toList());
+        List<String> lcreates = createMap.entrySet().stream().map(e -> "create " + e.getKey() + " = " + e.getValue()).toList();
+        List<String> ldefs = defMap.entrySet().stream().map(e -> "def " + e.getKey() + " = " + e.getValue()).toList();
         List<String> lall = Arrays.asList(CommandParseUtilities.quoteSafeSplitAndTrim(creates, ';'));
         List<String> alist = new ArrayList<>();
         alist.addAll(ldefs);
@@ -429,6 +429,13 @@ public class SparkRowUtilities {
                     ExpressionEncoder<org.apache.spark.sql.Row> encoder = RowEncoder.apply(schema);
                     var jupyterpath = GorSparkUtilities.getJupyterPath().orElse("");
                     gor = gorSparkSession.sparkSession().createDataset(Collections.singletonList(RowFactory.create(jupyterpath)), encoder);
+                    dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
+                } else if(fileName.endsWith("rpath")) {
+                    StructField[] flds = {new StructField("rpath", DataTypes.StringType, true, Metadata.empty())};
+                    schema = new StructType(flds);
+                    ExpressionEncoder<org.apache.spark.sql.Row> encoder = RowEncoder.apply(schema);
+                    var rpath = GorSparkUtilities.getRPath().orElse("");
+                    gor = gorSparkSession.sparkSession().createDataset(Collections.singletonList(RowFactory.create(rpath)), encoder);
                     dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
                 } else if(fileName.endsWith("securitycontext")) {
                     StructField[] flds = {new StructField("securitycontext", DataTypes.StringType, true, Metadata.empty())};
