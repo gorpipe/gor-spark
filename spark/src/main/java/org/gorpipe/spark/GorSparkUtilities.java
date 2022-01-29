@@ -35,6 +35,7 @@ public class GorSparkUtilities {
     private static final Logger log = LoggerFactory.getLogger(GorSparkUtilities.class);
     private static SparkSession spark;
     private static Py4JServer py4jServer;
+    private static RBackend rBackend;
     private static Optional<Process> jupyterProcess;
     private static Optional<String> jupyterPath = Optional.empty();
     private static Optional<String> rPath = Optional.empty();
@@ -43,6 +44,10 @@ public class GorSparkUtilities {
     private GorSparkUtilities() {}
     public static Py4JServer getPyServer() {
         return py4jServer;
+    }
+
+    public static RBackend getRBackend() {
+        return rBackend;
     }
 
     public static int getPyServerPort() {
@@ -63,6 +68,7 @@ public class GorSparkUtilities {
 
     public static void closePySpark() {
         shutdownPy4jServer();
+        if (rBackend!=null) rBackend.close();
         jupyterProcess.ifPresent(Process::destroy);
         if(es!=null) es.shutdown();
     }
@@ -85,6 +91,20 @@ public class GorSparkUtilities {
     }
 
     public static void initPySpark(Optional<String> standaloneRoot) {
+        int rbackendPort = -1;
+        String rbackendSecret = null;
+        var sparkr = System.getenv("SPARKR_INIT");
+        if(sparkr==null) sparkr = System.getProperty("SPARKR_INIT");
+        if (rBackend==null&&sparkr!=null&&sparkr.length()>0) {
+            rBackend = new RBackend();
+            Tuple2<Object, RAuthHelper> tuple = rBackend.init();
+            rbackendPort = (Integer)tuple._1;
+            rbackendSecret = tuple._2.secret();
+            rPath = Optional.of(rbackendPort+";"+rbackendSecret);
+            System.err.println(rPath);
+            new Thread(() -> rBackend.run()).start();
+        }
+
         var pyspark = System.getenv("PYSPARK_PIN_THREAD");
         if(pyspark==null) pyspark = System.getProperty("PYSPARK_PIN_THREAD");
         if (py4jServer==null&&pyspark!=null&&pyspark.length()>0) {
@@ -103,12 +123,23 @@ public class GorSparkUtilities {
                 plist.add("--NotebookApp.base_url=/"+baseurl);
                 plist.add("--LabApp.base_url=/"+baseurl);
             }
+
+            var pyServerPort = Integer.toString(GorSparkUtilities.getPyServerPort());
+            var pyServerSecret = GorSparkUtilities.getPyServerSecret();
+            System.err.println(pyServerPort+";"+pyServerSecret);
+
             ProcessBuilder pb = new ProcessBuilder(plist);
             standaloneRoot.ifPresent(sroot -> pb.directory(Paths.get(sroot).toFile()));
             Map<String,String> env = pb.environment();
-            env.put("PYSPARK_GATEWAY_PORT",Integer.toString(GorSparkUtilities.getPyServerPort()));
-            env.put("PYSPARK_GATEWAY_SECRET",GorSparkUtilities.getPyServerSecret());
+            env.put("PYSPARK_GATEWAY_PORT",pyServerPort);
+            env.put("PYSPARK_GATEWAY_SECRET",pyServerSecret);
             env.put("PYSPARK_PIN_THREAD","true");
+            if (rbackendPort>0) {
+                env.put("SPARKR_WORKER_PORT",String.valueOf(rbackendPort));
+                env.put("SPARKR_WORKER_SECRET",rbackendSecret);
+                env.put("EXISTING_SPARKR_BACKEND_PORT",String.valueOf(rbackendPort));
+                env.put("SPARKR_BACKEND_AUTH_SECRET",rbackendSecret);
+            }
             try {
                 Process p = pb.start();
                 jupyterProcess = Optional.of(p);
@@ -134,14 +165,6 @@ public class GorSparkUtilities {
                 log.info(ie.getMessage());
                 jupyterProcess = Optional.empty();
             }
-        }
-
-        var sparkr = System.getenv("SPARKR_INIT");
-        if(sparkr==null) sparkr = System.getProperty("SPARKR_INIT");
-        if (sparkr!=null&&sparkr.length()>0) {
-            var rbackend = new RBackend();
-            Tuple2<Object, RAuthHelper> tuple = rbackend.init();
-            rPath = Optional.of(tuple._1 + ";" + tuple._2.secret());
         }
     }
 

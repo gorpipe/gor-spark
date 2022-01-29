@@ -60,8 +60,8 @@ public class SparkRowUtilities {
     }
 
     public static List<String> createMapList(Map<String,String> createMap, Map<String,String> defMap, String creates) {
-        List<String> lcreates = createMap.entrySet().stream().map(e -> "create " + e.getKey() + " = " + e.getValue()).toList();
-        List<String> ldefs = defMap.entrySet().stream().map(e -> "def " + e.getKey() + " = " + e.getValue()).toList();
+        List<String> lcreates = createMap.entrySet().stream().map(e -> "create " + e.getKey() + " = " + e.getValue()).collect(Collectors.toList());
+        List<String> ldefs = defMap.entrySet().stream().map(e -> "def " + e.getKey() + " = " + e.getValue()).collect(Collectors.toList());
         List<String> lall = Arrays.asList(CommandParseUtilities.quoteSafeSplitAndTrim(creates, ';'));
         List<String> alist = new ArrayList<>();
         alist.addAll(ldefs);
