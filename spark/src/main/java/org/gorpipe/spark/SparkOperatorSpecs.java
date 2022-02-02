@@ -2,7 +2,9 @@ package org.gorpipe.spark;
 
 import gorsat.Commands.CommandParseUtilities;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class SparkOperatorSpecs {
@@ -34,11 +36,31 @@ public class SparkOperatorSpecs {
                     Map<String,Object> map1 = (Map)m1;
                     Map<String,Object> map2 = (Map)m2;
                     return merge(map1,map2);
+                } else if(m1 instanceof List && m2 instanceof List) {
+                    List<String> list1 = (List)m1;
+                    List<String> list2 = (List)m2;
+                    var ret = new ArrayList<>(list1);
+                    ret.addAll(list2);
+                    return ret;
                 }
                 return m2;
             });
         }
         return body;
+    }
+
+    void addArray(String[] resources) {
+        for (String config : resources) {
+            String[] confSplit = config.split("=");
+            if(confSplit.length==2) {
+                try {
+                    Integer ii = Integer.parseInt(confSplit[1]);
+                    addConfig(confSplit[0], ii);
+                } catch (NumberFormatException ne) {
+                    addConfig(confSplit[0], confSplit[1]);
+                }
+            }
+        }
     }
 
     public void addVolumeClaim(String pod, String name, String pvc,String path,String subPath,boolean readOnly) {
