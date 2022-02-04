@@ -14,6 +14,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
+import java.time.Duration;
+import java.util.Objects;
 import java.util.concurrent.Callable;
 
 public class GorSparkRedisRunner implements Callable<String>, AutoCloseable {
@@ -21,11 +23,13 @@ public class GorSparkRedisRunner implements Callable<String>, AutoCloseable {
     private static final String CUSTOM_SPARK_LOGLEVEL_CONFIG = "spark.logLevel";
     private static final String DEFAULT_LOG_LEVEL = "WARN";
     public static int DEFAULT_TIMEOUT = 3600;
+    public static int DEFAULT_DRIVER_TIMEOUT_MINUTES = 60*12;
     public static GorSparkRedisRunner instance;
     private SparkSession sparkSession;
     private String redisUri;
     private String streamKey;
     private int timeoutCount;
+    private int driverTimeoutMinutes;
 
     public GorSparkRedisRunner(GorSparkSession sparkSession) {
         init(sparkSession.getSparkSession(), "resque", DEFAULT_TIMEOUT);
@@ -48,6 +52,8 @@ public class GorSparkRedisRunner implements Callable<String>, AutoCloseable {
 
         log.info("Initializing GorSparkRedisRunner");
 
+        var driverTimeout = System.getenv("GOR_SPARK_DRIVER_TIMEOUT_MINUTES");
+        this.driverTimeoutMinutes = Objects.nonNull(driverTimeout) && driverTimeout.length() > 0 ? Integer.parseInt(driverTimeout) : DEFAULT_DRIVER_TIMEOUT_MINUTES;
         this.streamKey = streamKey;
         this.timeoutCount = timeoutCount;
         instance = this;
@@ -69,7 +75,7 @@ public class GorSparkRedisRunner implements Callable<String>, AutoCloseable {
                     .foreachBatch(redisBatchConsumer).start();
             log.info("GorSparkRedisRunner is running");
             redisBatchConsumer.mont.setQuery(query, timeoutCount);
-            query.awaitTermination();
+            query.awaitTermination(Duration.ofMinutes(driverTimeoutMinutes).toMillis());
         }
         log.info("GorSparkRedisRunner has stopped");
 
