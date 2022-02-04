@@ -73,7 +73,6 @@ class MonitorThread implements Callable<String> {
                     String[] jobIds = key.split(",");
                     try {
                         List<String> res = fut.get(500, TimeUnit.MILLISECONDS);
-                        timeoutCount = 0;
                         reskey = key;
                         String[] cacheFiles = res.stream().map(s -> s.split("\t")).map(s -> s[2]).toArray(String[]::new);
                         setValues(jobIds, "result", cacheFiles);
@@ -85,12 +84,7 @@ class MonitorThread implements Callable<String> {
                         setValue(jobIds, "status", "FAILED");
                         break;
                     } catch (TimeoutException e) {
-                        if (query != null) {
-                            timeoutCount++;
-                            if (timeoutCount > maxTimeoutCount) {
-                                query.stop();
-                            }
-                        }
+                        // Ignore
                     }
                 }
 
@@ -99,7 +93,15 @@ class MonitorThread implements Callable<String> {
                     reskey = null;
                 }
 
-                if(futureActionSet.isEmpty()) Thread.sleep(500);
+                if(futureActionSet.isEmpty()) {
+                    Thread.sleep(500);
+                    if (query != null) {
+                        timeoutCount++;
+                        if (timeoutCount > maxTimeoutCount) {
+                            query.stop();
+                        }
+                    }
+                } else timeoutCount = 0;
             }
         } finally {
             if(jedisPool!=null) jedisPool.close();
