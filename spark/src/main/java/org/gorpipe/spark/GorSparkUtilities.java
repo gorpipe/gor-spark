@@ -3,6 +3,8 @@ package org.gorpipe.spark;
 import io.projectglow.GlowBase;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.python.Py4JServer;
+import org.apache.spark.api.r.RAuthHelper;
+import org.apache.spark.api.r.RBackend;
 import org.apache.spark.ml.linalg.SQLDataTypes;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.SparkSession;
@@ -18,12 +20,11 @@ import org.gorpipe.spark.udfs.CommaToIntArray;
 import org.gorpipe.util.standalone.GorStandalone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import scala.Tuple2;
 
 import java.io.*;
-import java.math.BigInteger;
 import java.nio.file.Paths;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -35,13 +36,19 @@ public class GorSparkUtilities {
     private static final Logger log = LoggerFactory.getLogger(GorSparkUtilities.class);
     private static SparkSession spark;
     private static Py4JServer py4jServer;
+    private static RBackend rBackend;
     private static Optional<Process> jupyterProcess;
     private static Optional<String> jupyterPath = Optional.empty();
+    private static Optional<String> rPath = Optional.empty();
     private static ExecutorService es;
 
     private GorSparkUtilities() {}
     public static Py4JServer getPyServer() {
         return py4jServer;
+    }
+
+    public static RBackend getRBackend() {
+        return rBackend;
     }
 
     public static int getPyServerPort() {
@@ -56,8 +63,13 @@ public class GorSparkUtilities {
         return jupyterPath;
     }
 
+    public static Optional<String> getRPath() {
+        return rPath;
+    }
+
     public static void closePySpark() {
         shutdownPy4jServer();
+        if (rBackend!=null) rBackend.close();
         jupyterProcess.ifPresent(Process::destroy);
         if(es!=null) es.shutdown();
     }
@@ -74,7 +86,26 @@ public class GorSparkUtilities {
         return py4jServer;
     }
 
+    static synchronized void setJupyterPath(String jp) {
+        jupyterPath = Optional.of(jp);
+        spark.createDataset(Collections.singletonList(jp), Encoders.STRING()).createOrReplaceTempView("jupyterpath");
+    }
+
     public static void initPySpark(Optional<String> standaloneRoot) {
+        int rbackendPort = -1;
+        String rbackendSecret = null;
+        var sparkr = System.getenv("SPARKR_INIT");
+        if(sparkr==null) sparkr = System.getProperty("SPARKR_INIT");
+        if (rBackend==null&&sparkr!=null&&sparkr.length()>0) {
+            rBackend = new RBackend();
+            Tuple2<Object, RAuthHelper> tuple = rBackend.init();
+            rbackendPort = (Integer)tuple._1;
+            rbackendSecret = tuple._2.secret();
+            rPath = Optional.of(rbackendPort+";"+rbackendSecret);
+            System.err.println(rPath);
+            new Thread(() -> rBackend.run()).start();
+        }
+
         var pyspark = System.getenv("PYSPARK_PIN_THREAD");
         if(pyspark==null) pyspark = System.getProperty("PYSPARK_PIN_THREAD");
         if (py4jServer==null&&pyspark!=null&&pyspark.length()>0) {
@@ -93,12 +124,23 @@ public class GorSparkUtilities {
                 plist.add("--NotebookApp.base_url=/"+baseurl);
                 plist.add("--LabApp.base_url=/"+baseurl);
             }
+
+            var pyServerPort = Integer.toString(GorSparkUtilities.getPyServerPort());
+            var pyServerSecret = GorSparkUtilities.getPyServerSecret();
+            System.err.println(pyServerPort+";"+pyServerSecret);
+
             ProcessBuilder pb = new ProcessBuilder(plist);
             standaloneRoot.ifPresent(sroot -> pb.directory(Paths.get(sroot).toFile()));
             Map<String,String> env = pb.environment();
-            env.put("PYSPARK_GATEWAY_PORT",Integer.toString(GorSparkUtilities.getPyServerPort()));
-            env.put("PYSPARK_GATEWAY_SECRET",GorSparkUtilities.getPyServerSecret());
+            env.put("PYSPARK_GATEWAY_PORT",pyServerPort);
+            env.put("PYSPARK_GATEWAY_SECRET",pyServerSecret);
             env.put("PYSPARK_PIN_THREAD","true");
+            if (rbackendPort>0) {
+                env.put("SPARKR_WORKER_PORT",String.valueOf(rbackendPort));
+                env.put("SPARKR_WORKER_SECRET",rbackendSecret);
+                env.put("EXISTING_SPARKR_BACKEND_PORT",String.valueOf(rbackendPort));
+                env.put("SPARKR_BACKEND_AUTH_SECRET",rbackendSecret);
+            }
             try {
                 Process p = pb.start();
                 jupyterProcess = Optional.of(p);
@@ -108,8 +150,7 @@ public class GorSparkUtilities {
                     try (InputStream is = p.getInputStream()) {
                         InputStreamReader isr = new InputStreamReader(is);
                         BufferedReader br = new BufferedReader(isr);
-                        jupyterPath = br.lines().peek(System.err::println).map(String::trim).filter(s -> s.startsWith("http://:") && s.contains("?token=")).findFirst();
-                        jupyterPath.ifPresent(jp -> spark.createDataset(Collections.singletonList(jp), Encoders.STRING()).createOrReplaceTempView("jupyterpath"));
+                        br.lines().peek(System.err::println).map(String::trim).filter(s -> s.startsWith("http://") && s.contains("?token=")).forEach(GorSparkUtilities::setJupyterPath);
                     }
                     return null;
                 });
@@ -117,8 +158,7 @@ public class GorSparkUtilities {
                     try (InputStream is = p.getErrorStream()) {
                         InputStreamReader isr = new InputStreamReader(is);
                         BufferedReader br = new BufferedReader(isr);
-                        jupyterPath = br.lines().peek(System.err::println).map(String::trim).filter(s -> s.startsWith("http://:") && s.contains("?token=")).findFirst();
-                        jupyterPath.ifPresent(jp -> spark.createDataset(Collections.singletonList(jp), Encoders.STRING()).createOrReplaceTempView("jupyterpath"));
+                        br.lines().peek(System.err::println).map(String::trim).filter(s -> s.startsWith("http://") && s.contains("?token=")).forEach(GorSparkUtilities::setJupyterPath);
                     }
                     return null;
                 });

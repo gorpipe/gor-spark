@@ -80,21 +80,23 @@ public class UTestSparkPCA {
                 "variants3.gor\t3\tchr1\t0\tchrZ\t1000000000\ti,j,k,l\n");
 
         testSparkQuery(
-                "create xxx = spark <(partgor -ff "+pnpath+" -partsize "+partsize+" -dict "+variantDictFile+" <(gor "+variantBucketFile1 +
+                /*"create xxx = select values from <(partgor -ff "+pnpath+" -partsize "+partsize+" -dict "+variantDictFile+" <(gor "+variantBucketFile1 +
                 "| select 1,2,3,4 | varjoin -r -l -e '?' <(gor "+variantDictFile+" -nf -f #{tags})" +
                 "| rename Chrom CHROM | rename ref REF | rename alt ALT " +
                 "| calc ID chrom+'_'+pos+'_'+ref+'_'+alt " +
-                "| csvsel "+bucketFile+" <(nor <(gorrow 1,1 | calc pn '#{tags}' | split pn) | select pn) -u 3 -gc id,ref,alt -vs 1 | replace values 'u'+values)) | selectexpr values | gttranspose | calc norm_values normalize(values) | selectexpr norm_values as values | write -pca 2 my.pca;" +
+                "| csvsel "+bucketFile+" <(nor <(gorrow 1,1 | calc pn '#{tags}' | split pn) | select pn) -u 3 -gc id,ref,alt -vs 1 | replace values 'u'+values)) | gttranspose | calc norm_values normalize(values) | selectexpr norm_values as values | write -pca 2 /Users/sigmar/gorproject/my.pca;" +*/
 
-                "create yyy = spark -tag <(partgor -ff "+pnpath+" -partsize "+partsize+" -dict "+variantDictFile+" <(gor "+variantBucketFile1 +
+                "create yyy = select pn,values from <(partgor -ff "+pnpath+" -partsize "+partsize+" -dict "+variantDictFile+" <(gor "+variantBucketFile1 +
                 "| select 1,2,3,4 | varjoin -r -l -e '?' <(gor "+variantDictFile+" -nf -f #{tags})" +
                 "| rename Chrom CHROM | rename ref REF | rename alt ALT " +
                 "| calc ID chrom+'_'+pos+'_'+ref+'_'+alt " +
                 "| csvsel "+bucketFile+" <(nor <(gorrow 1,1 | calc pn '#{tags}' | split pn) | select pn) -u 3 -gc id,ref,alt -vs 1 | replace values 'u'+values " +
                 "| calc pn '#{tags}'" +
                 ")) " +
-                "| selectexpr pn,values | gttranspose | calc norm_values normalize(values) | selectexpr pn,norm_values as values | calc pca_result pcatransform('my.pca');" +
-                "nor [yyy] | sort -c pn", "pn\tpca_result\n" +
+                "| selectexpr pn,values | gttranspose | calc norm_values normalize(values) | selectexpr pn,norm_values as values | calc pca_result pcatransform('/Users/sigmar/gorproject/my.pca')" +
+                "; nor [yyy] | sort -c pn",
+                //"gorrow chr1,1",
+                        "pn\tpca_result\n" +
                         "a\t1,,,0.0,0.0\n" +
                         "b\t1,,,0.6483044836643852,-0.7536972957915549\n" +
                         "c\t1,,,-0.7612452225129875,-0.6442659253692565\n" +
