@@ -8,7 +8,7 @@ variables:
   DOCKER_HUB_REPO: nextcode/spark
   AUTO_DEVOPS_BUILD_IMAGE_EXTRA_ARGS: "--build-arg ORG_GRADLE_PROJECT_artifactory_password --build-arg ORG_GRADLE_PROJECT_artifactory_user --build-arg ORG_GRADLE_PROJECT_gitlab_gor_maven_packages_token"
   DOCKER_BUILDKIT: "1"
-  JAVA_BUILDER_IMAGE: registry.gitlab.com/wuxi-nextcode/sdev/build-images/java-17:latest
+  JAVA_BUILDER_IMAGE: registry.gitlab.com/wuxi-nextcode/sdev/build-images/java-11:latest
   GIT_SUBMODULE_STRATEGY: none
   GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
   GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.caching=true"
