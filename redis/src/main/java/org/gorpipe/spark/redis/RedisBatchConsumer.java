@@ -16,6 +16,7 @@ import org.gorpipe.gor.session.GorContext;
 import org.gorpipe.gor.session.GorSessionCache;
 import org.gorpipe.gor.session.ProjectContext;
 import org.gorpipe.gor.session.SystemContext;
+import org.gorpipe.gor.table.util.PathUtils;
 import org.gorpipe.spark.GorQueryRDD;
 import org.gorpipe.spark.GorSparkSession;
 import org.gorpipe.spark.RedisSparkQueryHandler;
@@ -106,21 +107,21 @@ public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long>, Au
         String cacheDir = DEFAULT_CACHE_DIR;
         String configFile = System.getProperty("gor.project.config.path","config/gor_config.txt");
         String aliasFile = System.getProperty("gor.project.alias.path","config/gor_standard_aliases.txt");
-        Path projectPath = Paths.get(projectDirStr);
-        configFile = projectPath.resolve(configFile).toAbsolutePath().normalize().toString();
-        aliasFile = projectPath.resolve(aliasFile).toAbsolutePath().normalize().toString();
+        configFile = PathUtils.resolve(projectDirStr, configFile);
+        aliasFile = PathUtils.resolve(projectDirStr,aliasFile);
 
         RedisSparkQueryHandler queryHandler = new RedisSparkQueryHandler(gss, gss.redisUri());
 
+        var fileReader = new DriverBackedFileReader(securityContext, projectDirStr, null);
         ProjectContext.Builder projectContextBuilder = new ProjectContext.Builder();
         ProjectContext prjctx = projectContextBuilder
                 .setRoot(securityContext != null ? projectDirStr+securityContext : projectDirStr)
                 .setCacheDir(cacheDir)
-                .setFileReader(new DriverBackedFileReader(securityContext, projectDirStr, null))
+                .setFileReader(fileReader)
                 .setConfigFile(configFile)
                 .setAliasFile(aliasFile)
                 .setQueryHandler(queryHandler)
-                .setFileCache(new LocalFileCacheClient(projectPath.resolve(cacheDir)))
+                .setFileCache(new LocalFileCacheClient(fileReader, cacheDir))
                 .build();
 
         GorSessionCache cache = GorSessionCacheManager.getCache(gss.getRequestId());
