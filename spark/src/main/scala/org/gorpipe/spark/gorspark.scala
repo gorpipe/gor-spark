@@ -2,7 +2,7 @@ package org.gorpipe.spark
 
 import gorsat.Commands.CommandParseUtilities.quoteSafeSplit
 
-import java.nio.file.{Files, Paths}
+import java.nio.file.{Files, Path, Paths}
 import gorsat.Commands.{Analysis, CommandParseUtilities}
 import org.gorpipe.model.gor.RowObj
 import gorsat.DynIterator.DynamicRowSource
@@ -23,6 +23,7 @@ import org.gorpipe.gor.function.{GorRowFilterFunction, GorRowMapFunction}
 import org.gorpipe.gor.binsearch.GorIndexType
 import org.gorpipe.gor.model.{DriverBackedFileReader, GenomicIteratorBase, RowBase}
 import org.gorpipe.gor.table.TableHeader
+import org.gorpipe.gor.table.util.PathUtils
 
 import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
@@ -357,7 +358,7 @@ class GorRDD[T: ClassTag](prev: RDD[T], gorcmd: String, header: String, gor: Boo
   override protected def getPartitions: Array[Partition] = firstParent[T].partitions
 }
 
-class QueryRDD(private val sparkSession: SparkSession, private val sqlContext: SQLContext /*, gorPipeSession: GorPipeSession**/ , commandsToExecute: Array[String], commandSignatures: Array[String], header: Boolean, projectDirectory: String, cacheDir: String, hash: String /*FileCache*/) extends RDD[String](sparkSession.sparkContext, Nil) {
+class QueryRDD(private val sparkSession: SparkSession, private val sqlContext: SQLContext, commandsToExecute: Array[String], commandSignatures: Array[String], header: Boolean, projectDirectory: String, cacheDir: String, hash: String /*FileCache*/) extends RDD[String](sparkSession.sparkContext, Nil) {
   override def compute(split: Partition, context: TaskContext): Iterator[String] = {
     val i = split.index
     val (commandSignature, commandToExecute) = (commandSignatures(i), commandsToExecute(i))
@@ -389,11 +390,14 @@ class QueryRDD(private val sparkSession: SparkSession, private val sqlContext: S
       log.debug("CacheFile decided at {}", cacheFile)
 
       // Do this if we have result cache active or if we are running locally and the local cacheFile does not exist.
-      val projectPath = Paths.get(projectDirectory)
+      //val projectPath = Paths.get(projectDirectory)
+      val sessionFactory = new GenericSessionFactory(projectDirectory, null)
+      val gorPipeSession = sessionFactory.create() //new GorSession("")
+      val fileReader = gorPipeSession.getProjectContext.getFileReader
       val path = new org.apache.hadoop.fs.Path(cacheFile)
-      val cpath = projectPath.resolve(cacheFile)
+      val cpath = PathUtils.resolve(projectDirectory,cacheFile)
       val md5 = hash != null
-      if (md5 || !Files.exists(cpath)) {
+      if (md5 || !fileReader.exists(cpath)) {
         // We are using absolute paths here
         val startTime = System.currentTimeMillis
         var extension: String = null
@@ -419,7 +423,7 @@ class QueryRDD(private val sparkSession: SparkSession, private val sqlContext: S
           })
           val header = fileReader.readHeaderLine(dictFiles.head).split("\t")
           tableHeader.setColumns(header)
-          AnalysisUtilities.writeList(cpath, tableHeader.formatHeader(), dictList)
+          AnalysisUtilities.writeList(fileReader, cpath, tableHeader.formatHeader(), dictList)
           extension = ".gord"
         } else if (commandToExecute.startsWith("gordict")) {
           overheadTime = 1000 * 60 * 10 // 10 minutes
@@ -444,30 +448,28 @@ class QueryRDD(private val sparkSession: SparkSession, private val sqlContext: S
           })
           val header = fileReader.readHeaderLine(dictFiles.head).split("\t")
           tableHeader.setColumns(header)
-          AnalysisUtilities.writeList(cpath, tableHeader.formatHeader(), dictList)
+          AnalysisUtilities.writeList(fileReader, cpath, tableHeader.formatHeader(), dictList)
           extension = ".gord"
         } else {
           val temp_cacheFile = AnalysisUtilities.getTempFileName(cacheFile)
-          val parquet = if (temp_cacheFile.endsWith(""".parquet""")) projectPath.resolve(temp_cacheFile).toAbsolutePath.toString else null
-          val sessionFactory = new GenericSessionFactory(projectDirectory, null)
-          val gorPipeSession = sessionFactory.create() //new GorSession("")
+          val parquet = if (temp_cacheFile.endsWith(""".parquet""")) PathUtils.resolve(projectDirectory,temp_cacheFile) else null
           DynIterator.createGorIterator = (gorContext: GorContext) => {
             PipeInstance.createGorIterator(gorContext)
           }
           val theSource = new DynamicRowSource(commandToExecute, gorPipeSession.getGorContext, true)
           val theHeader = theSource.getHeader
 
-          val oldName = projectPath.resolve(temp_cacheFile)
+          val oldName = PathUtils.resolve(projectDirectory,temp_cacheFile)
           try {
             val nor = theSource.isNor
             val grc = if (gorPipeSession.getSystemContext.getRunnerFactory != null) gorPipeSession.getSystemContext.getRunnerFactory else new GenericRunnerFactory()
             val runner = grc.create()
-            runner.run(theSource, if (parquet != null) null else OutFile(oldName.toAbsolutePath.normalize().toString, gorPipeSession.getProjectContext.getFileReader, theHeader, skipHeader = false, columnCompress = nor, nor = true, md5 = true, md5File = true, GorIndexType.NONE, Option.empty))
-            Files.move(oldName, cpath)
+            runner.run(theSource, if (parquet != null) null else OutFile(oldName, gorPipeSession.getProjectContext.getFileReader, theHeader, skipHeader = false, columnCompress = nor, nor = true, md5 = true, md5File = true, GorIndexType.NONE, Option.empty))
+            Files.move(Path.of(oldName), Path.of(cpath))
           } catch {
             case e: Exception =>
               try {
-                Files.delete(oldName)
+                Files.delete(Path.of(oldName))
               } catch {
                 case _: Exception => /* do nothing */
               }
