@@ -28,6 +28,7 @@ import org.gorpipe.util.collection.ByteArray;
 import scala.collection.JavaConverters;
 
 import java.io.*;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -599,11 +600,12 @@ public class SparkRowUtilities {
                                 } catch (Exception e) {
                                     bb = ByteArray.to8Bit(zipo.getBytes());
                                 }
+                                var byteBuffer = ByteBuffer.wrap(bb);
                                 Unzipper unzip = new Unzipper();
                                 unzip.setType(compressionLibrary);
-                                unzip.setRawInput(bb, 0, bb.length);
-                                int unzipLen = unzip.decompress(unzipBuffer, 0, unzipBuffer.length);
-                                ByteArrayInputStream bais = new ByteArrayInputStream(unzipBuffer, 0, unzipLen);
+                                unzip.setInput(byteBuffer, 0, bb.length);
+                                int unzipLen = unzip.decompress(0);
+                                ByteArrayInputStream bais = new ByteArrayInputStream(unzip.outBuffer.array(), 0, unzipLen);
                                 InputStreamReader isr = new InputStreamReader(bais);
                                 BufferedReader br = new BufferedReader(isr);
                                 return (nor ? br.lines().map(line -> {
@@ -713,11 +715,12 @@ public class SparkRowUtilities {
                         base128 = true;
                         bb = ByteArray.to8Bit(baosArray);
                     }
+                    var byteBuffer = ByteBuffer.wrap(bb);
                     Unzipper unzip = new Unzipper();
                     unzip.setType(compressionLibrary);
-                    unzip.setRawInput(bb, 0, bb.length);
-                    int unzipLen = unzip.decompress(unzipBuffer,0, unzipBuffer.length);
-                    ByteArrayInputStream bais = new ByteArrayInputStream(unzipBuffer, 0, unzipLen);
+                    unzip.setInput(byteBuffer, 0, bb.length);
+                    int unzipLen = unzip.decompress(0);
+                    ByteArrayInputStream bais = new ByteArrayInputStream(unzip.outBuffer.array(), 0, unzipLen);
                     InputStreamReader isr = new InputStreamReader(bais);
                     //String str = new String(unzipBuffer, 0, unzipLen);
                     //StringReader strreader = new StringReader(str);
