@@ -305,7 +305,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
                         if (f instanceof GreaterThan) {
                             start = ((Number) ((GreaterThan) f).value()).intValue() - 1;
                         } else {
-                            start = ((Number) ((LessThanOrEqual) f).value()).intValue();
+                            start = ((Number) ((GreaterThanOrEqual) f).value()).intValue();
                         }
                     });
                     final Optional<Filter> posGreatOptFinal = posGreatOpt;

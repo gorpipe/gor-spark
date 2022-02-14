@@ -28,6 +28,14 @@ class UTestGorSparkSDK {
     }
 
     @Test
+    def testPushdownRange(): Unit = {
+        var res = sparkGorSession.dataframe("gor -p chr2 ../../tests/data/gor/genes.gorz")
+        res = res.where("gene_start >= 100000000 and gene_start <= 100100000")
+        val res2 = res.collect().mkString("\n")
+        Assert.assertEquals("Wrong results from select empty cmd","[chr2,100016937,100106497,REV1]",res2)
+    }
+
+    @Test
     def testSelectCmdEmpty(): Unit = {
         val res = sparkGorSession.dataframe("select * from <(cmd {date})")
         val res2 = res.collect().mkString("\n")
