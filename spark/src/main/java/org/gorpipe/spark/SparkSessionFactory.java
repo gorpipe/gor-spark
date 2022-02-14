@@ -11,6 +11,7 @@ import org.gorpipe.gor.session.GorSession;
 import org.gorpipe.gor.session.GorSessionCache;
 import org.gorpipe.gor.session.ProjectContext;
 import org.gorpipe.gor.session.SystemContext;
+import org.gorpipe.gor.table.util.PathUtils;
 
 
 import java.nio.file.Files;
@@ -88,16 +89,16 @@ public class SparkSessionFactory extends GorSessionFactory {
         } else {
             session = generateSession();
         }
-        Path cachePath = Paths.get(cacheDir);
 
+        var fileReader = new DriverBackedFileReader(securityContext, root, null);
         ProjectContext.Builder projectContextBuilder = new ProjectContext.Builder();
         if(configFile.isPresent()) projectContextBuilder = projectContextBuilder.setConfigFile(configFile.get());
         if(aliasFile.isPresent()) projectContextBuilder = projectContextBuilder.setAliasFile(aliasFile.get());
         projectContextBuilder = projectContextBuilder
             .setRoot(securityContext != null ? root+securityContext : root)
             .setCacheDir(cacheDir)
-            .setFileReader(new DriverBackedFileReader(securityContext, root, null))
-            .setFileCache(new LocalFileCacheClient(cachePath.isAbsolute() ? cachePath : Paths.get(root).resolve(cacheDir)))
+            .setFileReader(fileReader)
+            .setFileCache(new LocalFileCacheClient(fileReader, PathUtils.resolve(root,cacheDir)))
             .setQueryHandler(sparkQueryHandler)
             .setQueryEvaluator(new SessionBasedQueryEvaluator(session));
 
