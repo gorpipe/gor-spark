@@ -14,13 +14,9 @@ import org.apache.spark.sql.connector.read.PartitionReader;
 import org.apache.spark.sql.types.StructType;
 import org.gorpipe.gor.model.GenomicIterator;
 import org.gorpipe.gor.model.RowBase;
+import org.gorpipe.gor.monitor.GorMonitor;
 import org.gorpipe.model.gor.RowObj;
-import org.gorpipe.model.gor.iterators.RowSource;
-import org.gorpipe.spark.GorSparkSession;
-import org.gorpipe.spark.SparkGorMonitor;
-import org.gorpipe.spark.SparkGorRow;
-import org.gorpipe.spark.SparkSessionFactory;
-import org.gorpipe.spark.platform.JobField;
+import org.gorpipe.spark.*;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -31,30 +27,34 @@ import java.util.stream.Collectors;
 public class GorPartitionReader implements PartitionReader<InternalRow> {
     GenomicIterator iterator;
     SparkGorRow sparkRow;
-    SparkGorMonitor sparkGorMonitor;
+    GorMonitor sparkGorMonitor;
     GorRangeInputPartition p;
     ExpressionEncoder.Serializer<Row> serializer;
     String redisUri;
+    String streamKey;
     String jobId;
     String useCpp;
     String projectRoot;
     String cacheDir;
     String configFile;
     String aliasFile;
+    String securityContext;
     boolean nor = false;
 
-    public GorPartitionReader(StructType schema, GorRangeInputPartition gorRangeInputPartition, String redisUri, String jobId, String projectRoot, String cacheDir, String configFile, String aliasFile, String useCpp) {
+    public GorPartitionReader(StructType schema, GorRangeInputPartition gorRangeInputPartition, String redisUri, String streamKey, String jobId, String projectRoot, String cacheDir, String configFile, String aliasFile, String securityContext, String useCpp) {
         ExpressionEncoder<Row> encoder = RowEncoder.apply(schema);
         serializer = encoder.createSerializer();
         sparkRow = new SparkGorRow(schema);
         p = gorRangeInputPartition;
         this.redisUri = redisUri;
+        this.streamKey = streamKey;
         this.jobId = jobId;
         this.useCpp = useCpp;
         this.projectRoot = projectRoot;
         this.cacheDir = cacheDir;
         this.configFile = configFile;
         this.aliasFile = aliasFile;
+        this.securityContext = securityContext;
     }
 
     private String parseMultiplePaths(Path epath) {
@@ -100,20 +100,15 @@ public class GorPartitionReader implements PartitionReader<InternalRow> {
     }
 
     void initIterator() {
-        sparkGorMonitor = new SparkGorMonitor(redisUri,jobId) {
-            @Override
-            public boolean isCancelled() {
-                return sparkGorMonitor.getValue(JobField.CancelFlag) != null;
-            }
-        };
+        sparkGorMonitor = GorSparkUtilities.getSparkGorMonitor(jobId, redisUri, streamKey);
 
-        SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectRoot, cacheDir, configFile, aliasFile, sparkGorMonitor);
+        SparkSessionFactory sessionFactory = new SparkSessionFactory(null, projectRoot, cacheDir, configFile, aliasFile, securityContext, sparkGorMonitor);
         GorSparkSession gorPipeSession = (GorSparkSession) sessionFactory.create();
         SparkPipeInstance pi = new SparkPipeInstance(gorPipeSession.getGorContext());
 
         if(p.query!=null) {
             iterator = iteratorWithPipeSteps(pi);
-            nor = p.query.toLowerCase().startsWith("nor ") || p.query.toLowerCase().startsWith("norrows ");
+            nor = p.query.toLowerCase().startsWith("nor ") || p.query.toLowerCase().startsWith("norrows ") || p.query.toLowerCase().startsWith("norcmd ") || p.query.toLowerCase().startsWith("cmd -n ");
         } else {
             iterator = iteratorFromFile(pi);
         }

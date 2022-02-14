@@ -8,7 +8,7 @@ variables:
   DOCKER_HUB_REPO: nextcode/spark
   AUTO_DEVOPS_BUILD_IMAGE_EXTRA_ARGS: "--build-arg ORG_GRADLE_PROJECT_artifactory_password --build-arg ORG_GRADLE_PROJECT_artifactory_user --build-arg ORG_GRADLE_PROJECT_gitlab_gor_maven_packages_token"
   DOCKER_BUILDKIT: "1"
-  JAVA_BUILDER_IMAGE: nextcode/builderimg-java:openjdk14
+  JAVA_BUILDER_IMAGE: registry.gitlab.com/wuxi-nextcode/sdev/build-images/java-17:latest
   GIT_SUBMODULE_STRATEGY: none
   GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
   GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.caching=true"
@@ -19,24 +19,24 @@ variables:
   KUBERNETES_MEMORY_REQUEST: 2Gi
   KUBERNETES_MEMORY_LIMIT: 4Gi
 
-stages:
-  - build
-  - test
-  - publish
-  - trigger-cross-projects
-  - promote
-  - release
-  - deploy
-
 before_script:
   - export GRADLE_USER_HOME=`pwd`/.gradle
-
 
 build:
   extends: .on-branches
   stage: build
   image: "$JAVA_BUILDER_IMAGE"
-  script: ./gradlew assemble
+  script:
+    - |
+      if [[ -z "$CI_COMMIT_TAG" ]]; then
+        if [[ "$CI_COMMIT_REF_NAME" == "master" ]]; then
+          ./gradlew -PREGISTRY_USER=${CI_REGISTRY_USER} -PREGISTRY_PASSWORD=${CI_REGISTRY_PASSWORD} -PAPPLICATION_REPOSITORY=${CI_APPLICATION_REPOSITORY:-$CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG} -PAPPLICATION_TAG=${CI_APPLICATION_TAG:-$CI_COMMIT_SHA} assemble jib
+        else
+          ./gradlew -PREGISTRY_USER=${CI_REGISTRY_USER} -PREGISTRY_PASSWORD=${CI_REGISTRY_PASSWORD} -PAPPLICATION_REPOSITORY=${CI_APPLICATION_REPOSITORY:-$CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG} -PAPPLICATION_TAG=${CI_APPLICATION_TAG:-$CI_COMMIT_SHA} assemble
+        fi
+      else
+        ./gradlew -PREGISTRY_USER=${CI_REGISTRY_USER} -PREGISTRY_PASSWORD=${CI_REGISTRY_PASSWORD} -PAPPLICATION_REPOSITORY=${CI_APPLICATION_REPOSITORY:-$CI_REGISTRY_IMAGE} -PAPPLICATION_TAG=${CI_APPLICATION_TAG:-$CI_COMMIT_TAG} assemble jib
+      fi
   tags:
     - gitlab-build-01
   cache:
@@ -72,72 +72,17 @@ build:
         # Seems like ** does not work properly (even though it is used in the Gitlab docutmentation)
         #- "**/build/test-results/test/**/TEST-*.xml"
 
-
-unittest:
-  extends: .test
-  script: ./gradlew --continue test
-
-
-slowtest:
-  extends: .test
-  script: ./gradlew --continue slowTest
-
-
-integrationtest:
-  extends: .test
-  script: ./gradlew --continue integrationTest
-
-
-# This codequality block is needed to work around https://gitlab.com/gitlab-org/gitlab/issues/12274
-code_quality:
-  extends:
-    - .on-releasable-branch
-  stage: test
-  tags:
-    - gitlab-build-01
-  artifacts:
-    reports:
-      codequality: gl-code-quality-report.json
-    paths: [gl-code-quality-report.json]
-    expire_in: 1 week
-
-
-license_management:
-  extends:
-    - .build_cache
-    - .on-releasable-branch
-  stage: test
-  variables:
-    # There is no need to run tests or generate sphinx documentation for license management
-    # analysis, however, the license management plugin calls the build task so we have to manually
-    # disable tests and documentation generation.
-    GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dskip.tests=true -Dskip.documentation=true"
-
-
-dependency_scanning:
-  stage: test
-  tags:
-    - gitlab-build-01
-  variables:
-    # There is no need to run tests or generate sphinx documentation for license management
-    # analysis, however, the license management plugin calls the build task so we have to manually
-    # disable tests and documentation generation.
-    GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dskip.tests=true -Dskip.documentation=true"
-  artifacts:
-    paths: [gl-dependency-scanning-report.json]
+#unittest:
+#  extends: .test
+#  script: ./gradlew --continue test
 
 publish:
   extends:
     - .build_cache
     - .on-releasable-branch
-  stage: publish
+  stage: release
   script: ./gradlew publish -x test -x slowTest -x integrationTest
 
 include:
   - project: wuxi-nextcode/sdev/gitlab-ci-scripts
     file: /auto-ci-workflow.yml
-  - template: Jobs/Code-Quality.gitlab-ci.yml
-  - template: Security/Container-Scanning.gitlab-ci.yml
-  - template: License-Scanning.gitlab-ci.yml
-  - template: SAST.gitlab-ci.yml
-  - template: Dependency-Scanning.gitlab-ci.yml

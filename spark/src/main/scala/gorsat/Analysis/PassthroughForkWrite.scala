@@ -14,11 +14,11 @@ import scala.collection.mutable.ArrayBuffer
 
 case class PassthroughForkWrite(forkCol:Int, fullFileName: String, session:GorSession, inHeader: String, options: OutputOptions) extends Analysis {
   case class FileHolder(forkValue: String) {
-    if (forkCol >= 0 && !options.useFolder && !(fullFileName.contains("#{fork}") || fullFileName.contains("""${fork}"""))) {
+    if (forkCol >= 0 && options.useFolder.isEmpty && !(fullFileName.contains("#{fork}") || fullFileName.contains("""${fork}"""))) {
       throw new GorResourceException("WRITE error: #{fork} of ${fork}missing from filename.", fullFileName)
     }
     var fileName : String = _
-    if(forkCol >= 0 && options.useFolder) {
+    if(options.useFolder.nonEmpty) {
       val dir = Paths.get(fullFileName)
       val cols = inHeader.split("\t")
       val forkdir = dir.resolve(cols(forkCol)+"="+forkValue)
@@ -37,7 +37,8 @@ case class PassthroughForkWrite(forkCol:Int, fullFileName: String, session:GorSe
 
   var useFork: Boolean = forkCol >= 0
   var forkMap = mutable.Map.empty[String, FileHolder]
-  val tagSet: mutable.Set[String] = scala.collection.mutable.Set()++options.tags
+  val forkTagSet: mutable.Set[String] = scala.collection.mutable.Set()++options.forkTags
+  val dictTagSet: mutable.Set[String] = scala.collection.mutable.Set()++options.dictTags
   var singleFileHolder: FileHolder = FileHolder("")
   if (!useFork) forkMap += ("theOnlyFile" -> singleFileHolder)
   var openFiles = 0
@@ -73,14 +74,14 @@ case class PassthroughForkWrite(forkCol:Int, fullFileName: String, session:GorSe
     * @return
     */
   def createOutFile(name: String, skipHeader: Boolean): Output = {
-    if (options.useFolder && !name.toLowerCase.endsWith(".parquet")) {
+    if (options.useFolder.nonEmpty && !name.toLowerCase.endsWith(".parquet")) {
       val p = Paths.get(name)
       if(Files.exists(p) && !Files.isDirectory(p) && Files.size(p) == 0) {
         Files.delete(p);
       }
       Files.createDirectories(p)
       val uuid = UUID.randomUUID().toString
-      val noptions = OutputOptions(options.remove, options.columnCompress, true, false, options.nor, options.idx, options.tags, options.prefix, options.prefixFile, options.compressionLevel, options.useFolder, options.skipHeader, cardCol = options.cardCol)
+      val noptions = OutputOptions(options.remove, options.columnCompress, true, false, options.nor, options.idx, options.forkTags, options.dictTags, options.prefix, options.prefixFile, options.compressionLevel, options.useFolder, options.skipHeader, cardCol = options.cardCol)
       OutFile.driver(p.resolve(uuid+".gorz").toString, session.getProjectContext.getFileReader, header, skipHeader, noptions)
     } else {
       OutFile.driver(name, session.getProjectContext.getFileReader, header, skipHeader, options)
@@ -114,7 +115,7 @@ case class PassthroughForkWrite(forkCol:Int, fullFileName: String, session:GorSe
         case Some(x) => sh = x
         case None =>
           sh = FileHolder(forkID)
-          tagSet.remove(forkID)
+          forkTagSet.remove(forkID)
           forkMap += (forkID -> sh)
       }
     } else sh = singleFileHolder
@@ -159,7 +160,7 @@ case class PassthroughForkWrite(forkCol:Int, fullFileName: String, session:GorSe
   def outFinish(sh : FileHolder): Unit = {
     sh.out.finish()
     val name = sh.out.getName
-    if(options.useFolder && name != null && !name.toLowerCase.endsWith(".parquet")) {
+    if(options.useFolder.nonEmpty && name != null && !name.toLowerCase.endsWith(".parquet")) {
       val meta = sh.out.getMeta
       appendToDictionary(name, meta)
     }
@@ -178,7 +179,7 @@ case class PassthroughForkWrite(forkCol:Int, fullFileName: String, session:GorSe
         sh.fileOpen = false
       }
     })
-    if (!options.useFolder && !somethingToWrite && !useFork) {
+    if (options.useFolder.isEmpty && !somethingToWrite && !useFork) {
       val out = createOutFile(fullFileName, false)
       out.setup()
       out.finish()
@@ -187,7 +188,7 @@ case class PassthroughForkWrite(forkCol:Int, fullFileName: String, session:GorSe
     // Test the tag files and create them if we are not in error
     if (!isInErrorState) {
       // Create all missing tag files
-      tagSet.foreach(x => {
+      forkTagSet.foreach(x => {
         if (x.nonEmpty) {
           try {
             val fileHolder = FileHolder(x)

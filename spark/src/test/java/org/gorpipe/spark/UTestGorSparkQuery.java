@@ -2,7 +2,6 @@ package org.gorpipe.spark;
 
 import gorsat.process.PipeOptions;
 import gorsat.process.SparkPipeInstance;
-import io.projectglow.Glow;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.gorpipe.gor.session.GorSession;
@@ -23,9 +22,19 @@ public class UTestGorSparkQuery {
 
     @Before
     public void init() {
-        spark = SparkSession.builder().master("local[1]").getOrCreate();
-        //Glow.register(spark);
-        SparkSessionFactory sparkSessionFactory = new SparkSessionFactory(spark, Paths.get(".").toAbsolutePath().normalize().toString(), System.getProperty("java.io.tmpdir"), null, null, null);
+        spark = SparkSession.builder()
+                .config("spark.hadoop.fs.s3a.endpoint","localhost:4566")
+                .config("spark.hadoop.fs.s3a.connection.ssl.enabled","false")
+                .config("spark.hadoop.fs.s3a.path.style.access","true")
+                .config("spark.hadoop.fs.s3a.impl","org.apache.hadoop.fs.s3a.S3AFileSystem")
+                .config("spark.hadoop.fs.s3a.change.detection.mode","warn")
+                .config("spark.hadoop.com.amazonaws.services.s3.enableV4","true")
+                .config("spark.hadoop.fs.s3a.committer.name","partitioned")
+                .config("spark.hadoop.fs.s3a.committer.staging.conflict-mode","replace")
+                .config("spark.delta.logStore.class","org.apache.spark.sql.delta.storage.S3SingleDriverLogStore")
+                .config("spark.hadoop.fs.s3a.aws.credentials.provider","org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider")
+                .master("local[1]").getOrCreate();
+        SparkSessionFactory sparkSessionFactory = new SparkSessionFactory(spark, Paths.get(".").toAbsolutePath().normalize().toString(), System.getProperty("java.io.tmpdir"), null, null,null, null);
         GorSession session = sparkSessionFactory.create();
         sparkGorSession = (GorSparkSession) session;
         pi = new SparkPipeInstance(session.getGorContext());
@@ -37,6 +46,96 @@ public class UTestGorSparkQuery {
         pi.subProcessArguments(pipeOptions);
         String result = StreamSupport.stream(Spliterators.spliteratorUnknownSize(pi.theInputSource(), 0), false).map(Object::toString).collect(Collectors.joining("\n"));
         Assert.assertEquals("Wrong results from spark query: " + query, expectedResult, result);
+    }
+
+    private void testSparkQueryWithHeader(String query, String expectedResult) {
+        PipeOptions pipeOptions = new PipeOptions();
+        pipeOptions.query_$eq(query);
+        pi.subProcessArguments(pipeOptions);
+        var header = pi.getHeader();
+        if(header.startsWith("chrNOR")) {
+            header = header.substring(header.indexOf('\t',header.indexOf('\t')+1)+1);
+        }
+        String result = header + "\n" + StreamSupport.stream(Spliterators.spliteratorUnknownSize(pi.theInputSource(), 0), false).map(Object::toString).collect(Collectors.joining("\n"));
+        Assert.assertEquals("Wrong results from spark query: " + query, expectedResult, result);
+    }
+
+    private void testSparkQueryWithPipe(String query, String expectedResult) {
+        PipeOptions pipeOptions = new PipeOptions();
+        pipeOptions.query_$eq(query);
+        pi.subProcessArguments(pipeOptions);
+        String result = StreamSupport.stream(Spliterators.spliteratorUnknownSize(pi.getIterator(), 0), false).map(Object::toString).collect(Collectors.joining("\n"));
+        Assert.assertEquals("Wrong results from spark query: " + query, expectedResult, result);
+    }
+
+    @Test
+    public void testSelectFromRedis() {
+        testSparkQuery("select -p chr1 * from ../tests/data/gor/genes.gorz limit 5", "chr1\t11868\t14412\tDDX11L1\n" +
+                "chr1\t14362\t29806\tWASH7P\n" +
+                "chr1\t34553\t36081\tFAM138A\n" +
+                "chr1\t53048\t54936\tAL627309.1\n" +
+                "chr1\t62947\t63887\tOR4G11P");
+    }
+
+    @Test
+    public void testSelectFromJson() throws IOException {
+        var p = Paths.get("my.json");
+        try {
+            Files.writeString(p, "{\"ok\":\"simmi\"}");
+            testSparkQuery("select * from my.json", "simmi");
+        } finally {
+            Files.delete(p);
+        }
+    }
+
+    @Test
+    public void testSelectFromTsvWithSchema() throws IOException {
+        var p = Paths.get("my.tsv");
+        try {
+            Files.writeString(p, "#ho\tmo\none\t1\n");
+            testSparkQueryWithHeader("select -schema {ok string,lo string} * from my.tsv", "ok\tlo\none\t1");
+        } finally {
+            Files.delete(p);
+        }
+    }
+
+    @Test
+    public void testSelectFromTsvWithPound() throws IOException {
+        var p = Paths.get("my.tsv");
+        try {
+            Files.writeString(p, "#ho\tmo\none\t1\n");
+            testSparkQueryWithHeader("select ho,mo from my.tsv", "ho\tmo\none\t1");
+        } finally {
+            Files.delete(p);
+        }
+    }
+
+    @Test
+    public void testSelectFromJsonWithSchema() throws IOException {
+        var p = Paths.get("my.json");
+        try {
+            Files.writeString(p, "{\"ok\":\"simmi\"}");
+            testSparkQuery("select -schema {ok string} * from my.json", "simmi");
+        } finally {
+            Files.delete(p);
+        }
+    }
+
+    @Test
+    public void testSelectFromJsonWithFormat() throws IOException {
+        var p = Paths.get("my.json");
+        try {
+            Files.writeString(p, "{\"ok\":\"simmi\"}");
+            testSparkQuery("spark -format json -schema {ok string} my.json", "simmi");
+        } finally {
+            Files.delete(p);
+        }
+    }
+
+    @Test
+    @Ignore("Needs sqlite test file")
+    public void testSelectFromSQLite() {
+        testSparkQuery("select -format jdbc -option 'url=jdbc:sqlite:/Users/sigmar/create.db' * from simmi", "simmi");
     }
 
     @Test
@@ -55,6 +154,22 @@ public class UTestGorSparkQuery {
                 "chr1\t34553\t36081\tFAM138A\n" +
                 "chr1\t53048\t54936\tAL627309.1\n" +
                 "chr1\t62947\t63887\tOR4G11P");
+    }
+
+    @Test
+    @Ignore("Test with localstack")
+    public void testGorzSparkSQLQueryRemoteSource() {
+        testSparkQuery("select * from s3a://my-bucket/test.gorz limit 5", "chr1\t11868\t14412\tDDX11L1\n" +
+                "chr1\t14362\t29806\tWASH7P\n" +
+                "chr1\t34553\t36081\tFAM138A\n" +
+                "chr1\t53048\t54936\tAL627309.1\n" +
+                "chr1\t62947\t63887\tOR4G11P");
+    }
+
+    @Test
+    @Ignore("Test with localstack")
+    public void testGorQueryS3ASource() {
+        testSparkQuery("gor ../tests/data/gor/genes.gorz | write s3a://my-bucket/test.gorz", "");
     }
 
     @Test
@@ -107,6 +222,13 @@ public class UTestGorSparkQuery {
     }
 
     @Test
+    public void testGetJupyterPath() {
+        var res = sparkGorSession.dataframe("spark jupyterpath", null);
+        var sres = res.collectAsList().stream().map(Row::toString).collect(Collectors.joining("\n"));
+        Assert.assertEquals("Wrong result","[]",sres);
+    }
+
+    @Test
     public void testGorSparkSQLQuery() {
         testSparkQuery("spark select * from ../tests/data/gor/genes.gor limit 5", "chr1\t11868\t14412\tDDX11L1\n" +
                 "chr1\t14362\t29806\tWASH7P\n" +
@@ -152,8 +274,66 @@ public class UTestGorSparkQuery {
     }
 
     @Test
+    public void testParquetSelectQuery() {
+        testSparkQuery("select * from ../tests/data/parquet/dbsnp_test.parquet | top 5", "chr1\t10179\tC\tCC\trs367896724\n" +
+                "chr1\t10250\tA\tC\trs199706086\n" +
+                "chr10\t60803\tT\tG\trs536478188\n" +
+                "chr10\t61023\tC\tG\trs370414480\n" +
+                "chr11\t61248\tG\tA\trs367559610");
+    }
+
+    @Test
+    public void testParquetSelectLinkQuery() throws IOException {
+        var linkpath = Files.createTempFile("test",".parquet.link").toAbsolutePath();
+        var path = Paths.get("../tests/data/parquet/dbsnp_test.parquet").toAbsolutePath().normalize();
+        Files.writeString(linkpath,path.toString());
+        testSparkQuery("select * from "+linkpath+" | top 5", "chr1\t10179\tC\tCC\trs367896724\n" +
+                "chr1\t10250\tA\tC\trs199706086\n" +
+                "chr10\t60803\tT\tG\trs536478188\n" +
+                "chr10\t61023\tC\tG\trs370414480\n" +
+                "chr11\t61248\tG\tA\trs367559610");
+
+        var linkpathString = linkpath.toString();
+        testSparkQuery("select * from "+linkpathString.substring(0,linkpathString.length()-5)+" | top 5", "chr1\t10179\tC\tCC\trs367896724\n" +
+                "chr1\t10250\tA\tC\trs199706086\n" +
+                "chr10\t60803\tT\tG\trs536478188\n" +
+                "chr10\t61023\tC\tG\trs370414480\n" +
+                "chr11\t61248\tG\tA\trs367559610");
+    }
+
+    @Test
+    public void testParquetNotationSparkQuery() {
+        var fullPath = Paths.get("../tests/data/parquet/dbsnp_test.parquet").toAbsolutePath().toString();
+        testSparkQuery("select * from parquet.`"+fullPath+"` | top 5", "chr1\t10179\tC\tCC\trs367896724\n" +
+                "chr1\t10250\tA\tC\trs199706086\n" +
+                "chr10\t60803\tT\tG\trs536478188\n" +
+                "chr10\t61023\tC\tG\trs370414480\n" +
+                "chr11\t61248\tG\tA\trs367559610");
+    }
+
+    @Test
     public void testCreateSparkQuery() {
         testSparkQuery("create xxx = spark ../tests/data/parquet/dbsnp_test.parquet | top 5; gor [xxx]", "chr1\t10179\tC\tCC\trs367896724\n" +
+                "chr1\t10250\tA\tC\trs199706086\n" +
+                "chr10\t60803\tT\tG\trs536478188\n" +
+                "chr10\t61023\tC\tG\trs370414480\n" +
+                "chr11\t61248\tG\tA\trs367559610");
+    }
+
+    @Test
+    @Ignore("Fails remotely")
+    public void testCreateSparkQueryWithWrite() {
+        testSparkQuery("create xxx = spark ../tests/data/parquet/dbsnp_test.parquet | top 5 | write -d test.gorz; gor [xxx]/dict.gord", "chr1\t10179\tC\tCC\trs367896724\n" +
+                "chr1\t10250\tA\tC\trs199706086\n" +
+                "chr10\t60803\tT\tG\trs536478188\n" +
+                "chr10\t61023\tC\tG\trs370414480\n" +
+                "chr11\t61248\tG\tA\trs367559610");
+    }
+
+    @Test
+    @Ignore("Test with localstack")
+    public void testCreateSparkQueryWithWriteToRemote() {
+        testSparkQuery("create xxx = spark ../tests/data/parquet/dbsnp_test.parquet | top 5 | write -d s3a://my-bucket/test.gorz dict.gord; gor [xxx]", "chr1\t10179\tC\tCC\trs367896724\n" +
                 "chr1\t10250\tA\tC\trs199706086\n" +
                 "chr10\t60803\tT\tG\trs536478188\n" +
                 "chr10\t61023\tC\tG\trs370414480\n" +
@@ -167,6 +347,16 @@ public class UTestGorSparkQuery {
                 "chr1\t10250\tA\tC\trs199706086\n" +
                 "chr1\t10250\tA\tC\trs199706086\n" +
                 "chr10\t60803\tT\tG\trs536478188");
+    }
+
+    @Test
+    public void testGorSparkQueryWithWhere() {
+        testSparkQuery("select * from ../tests/data/gor/genes.gor | where gene_end > 29805 | where gene_end < 29807", "chr1\t14362\t29806\tWASH7P");
+    }
+
+    @Test
+    public void testGorSparkQueryWithCalcContext() {
+        testSparkQuery("select * from ../tests/data/gor/genes.gor | calc t time() | top 1 | hide t", "chr1\t11868\t14412\tDDX11L1");
     }
 
     @Test
@@ -195,6 +385,12 @@ public class UTestGorSparkQuery {
         Path pyscript = Paths.get("pass.py");
         Files.writeString(pyscript, pycode);
         testSparkQuery("spark ../tests/data/gor/genes.gorz | top 100 | cmd {python pass.py} | group chrom -count", "chr1\t0\t250000000\t100");
+    }
+
+    @Test
+    @Ignore("Test freeze")
+    public void testExternalCommandWithCmd() {
+        testSparkQuery("select * from ../tests/data/gor/genes.gorz limit 10 | cmd {head -2}", "chr1\t11868\t14412\tDDX11L1");
     }
 
     @After

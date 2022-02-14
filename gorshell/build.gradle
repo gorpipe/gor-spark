@@ -18,54 +18,65 @@ project(':gorshell') {
     dependencies {
         implementation project(":spark")
 
-        implementation("${gorArtifactGroupId}:gor-base:${gorVersion}")
-        implementation("${gorArtifactGroupId}:gor-model:${gorVersion}")
-        implementation("${gorArtifactGroupId}:gor-gortools:${gorVersion}")
-        implementation("${gorArtifactGroupId}:gor-gorscripts:${gorVersion}")
-        implementation("${gorArtifactGroupId}:gor-util:${gorVersion}")
+        implementation("${gorArtifactGroupId}:gor-base:${gorVersion}") {
+            exclude group: 'ch.qos.logback', module: 'logback-classic'
+            exclude group: 'ch.qos.logback', module: 'logback-core'
+        }
+        implementation("${gorArtifactGroupId}:gor-model:${gorVersion}") {
+            exclude group: 'ch.qos.logback', module: 'logback-classic'
+        }
+        implementation("${gorArtifactGroupId}:gor-gortools:${gorVersion}") {
+            exclude group: 'ch.qos.logback', module: 'logback-classic'
+        }
+        implementation("${gorArtifactGroupId}:gor-gorscripts:${gorVersion}") {
+            exclude group: 'ch.qos.logback', module: 'logback-classic'
+        }
+        implementation("${gorArtifactGroupId}:gor-util:${gorVersion}") {
+            exclude group: 'ch.qos.logback', module: 'logback-classic'
+        }
 
-        implementation ('org.apache.spark:spark-core_2.12:3.1.1') {
+        implementation ("org.apache.spark:spark-core_2.12:_") {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
-        implementation ('org.apache.spark:spark-sql_2.12:3.1.1') {
+        implementation ("org.apache.spark:spark-sql_2.12:_") {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
-        implementation ('org.apache.spark:spark-mllib_2.12:3.1.1') {
+        implementation ("org.apache.spark:spark-mllib_2.12:_") {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
-        implementation ('org.apache.spark:spark-tags_2.12:3.1.1') {
+        implementation ("org.apache.spark:spark-tags_2.12:_") {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
-        implementation ('org.apache.spark:spark-kubernetes_2.12:3.1.1') {
+        implementation ("org.apache.spark:spark-kubernetes_2.12:_") {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.spark', module: 'spark-tags_2.12'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
-        implementation ('org.apache.spark:spark-catalyst_2.12:3.1.1') {
+        implementation ("org.apache.spark:spark-catalyst_2.12:_") {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
-        implementation ('org.apache.spark:spark-repl_2.12:3.1.1') {
+        implementation ("org.apache.spark:spark-repl_2.12:_") {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
-        implementation ('org.apache.spark:spark-hive_2.12:3.1.1') {
+        implementation ("org.apache.spark:spark-hive_2.12:_") {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
-        implementation ('org.apache.spark:spark-hive-thriftserver_2.12:3.1.1') {
+        implementation ("org.apache.spark:spark-hive-thriftserver_2.12:_") {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
@@ -77,25 +88,43 @@ project(':gorshell') {
         implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.0'
         implementation group: 'com.fasterxml.jackson.module', name: 'jackson-module-scala_2.12', version: '2.11.0'
 
-        implementation group: 'org.apache.logging.log4j', name: 'log4j', version: '2.13.3', ext: 'pom'
-        implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.13.3', ext: 'pom'
-        implementation group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.13.3', ext: 'pom'
-        implementation group: 'org.apache.logging.log4j', name: 'log4j-jcl', version: '2.13.3', ext: 'pom'
-        implementation group: 'org.apache.logging.log4j', name: 'log4j-slf4j-impl', version: '2.13.3'
-        implementation group: 'org.apache.logging.log4j', name: 'log4j-1.2-api', version: '2.13.3'
+        implementation "org.apache.logging.log4j:log4j:_"
+        implementation "org.apache.logging.log4j:log4j-core:_"
+        implementation "org.apache.logging.log4j:log4j-api:_"
+        implementation "org.apache.logging.log4j:log4j-slf4j-impl:_"
+        implementation "org.apache.logging.log4j:log4j-1.2-api:_"
 
-        implementation('io.projectglow:glow-spark3_2.12:1.0.0') {
+        implementation ('org.apache.hadoop:hadoop-common:_') {
+            exclude group: 'com.google.guava', module: 'guava'
+        }
+        implementation ('org.apache.hadoop:hadoop-client:_') {
+
+        }
+        implementation ('org.apache.hadoop:hadoop-hdfs:_') {
+            exclude group: 'com.google.guava', module: 'guava'
+        }
+        implementation ('org.apache.hadoop:hadoop-hdfs-client:_') {
+
+        }
+        implementation ('org.apache.hadoop:hadoop-aws:_') {
+
+        }
+        implementation 'org.apache.commons:commons-compress:_'
+
+        implementation('io.projectglow:glow-spark3_2.12:_') {
             exclude group: 'org.freemarker'
         }
 
-        implementation "org.aeonbits.owner:owner:1.0.12"
-        implementation 'info.picocli:picocli-shell-jline3:4.1.4'
+        implementation "org.aeonbits.owner:owner:_"
+        implementation 'info.picocli:picocli-shell-jline3:_'
 
-        implementation("redis.clients:jedis:3.5.1")
+        implementation("redis.clients:jedis:_")
 
-        implementation 'io.kubernetes:client-java:11.0.0'
+        implementation 'io.kubernetes:client-java:_'
 
-        testImplementation("${gorArtifactGroupId}:gor-test:${gorVersion}")
+        testImplementation("${gorArtifactGroupId}:gor-test:${gorVersion}") {
+            exclude group: 'ch.qos.logback', module: 'logback-classic'
+        }
     }
 
     jar {
@@ -139,4 +168,7 @@ project(':gorshell') {
         def t = params.containsKey('override') ? tasks.getByName(params.override) : tasks.create(name: scriptName + 'StartScript', type: CreateStartScripts)
         updateScriptTask("GOR", scriptName, params, t, project)
     }
+
+    tasks.distZip.enabled = true
+    tasks.distZip.archiveClassifier = "dist"
 }

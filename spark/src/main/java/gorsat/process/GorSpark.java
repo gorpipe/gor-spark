@@ -12,7 +12,7 @@ import org.apache.spark.sql.types.StructType;
 import org.gorpipe.gor.model.Row;
 import org.gorpipe.gor.monitor.GorMonitor;
 import org.gorpipe.gor.session.GorSession;
-import org.gorpipe.spark.SparkGorMonitor;
+import org.gorpipe.spark.GorSparkUtilities;
 import org.gorpipe.spark.SparkGorRow;
 
 public class GorSpark implements MapPartitionsFunction<Row, Row> {
@@ -47,10 +47,11 @@ public class GorSpark implements MapPartitionsFunction<Row, Row> {
 
         GenericSessionFactory gsf = Files.exists(projectPath) ? new GenericSessionFactory(gorroot, "result_cache") : new GenericSessionFactory();
         GorSession gps = gsf.create();
+        String key = gps.getProjectContext().getFileReader().getSecurityContext();
         gps.setNorContext(nor);
 
         if( uri != null ) {
-            GorMonitor gorMonitor = new SparkGorMonitor(uri, jobId);
+            GorMonitor gorMonitor = GorSparkUtilities.getSparkGorMonitor(jobId, uri, key);
             gps.getSystemContext().setMonitor(gorMonitor);
         }
 

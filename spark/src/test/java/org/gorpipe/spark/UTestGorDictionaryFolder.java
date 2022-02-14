@@ -35,7 +35,7 @@ public class UTestGorDictionaryFolder {
         System.setProperty("org.gorpipe.gor.driver.gord.folders","true");
         spark = SparkSession.builder().master("local[1]").getOrCreate();
         //Glow.register(spark);
-        SparkSessionFactory sparkSessionFactory = new SparkSessionFactory(spark, Paths.get(".").toAbsolutePath().normalize().toString(), System.getProperty("java.io.tmpdir"), null, null, null);
+        SparkSessionFactory sparkSessionFactory = new SparkSessionFactory(spark, Paths.get(".").toAbsolutePath().normalize().toString(), System.getProperty("java.io.tmpdir"), null, null,null, null);
         GorSession session = sparkSessionFactory.create();
         sparkGorSession = (GorSparkSession) session;
         pi = new SparkPipeInstance(session.getGorContext());
@@ -109,10 +109,12 @@ public class UTestGorDictionaryFolder {
         TestUtils.runGorPipe(pi,"gor -p chr21 ../tests/data/gor/genes.gor | calc c substr(gene_symbol,0,1) | write -card c " + path);
         Path metapath = Paths.get("gorfile.gorz.meta");
         String metainfo = Files.readString(metapath);
-        Assert.assertEquals("Wrong results in meta file", "## RANGE: chr21\t9683190\tchr21\t48110675\n" +
-                        "## MD5: 162498408aa03202fa1d2327b2cf9c4f\n" +
-                        "## LINES: 669\n" +
-                        "## CARDCOL[c]: A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,R,S,T,U,V,W,Y,Z",
+        Assert.assertEquals("Wrong results in meta file", "## SERIAL = 0\n" +
+                        "## LINE_COUNT = 669\n" +
+                        "## TAGS = \n" +
+                        "## MD5 = 162498408aa03202fa1d2327b2cf9c4f\n" +
+                        "## RANGE = chr21\t9683190\tchr21\t48110675\n" +
+                        "## CARDCOL = [c]: A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,R,S,T,U,V,W,Y,Z\n",
                 metainfo);
         try {
             Files.delete(path);
@@ -122,6 +124,7 @@ public class UTestGorDictionaryFolder {
     }
 
     @Test
+    @Ignore("Same tests in gor")
     public void testPgorWriteFolder() {
         Path folderpath = Paths.get("folder.gord");
         try {
@@ -160,6 +163,7 @@ public class UTestGorDictionaryFolder {
     }
 
     @Test
+    @Ignore("Same tests in gor")
     public void testPgorWriteFolderWithCardinality() throws IOException {
         Path folderpath = Paths.get("folder.gord");
         try {

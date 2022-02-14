@@ -10,13 +10,12 @@ import java.io.Serializable;
 import java.util.OptionalInt;
 
 public class GorMapFunction implements MapFunction<Row, Row>, Serializable {
-    transient ParseArith filter;
     String calcType;
     Function1 func;
     int replaceIndex;
 
     GorMapFunction(FilterParams filterParams, OptionalInt rIdx) {
-        filter = new ParseArith(null);
+        ParseArith filter = new ParseArith(null);
         filter.setColumnNamesAndTypes(filterParams.headersplit, filterParams.colType);
         calcType = filter.compileCalculation(filterParams.paramString);
         replaceIndex = rIdx.isPresent() ? rIdx.getAsInt() : -1;

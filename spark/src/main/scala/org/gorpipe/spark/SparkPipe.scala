@@ -4,8 +4,9 @@ import gorsat._
 import gorsat.process.{GorPipeFirstOrderCommands, PipeOptions}
 import org.gorpipe.base.config.ConfigManager
 import org.gorpipe.exceptions.{ExceptionUtilities, GorException}
-import org.gorpipe.gor.model.{DbSource, DefaultFileReader}
+import org.gorpipe.gor.model.DbSource
 import org.gorpipe.gor.servers.GorConfig
+import org.gorpipe.gor.session.ProjectContext
 import org.gorpipe.util.ConfigUtil
 import org.slf4j.LoggerFactory
 
@@ -29,7 +30,7 @@ object SparkPipe extends GorPipeFirstOrderCommands {
 
     // Display help
     if (args.length < 1 || args(0).isEmpty || args(0).toUpperCase.startsWith("HELP")) {
-      helpCommand(args, new DefaultFileReader(""))
+      helpCommand(args, ProjectContext.DEFAULT_READER)
       System.exit(0)
     }
 
@@ -53,9 +54,8 @@ object SparkPipe extends GorPipeFirstOrderCommands {
     var exitCode = 0
     //todo find a better way to construct
 
-    val sparkGorRedisUri = GorSparkUtilities.getSparkGorRedisUri()
-    val sparkMonitor = new SparkGorMonitor(sparkGorRedisUri,"-1")
-    val executionEngine = new SparkGorExecutionEngine(commandlineOptions.query, commandlineOptions.gorRoot, commandlineOptions.cacheDir, null, null,null, sparkMonitor)
+    val sparkMonitor = new SparkGorMonitor("-1")
+    val executionEngine = new SparkGorExecutionEngine(commandlineOptions.query, commandlineOptions.gorRoot, commandlineOptions.cacheDir, null, null,null,null, sparkMonitor, commandlineOptions.workers)
 
     try {
       executionEngine.execute()

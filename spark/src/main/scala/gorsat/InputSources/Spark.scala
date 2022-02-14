@@ -51,15 +51,17 @@ object Spark {
       val native = hasOption(args, "-c")
       val profile = stringValueOfOptionWithDefault(args,"-profile",null)
       var ddl = stringValueOfOptionWithDefault(args,"-schema",null)
+      val format = stringValueOfOptionWithDefault(args,"-format",null)
+      val option = stringValueOfOptionWithDefault(args, "-option", null)
       if(ddl!=null) ddl = ddl.substring(1,ddl.length-1)
 
       val myCommand = GorJavaUtilities.seekReplacement(command, range.chromosome, range.start, range.stop)
-      new SparkRowSource(myCommand, profile, null, null, isNorContext, gpSession.asInstanceOf[GorSparkSession], filter, filterFile, filterColumn, splitFile, range.chromosome, range.start, range.stop, usegorpipe, jobId, native, parts, buckets, tag, ddl)
+      new SparkRowSource(myCommand, profile, null, null, isNorContext, gpSession.asInstanceOf[GorSparkSession], filter, filterFile, filterColumn, splitFile, range.chromosome, range.start, range.stop, usegorpipe, jobId, native, parts, buckets, tag, ddl, format, option)
     }
     InputSourceParsingResult(inputSource, inputSource.getHeader, isNorContext)
   }
 
-  class Select() extends InputSourceInfo("SELECT", CommandArguments("-n -c -tag", "-p -s -g -f -j -ff -split -buck -part -profile -schema", 1, -1, ignoreIllegalArguments = true)) {
+  class Select() extends InputSourceInfo("SELECT", CommandArguments("-n -c -tag", "-p -s -g -f -j -ff -split -buck -part -profile -schema -format -option", 1, -1, ignoreIllegalArguments = true)) {
 
     override def processArguments(context: GorContext, argString: String, iargs: Array[String],
                                   args: Array[String]): InputSourceParsingResult = {
@@ -69,7 +71,7 @@ object Spark {
     }
   }
 
-  class Spark() extends InputSourceInfo("SPARK", CommandArguments("-n -c -tag", "-p -s -g -f -j -ff -split -buck -part -profile -schema", 1, -1, ignoreIllegalArguments = true)) {
+  class Spark() extends InputSourceInfo("SPARK", CommandArguments("-n -c -tag", "-p -s -g -f -j -ff -split -buck -part -profile -schema -format -option", 1, -1, ignoreIllegalArguments = true)) {
 
     override def processArguments(context: GorContext, argString: String, iargs: Array[String],
                                   args: Array[String]): InputSourceParsingResult = {

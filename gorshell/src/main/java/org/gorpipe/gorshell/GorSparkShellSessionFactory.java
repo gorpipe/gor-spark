@@ -44,11 +44,8 @@ public class GorSparkShellSessionFactory extends GorShellSessionFactory {
     private boolean fileCacheEnabled = true;
     private boolean requestStatsEnabled = false;
 
-    public GorSparkShellSessionFactory() {
-        cacheDir = System.getProperty("java.io.tmpdir");
-    }
-
     public GorSparkShellSessionFactory(String root) {
+        super(root);
         this.root = root;
         cacheDir = System.getProperty("java.io.tmpdir");
     }
@@ -69,7 +66,7 @@ public class GorSparkShellSessionFactory extends GorShellSessionFactory {
     public GorSession create() {
         String requestId = UUID.randomUUID().toString();
 
-        GorSession session = new GorSparkSession(requestId);
+        GorSession session = new GorSparkSession(requestId, 0);
 
         ProjectContext.Builder projectContextBuilder = new ProjectContext.Builder();
 
