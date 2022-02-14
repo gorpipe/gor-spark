@@ -83,8 +83,8 @@ public class SparkRowSource extends ProcessSource {
             int i = root.indexOf(' ');
             if (i == -1) i = root.length();
             fileroot = root.substring(0, i);
-            cachepath = Paths.get(cachedir != null && cachedir.length() > 0 ? cachedir : "result_cache");
-            if(!cachepath.isAbsolute()) cachepath = Path.of(fileroot).resolve(cachepath);
+            cachepath = cachedir != null && cachedir.length() > 0 ? cachedir : "result_cache";
+            if(!PathUtils.isAbsolutePath(cachepath)) cachepath = PathUtils.resolve(fileroot,cachepath);
         }
     }
 
@@ -295,7 +295,7 @@ public class SparkRowSource extends ProcessSource {
     ProcessBuilder pb;
     Process p;
     String fileroot = null;
-    Path cachepath = null;
+    String cachepath = null;
     String parquetPath = null;
     String dictPath = null;
     int pcacomponents = 10;
@@ -768,17 +768,16 @@ public class SparkRowSource extends ProcessSource {
                             dfw = gorformat ? dfw.format("gor") : dfw.format("parquet");
                             dfw.mode(SaveMode.Overwrite).save(resolvedPath);
 
-                                if (gorformat) {
-                                    org.apache.hadoop.fs.Path hp = new org.apache.hadoop.fs.Path(resolvedPath);
-                                    if (parquetPath.equals(dictPath)) {
-                                        writeDictionary(hp, hp);
-                                    } else {
-                                        if (fileroot != null && !PathUtils.isAbsolutePath(dictPath)) {
-                                            dictPath = PathUtils.resolve(fileroot,dictPath);
-                                        }
-                                        org.apache.hadoop.fs.Path dp = new org.apache.hadoop.fs.Path(dictPath);
-                                        writeDictionary(hp, dp);
+                            if (gorformat) {
+                                org.apache.hadoop.fs.Path hp = new org.apache.hadoop.fs.Path(resolvedPath);
+                                if (parquetPath.equals(dictPath)) {
+                                    writeDictionary(hp, hp);
+                                } else {
+                                    if (fileroot != null && !PathUtils.isAbsolutePath(dictPath)) {
+                                        dictPath = PathUtils.resolve(fileroot,dictPath);
                                     }
+                                    org.apache.hadoop.fs.Path dp = new org.apache.hadoop.fs.Path(dictPath);
+                                    writeDictionary(hp, dp);
                                 }
                             }
                         }
