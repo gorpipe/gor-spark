@@ -54,6 +54,10 @@ public class SparkRowUtilities {
         return p -> Arrays.stream(allowedGorSQLFileEndings).map(e -> p.toLowerCase().endsWith(e)).reduce((a,b) -> a || b).get() || p.startsWith("<(") || Arrays.stream(preservedTables).map(p::equals).reduce((a, b) -> a || b).get();
     }
 
+    public static Predicate<String> getFileEndingTimestampPredicate() {
+        return p -> Arrays.stream(allowedGorSQLFileEndings).map(e -> p.toLowerCase().endsWith(e)).reduce((a,b) -> a || b).get();
+    }
+
     public static String createMapString(Map<String,String> createMap, Map<String,String> defMap, String creates) {
         String mcreates = createMap.size() > 0 ? createMap.entrySet().stream().map(e -> "create "+e.getKey()+" = "+e.getValue()).collect(Collectors.joining("; ","",";")) : "";
         String mdefs = defMap.size() > 0 ? defMap.entrySet().stream().map(e -> "def "+e.getKey()+" = "+e.getValue()).collect(Collectors.joining("; ","",";")) : "";
@@ -212,7 +216,7 @@ public class SparkRowUtilities {
         var fileReader = (DriverBackedFileReader)gorSparkSession.getProjectContext().getFileReader();
         if (nestedQuery) {
             fileName = fn.substring(curlyQuery ? 1 : 2, fn.length() - 1);
-            var gorpred = getFileEndingPredicate();
+            var gorpred = getFileEndingTimestampPredicate();
             java.util.function.Function<String, Stream<String>> gorfileflat;
             gorfileflat = p -> p.startsWith("(") ? Arrays.stream(CommandParseUtilities.quoteCurlyBracketsSafeSplit(p.substring(1, p.length() - 1), ' ')).filter(gorpred) : Stream.of(p);
             var cmdsplit = CommandParseUtilities.quoteCurlyBracketsSafeSplit(fileName, ' ');
