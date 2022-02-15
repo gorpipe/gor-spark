@@ -16,6 +16,7 @@ import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.types.*;
 import org.gorpipe.gor.binsearch.CompressionType;
 import org.gorpipe.gor.binsearch.Unzipper;
+import org.gorpipe.gor.model.DriverBackedFileReader;
 import org.gorpipe.gor.model.FileReader;
 import org.gorpipe.gor.model.ParquetLine;
 import org.gorpipe.gor.model.Row;
@@ -51,6 +52,10 @@ public class SparkRowUtilities {
 
     public static Predicate<String> getFileEndingPredicate() {
         return p -> Arrays.stream(allowedGorSQLFileEndings).map(e -> p.toLowerCase().endsWith(e)).reduce((a,b) -> a || b).get() || p.startsWith("<(") || Arrays.stream(preservedTables).map(p::equals).reduce((a, b) -> a || b).get();
+    }
+
+    public static Predicate<String> getFileEndingTimestampPredicate() {
+        return p -> Arrays.stream(allowedGorSQLFileEndings).map(e -> p.toLowerCase().endsWith(e)).reduce((a,b) -> a || b).get();
     }
 
     public static String createMapString(Map<String,String> createMap, Map<String,String> defMap, String creates) {
@@ -121,53 +126,53 @@ public class SparkRowUtilities {
         return gorDataTypeToStructType(gorDataType);
     }
 
-    public static RowDataType translatePath(String fn, Path fileroot, String standalone, FileReader fr) throws IOException {
+    public static RowDataType translatePath(String fn, String fileroot, String standalone, DriverBackedFileReader fileReader) throws IOException {
         RowDataType ret;
         if (!PathUtils.isLocal(fn)) {
             List<Instant> inst = Collections.emptyList();
-            if (fr!=null) {
+            if (fileReader!=null) {
                 fn = fn.replace("s3://", "s3a://");
-                var ds = fr.resolveUrl(fn);
+                var ds = fileReader.resolveUrl(fn);
                 if (ds.isDirectory()) { //!ds.exists()
                     var fnl = fn.toLowerCase();
                     if (fnl.endsWith(".parquet")) {
-                        ds = fr.resolveUrl(fn + "/_SUCCESS");
+                        ds = fileReader.resolveUrl(fn + "/_SUCCESS");
                     } else if (fnl.endsWith(".parquet/")) {
-                        ds = fr.resolveUrl(fn + "_SUCCESS");
+                        ds = fileReader.resolveUrl(fn + "_SUCCESS");
                     } else if (fnl.endsWith(".gord")) {
-                        ds = fr.resolveUrl(fn + "/thedict.gord");
+                        ds = fileReader.resolveUrl(fn + "/thedict.gord");
                     } else if (fnl.endsWith(".gord/")) {
-                        ds = fr.resolveUrl(fn + "thedict.gord");
+                        ds = fileReader.resolveUrl(fn + "thedict.gord");
                     }
                 }
                 if (ds.exists()) inst = Collections.singletonList(Instant.ofEpochMilli(ds.getSourceMetadata().getLastModified()));
             }
             ret = new RowDataType(fn,inst);
         } else {
-            Path filePath = Paths.get(fn);
-            if (!filePath.isAbsolute()) {
+            String filePath = fn;
+            if (!PathUtils.isAbsolutePath(filePath)) {
                 if (standalone != null && standalone.length() > 0) {
                     int k = standalone.indexOf(' ');
                     if (k == -1) k = standalone.length();
-                    filePath = Paths.get(standalone.substring(0, k)).resolve(fn);
+                    filePath = PathUtils.resolve(standalone.substring(0, k),fn);
                 } else {
-                    filePath = Paths.get(fn);
-                    if (!filePath.isAbsolute() && !Files.exists(filePath)) {
-                        filePath = fileroot.resolve(filePath).normalize().toAbsolutePath();
+                    if (!PathUtils.isAbsolutePath(filePath) && !fileReader.exists(filePath)) {
+                        filePath = PathUtils.resolve(fileroot,filePath);
                     }
                 }
             }
-            var linkPath = Path.of(filePath +".link");
-            if (!Files.exists(filePath) && Files.exists(linkPath)) {
-                return translatePath(Files.readString(linkPath).trim(), fileroot, standalone, fr);
-            }
+            /*var linkPath = filePath +".link";
+            if (!fileReader.exists(filePath) && fileReader.exists(linkPath)) {
+                return translatePath(Files.readString(Path.of(linkPath)).trim(), fileroot, standalone, fileReader);
+            }*/
+            var ds = fileReader.resolveUrl(filePath);
             List<Instant> inst;
             try {
-                inst = Collections.singletonList(Files.getLastModifiedTime(filePath).toInstant());
+                inst = Collections.singletonList(Instant.ofEpochMilli(ds.getSourceMetadata().getLastModified()));
             } catch (IOException e) {
                 inst = Collections.emptyList();
             }
-            ret = new RowDataType(filePath.toString(),inst);
+            ret = new RowDataType(ds.getFullPath(),inst);
         }
         return ret;
     }
@@ -201,7 +206,7 @@ public class SparkRowUtilities {
         return gdt;
     }
 
-    public static Dataset<? extends org.apache.spark.sql.Row> registerFile(String[] fns, String name, String profile, GorSparkSession gorSparkSession, String standalone, Path fileroot, Path cacheDir, boolean usestreaming, String filter, String filterFile, String filterColumn, String splitFile, final boolean nor, final String chr, final int pos, final int end, final String jobid, String cacheFile, boolean cpp, boolean tag, StructType schema, Map<String,String> readOptions) throws IOException, DataFormatException {
+    public static Dataset<? extends org.apache.spark.sql.Row> registerFile(String[] fns, String name, String profile, GorSparkSession gorSparkSession, String standalone, String fileroot, String cacheDir, boolean usestreaming, String filter, String filterFile, String filterColumn, String splitFile, final boolean nor, final String chr, final int pos, final int end, final String jobid, String cacheFile, boolean cpp, boolean tag, StructType schema, Map<String,String> readOptions) throws IOException, DataFormatException {
         String fn = fns[0];
         boolean curlyQuery = fn.startsWith("{");
         boolean nestedQuery = fn.startsWith("<(") || curlyQuery;
@@ -209,23 +214,23 @@ public class SparkRowUtilities {
         String fileName;
         String tempViewName;
         List<Instant> inst;
+        var fileReader = (DriverBackedFileReader)gorSparkSession.getProjectContext().getFileReader();
         if (nestedQuery) {
             fileName = fn.substring(curlyQuery ? 1 : 2, fn.length() - 1);
-            var gorpred = getFileEndingPredicate();
+            var gorpred = getFileEndingTimestampPredicate();
             java.util.function.Function<String, Stream<String>> gorfileflat;
             gorfileflat = p -> p.startsWith("(") ? Arrays.stream(CommandParseUtilities.quoteCurlyBracketsSafeSplit(p.substring(1, p.length() - 1), ' ')).filter(gorpred) : Stream.of(p);
             var cmdsplit = CommandParseUtilities.quoteCurlyBracketsSafeSplit(fileName, ' ');
-            inst = Arrays.stream(cmdsplit).flatMap(gorfileflat).filter(gorpred).map(Paths::get).map(p -> p.isAbsolute() ? p : fileroot.resolve(p)).map(p -> {
+            inst = Arrays.stream(cmdsplit).flatMap(gorfileflat).filter(gorpred).map(p -> PathUtils.isAbsolutePath(p) ? p : PathUtils.resolve(fileroot,p)).map(p -> {
                 try {
-                    return Files.getLastModifiedTime(p).toInstant();
+                    return Instant.ofEpochMilli(fileReader.resolveUrl(p).getSourceMetadata().getLastModified());
                 } catch (IOException e) {
                    return null;
                 }
             }).filter(Objects::nonNull).collect(Collectors.toList());
             tempViewName = generateTempViewName(fileName, usestreaming, filter, chr, pos, end, inst);
         } else {
-            var fr = gorSparkSession.getProjectContext().getFileReader();
-            var rdt = translatePath(fn, fileroot, standalone, fr);
+            var rdt = translatePath(fn, fileroot, standalone, fileReader);
             fileName = rdt.path;
             inst = rdt.getTimestamp();
             tempViewName = generateTempViewName(fileName, usestreaming, filter, chr, pos, end, inst);
