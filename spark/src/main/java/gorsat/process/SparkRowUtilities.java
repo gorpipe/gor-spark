@@ -161,17 +161,18 @@ public class SparkRowUtilities {
                     }
                 }
             }
-            var linkPath = filePath +".link";
+            /*var linkPath = filePath +".link";
             if (!fileReader.exists(filePath) && fileReader.exists(linkPath)) {
                 return translatePath(Files.readString(Path.of(linkPath)).trim(), fileroot, standalone, fileReader);
-            }
+            }*/
+            var ds = fileReader.resolveUrl(filePath);
             List<Instant> inst;
             try {
-                inst = Collections.singletonList(Instant.ofEpochMilli(fileReader.resolveUrl(filePath).getSourceMetadata().getLastModified()));
+                inst = Collections.singletonList(Instant.ofEpochMilli(ds.getSourceMetadata().getLastModified()));
             } catch (IOException e) {
                 inst = Collections.emptyList();
             }
-            ret = new RowDataType(filePath,inst);
+            ret = new RowDataType(ds.getFullPath(),inst);
         }
         return ret;
     }
