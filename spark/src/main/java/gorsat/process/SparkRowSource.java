@@ -791,17 +791,16 @@ public class SparkRowSource extends ProcessSource {
                                 dfw = gorformat ? dfw.format("gor") : dfw.format("parquet");
                                 dfw.mode(SaveMode.Overwrite).save(resolvedPath);
 
-                                if (gorformat) {
-                                    org.apache.hadoop.fs.Path hp = new org.apache.hadoop.fs.Path(resolvedPath);
-                                    if (parquetPath.equals(dictPath)) {
-                                        writeDictionary(hp, hp);
-                                    } else {
-                                        if (fileroot != null && !PathUtils.isAbsolutePath(dictPath)) {
-                                            dictPath = PathUtils.resolve(fileroot, dictPath);
-                                        }
-                                        org.apache.hadoop.fs.Path dp = new org.apache.hadoop.fs.Path(dictPath);
-                                        writeDictionary(hp, dp);
+                            if (gorformat) {
+                                org.apache.hadoop.fs.Path hp = new org.apache.hadoop.fs.Path(resolvedPath);
+                                if (parquetPath.equals(dictPath)) {
+                                    writeDictionary(hp, hp);
+                                } else {
+                                    if (fileroot != null && !PathUtils.isAbsolutePath(dictPath)) {
+                                        dictPath = PathUtils.resolve(fileroot,dictPath);
                                     }
+                                    org.apache.hadoop.fs.Path dp = new org.apache.hadoop.fs.Path(dictPath);
+                                    writeDictionary(hp, dp);
                                 }
                             }
                         }
