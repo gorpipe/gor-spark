@@ -11,6 +11,7 @@ import org.gorpipe.gor.session.GorSession;
 import org.gorpipe.gor.session.GorSessionCache;
 import org.gorpipe.gor.session.ProjectContext;
 import org.gorpipe.gor.session.SystemContext;
+import org.gorpipe.gor.table.util.PathUtils;
 
 
 import java.nio.file.Files;
@@ -97,7 +98,7 @@ public class SparkSessionFactory extends GorSessionFactory {
             .setRoot(securityContext != null ? root+securityContext : root)
             .setCacheDir(cacheDir)
             .setFileReader(fileReader)
-            .setFileCache(new LocalFileCacheClient(fileReader, cacheDir))
+            .setFileCache(new LocalFileCacheClient(fileReader, PathUtils.resolve(root,cacheDir)))
             .setQueryHandler(sparkQueryHandler)
             .setQueryEvaluator(new SessionBasedQueryEvaluator(session));
 

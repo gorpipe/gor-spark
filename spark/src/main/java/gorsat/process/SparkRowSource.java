@@ -38,6 +38,7 @@ import org.gorpipe.gor.model.*;
 import org.gorpipe.gor.model.FileReader;
 import org.gorpipe.gor.model.Row;
 import org.gorpipe.gor.session.GorSession;
+import org.gorpipe.gor.table.util.PathUtils;
 import org.gorpipe.spark.*;
 import gorsat.Commands.Analysis;
 import gorsat.Commands.CommandParseUtilities;
@@ -90,17 +91,16 @@ public class SparkRowSource extends ProcessSource {
         if (root != null && root.length() > 0) {
             int i = root.indexOf(' ');
             if (i == -1) i = root.length();
-            fileroot = Paths.get(root.substring(0, i));
-            cachepath = Paths.get(cachedir != null && cachedir.length() > 0 ? cachedir : "result_cache");
-            if(!cachepath.isAbsolute()) cachepath = fileroot.resolve(cachepath);
+            fileroot = root.substring(0, i);
+            cachepath = cachedir != null && cachedir.length() > 0 ? cachedir : "result_cache";
+            if(!PathUtils.isAbsolutePath(cachepath)) cachepath = PathUtils.resolve(fileroot,cachepath);
         }
     }
 
-    private StructType loadSchema(String ddl, Path root) {
+    private StructType loadSchema(String ddl, String root) {
         if (ddl.toLowerCase().endsWith(".xsd")) {
-            var ddlPath = Paths.get(ddl);
-            if (!ddlPath.isAbsolute()) ddlPath = root.resolve(ddlPath);
-            return XSDToSchema.read(ddlPath);
+            if (!PathUtils.isAbsolutePath(ddl)) ddl = PathUtils.resolve(root,ddl);
+            return XSDToSchema.read(ddl);
         } else if(ddl.startsWith("<")) {
             return XSDToSchema.read(ddl);
         }
@@ -199,7 +199,7 @@ public class SparkRowSource extends ProcessSource {
 
             String standalone = System.getProperty("sm.standalone");
 
-            FileReader fileReader = gorSparkSession.getProjectContext().getFileReader();
+            DriverBackedFileReader fileReader = (DriverBackedFileReader) gorSparkSession.getProjectContext().getFileReader();
             inner = p -> {
                 if (p.startsWith("(")) {
                     String[] cmdspl = CommandParseUtilities.quoteCurlyBracketsSafeSplit(p.substring(1, p.length() - 1), ' ');
@@ -215,9 +215,9 @@ public class SparkRowSource extends ProcessSource {
                     if (nestedQuery) {
                         fileName = p.substring(2, p.length() - 1);
                         var scmdsplit = CommandParseUtilities.quoteCurlyBracketsSafeSplit(fileName, ' ');
-                        inst = Arrays.stream(scmdsplit).flatMap(gorfileflat).filter(gorpred).map(Paths::get).map(sp -> sp.isAbsolute() ? sp : fileroot.resolve(sp)).map(sp -> {
+                        inst = Arrays.stream(scmdsplit).flatMap(gorfileflat).filter(gorpred).map(sp -> PathUtils.isAbsolutePath(sp) ? sp : PathUtils.resolve(fileroot,sp)).map(sp -> {
                             try {
-                                return Files.getLastModifiedTime(sp).toInstant();
+                                return Instant.ofEpochMilli(fileReader.resolveUrl(sp).getSourceMetadata().getLastModified());
                             } catch (IOException e) {
                                 // Failed getLastModifiedTime are not part of the signature
                                 return null;
@@ -241,9 +241,7 @@ public class SparkRowSource extends ProcessSource {
             parqfunc = p -> {
                 try {
                     if (p.toLowerCase().endsWith(".link")) {
-                        String fileName = SparkRowUtilities.translatePath(p, fileroot, standalone, fileReader).path;
-                        var path = Path.of(fileName);
-                        p = Files.readString(path).trim();
+                        p = SparkRowUtilities.translatePath(p, fileroot, standalone, fileReader).path;
                     }
                     if (p.toLowerCase().endsWith(".parquet") && !(p.toLowerCase().startsWith("parquet.") || p.startsWith("s3a://") || p.startsWith("s3://"))) {
                         String fileName = SparkRowUtilities.translatePath(p, fileroot, standalone, fileReader).path;
@@ -303,8 +301,8 @@ public class SparkRowSource extends ProcessSource {
     boolean nor;
     ProcessBuilder pb;
     Process p;
-    Path fileroot = null;
-    Path cachepath = null;
+    String fileroot = null;
+    String cachepath = null;
     String parquetPath = null;
     String dictPath = null;
     int pcacomponents = 10;
@@ -478,7 +476,7 @@ public class SparkRowSource extends ProcessSource {
             if (root != null && root.length() > 0) {
                 int i = root.indexOf(' ');
                 if (i == -1) i = root.length();
-                fileroot = Paths.get(root.substring(0, i));
+                fileroot = root.substring(0, i);
             }
         }
 
@@ -494,7 +492,7 @@ public class SparkRowSource extends ProcessSource {
         try {
             List<String> rcmd = headercommands.stream().filter(p -> p.length() > 0).collect(Collectors.toList());
             pb = new ProcessBuilder(rcmd);
-            if (fileroot != null) pb.directory(fileroot.toFile());
+            if (fileroot != null) pb.directory(Path.of(fileroot).toFile());
             p = pb.start();
             Thread errorThread = new Thread(() -> {
                 try {
@@ -733,17 +731,16 @@ public class SparkRowSource extends ProcessSource {
                         exists = ds.exists();
                         URI uri = URI.create(ds.getSourceReference().getUrl());
                         if(!uri.isAbsolute() && fileroot!=null) {
-                            resolvedPath = fileroot.resolve(parquetPath).toAbsolutePath().normalize().toString();
+                            resolvedPath = PathUtils.resolve(fileroot,parquetPath);
                         } else {
                             resolvedPath = ds.getSourceReference().getUrl();
                         }
                     } else {
-                        Path pPath = Paths.get(parquetPath);
-                        if (fileroot != null && !pPath.isAbsolute()) {
-                            pPath = fileroot.resolve(pPath);
+                        if (fileroot != null && !PathUtils.isAbsolutePath(parquetPath)) {
+                            parquetPath = PathUtils.resolve(fileroot,parquetPath);
                         }
-                        exists = Files.exists(pPath);
-                        resolvedPath = pPath.toAbsolutePath().normalize().toString();
+                        exists = fileReader.exists(parquetPath);
+                        resolvedPath = parquetPath;
                     }
                         /*if (!checkNor(dataset.schema().fields())) {
                             String path = pPath.resolve(pPath.getFileName().toString() + ".gorp").toAbsolutePath().normalize().toString();
@@ -783,12 +780,10 @@ public class SparkRowSource extends ProcessSource {
                                 if (parquetPath.equals(dictPath)) {
                                     writeDictionary(hp, hp);
                                 } else {
-                                    Path dPath = Paths.get(dictPath);
-                                    if (fileroot != null && !dPath.isAbsolute()) {
-                                        dPath = fileroot.resolve(dPath);
+                                    if (fileroot != null && !PathUtils.isAbsolutePath(dictPath)) {
+                                        dictPath = PathUtils.resolve(fileroot,dictPath);
                                     }
-                                    String dictPathStr = dPath.toAbsolutePath().normalize().toString();
-                                    org.apache.hadoop.fs.Path dp = new org.apache.hadoop.fs.Path(dictPathStr);
+                                    org.apache.hadoop.fs.Path dp = new org.apache.hadoop.fs.Path(dictPath);
                                     writeDictionary(hp, dp);
                                 }
                             }
@@ -895,7 +890,7 @@ public class SparkRowSource extends ProcessSource {
                 p.destroy();
             }
             pb = new ProcessBuilder(seekcmd.stream().filter(p -> p.length() > 0).collect(Collectors.toList()));
-            if (fileroot != null) pb.directory(fileroot.toFile());
+            if (fileroot != null) pb.directory(Path.of(fileroot).toFile());
             p = pb.start();
 
             Thread errorThread = new Thread(() -> {

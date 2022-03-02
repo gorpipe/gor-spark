@@ -401,7 +401,7 @@ class QueryRDD(private val sparkSession: SparkSession, private val sqlContext: S
         // We are using absolute paths here
         val startTime = System.currentTimeMillis
         var extension: String = null
-        val fileReader = new DriverBackedFileReader(null, projectDirectory, null)
+
         val tableHeader = new TableHeader
         tableHeader.setColumns(Array("filepath","alias","startchrom","startpos","endchrom","endpos","tags"))
         if (commandToExecute.startsWith("gordictpart")) {
@@ -452,24 +452,24 @@ class QueryRDD(private val sparkSession: SparkSession, private val sqlContext: S
           extension = ".gord"
         } else {
           val temp_cacheFile = AnalysisUtilities.getTempFileName(cacheFile)
-          val parquet = if (temp_cacheFile.endsWith(""".parquet""")) PathUtils.resolve(projectDirectory,temp_cacheFile) else null
+          val parquet = if (temp_cacheFile.endsWith(""".parquet""")) PathUtils.resolve(projectDirectory, temp_cacheFile) else null
           DynIterator.createGorIterator = (gorContext: GorContext) => {
             PipeInstance.createGorIterator(gorContext)
           }
           val theSource = new DynamicRowSource(commandToExecute, gorPipeSession.getGorContext, true)
           val theHeader = theSource.getHeader
 
-          val oldName = PathUtils.resolve(projectDirectory,temp_cacheFile)
+          val oldName = PathUtils.resolve(projectDirectory, temp_cacheFile)
           try {
             val nor = theSource.isNor
             val grc = if (gorPipeSession.getSystemContext.getRunnerFactory != null) gorPipeSession.getSystemContext.getRunnerFactory else new GenericRunnerFactory()
             val runner = grc.create()
             runner.run(theSource, if (parquet != null) null else OutFile(oldName, gorPipeSession.getProjectContext.getFileReader, theHeader, skipHeader = false, columnCompress = nor, nor = true, md5 = true, md5File = true, GorIndexType.NONE, Option.empty))
-            Files.move(Path.of(oldName), Path.of(cpath))
+            fileReader.move(oldName, cpath)
           } catch {
             case e: Exception =>
               try {
-                Files.delete(Path.of(oldName))
+                fileReader.delete(oldName)
               } catch {
                 case _: Exception => /* do nothing */
               }

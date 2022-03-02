@@ -107,7 +107,7 @@ public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long>, Au
         String cacheDir = DEFAULT_CACHE_DIR;
         String configFile = System.getProperty("gor.project.config.path","config/gor_config.txt");
         String aliasFile = System.getProperty("gor.project.alias.path","config/gor_standard_aliases.txt");
-        configFile = PathUtils.resolve(projectDirStr, configFile);
+        configFile = PathUtils.resolve(projectDirStr,configFile);
         aliasFile = PathUtils.resolve(projectDirStr,aliasFile);
 
         RedisSparkQueryHandler queryHandler = new RedisSparkQueryHandler(gss, gss.redisUri());
@@ -121,7 +121,7 @@ public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long>, Au
                 .setConfigFile(configFile)
                 .setAliasFile(aliasFile)
                 .setQueryHandler(queryHandler)
-                .setFileCache(new LocalFileCacheClient(fileReader, cacheDir))
+                .setFileCache(new LocalFileCacheClient(fileReader, PathUtils.resolve(projectDirStr,cacheDir)))
                 .build();
 
         GorSessionCache cache = GorSessionCacheManager.getCache(gss.getRequestId());

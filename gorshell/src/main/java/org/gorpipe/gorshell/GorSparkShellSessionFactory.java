@@ -73,9 +73,9 @@ public class GorSparkShellSessionFactory extends GorShellSessionFactory {
         var fileReader = new DriverBackedFileReader("", this.root, null);
         FileCache fileCache;
         if(fileCacheEnabled) {
-            fileCache = new LocalFileCacheClient(fileReader,this.cacheDir);
+            fileCache = new LocalFileCacheClient(fileReader, this.cacheDir);
         } else {
-            fileCache = new NoCacheFileCacheClient(fileReader,this.cacheDir);
+            fileCache = new NoCacheFileCacheClient(fileReader, this.cacheDir);
         }
 
         projectContextBuilder
