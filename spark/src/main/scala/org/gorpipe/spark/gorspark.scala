@@ -420,7 +420,7 @@ class QueryRDD(private val sparkSession: SparkSession, private val sqlContext: S
           })
           val header = fileReader.readHeaderLine(dictFiles.head).split("\t")
           tableHeader.setColumns(header)
-          AnalysisUtilities.writeList(/*fileReader,*/ Path.of(cpath), tableHeader.formatHeader(), dictList)
+          AnalysisUtilities.writeList(fileReader, cpath, tableHeader.formatHeader(), dictList)
           extension = ".gord"
         } else if (commandToExecute.startsWith("gordict")) {
           overheadTime = 1000 * 60 * 10 // 10 minutes
@@ -445,7 +445,7 @@ class QueryRDD(private val sparkSession: SparkSession, private val sqlContext: S
           })
           val header = fileReader.readHeaderLine(dictFiles.head).split("\t")
           tableHeader.setColumns(header)
-          AnalysisUtilities.writeList(/*fileReader,*/ Path.of(cpath), tableHeader.formatHeader(), dictList)
+          AnalysisUtilities.writeList(fileReader, cpath, tableHeader.formatHeader(), dictList)
           extension = ".gord"
         } else {
           val temp_cacheFile = AnalysisUtilities.getTempFileName(cacheFile)
