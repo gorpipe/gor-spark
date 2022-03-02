@@ -126,10 +126,13 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
         this.useCpp = useCpp;
         this.hadoopInfer = hadoopInfer;
         if(path!=null) {
-            this.ppath = new Path(path);
+            this.ppath = new Path(path.replace("s3://","s3a://"));
             Configuration conf = new Configuration();
-            //conf.set("fs.s3a.endpoint","localhost:4566");
-            conf.set("fs.s3a.connection.ssl.enabled","false");
+            //conf.set("fs.s3a.endpoint","s3.amazonaws.com"); //""localhost:4566");
+            //conf.set("fs.s3a.access.key","AKIAXYKEODZGJN4WLHMQ");
+            //conf.set("fs.s3a.secret.key","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");
+            //spark.hadoop.fs.s3.awsAccessKeyId
+            conf.set("fs.s3a.connection.ssl.enabled","false");//"false");
             conf.set("fs.s3a.path.style.access","true");
             conf.set("fs.s3a.impl","org.apache.hadoop.fs.s3a.S3AFileSystem");
             conf.set("fs.s3a.change.detection.mode","warn");
@@ -137,7 +140,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
             conf.set("fs.s3a.committer.name","partitioned");
             conf.set("fs.s3a.committer.staging.conflict-mode","replace");
             conf.set("spark.delta.logStore.class","org.apache.spark.sql.delta.storage.S3SingleDriverLogStore");
-            conf.set("fs.s3a.aws.credentials.provider","org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider");
+            //conf.set("fs.s3a.aws.credentials.provider","org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider");
             this.fs = ppath.getFileSystem(conf);
         }
         checkSeek(seek);
