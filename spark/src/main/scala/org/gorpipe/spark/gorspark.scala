@@ -389,11 +389,8 @@ class QueryRDD(private val sparkSession: SparkSession, private val sqlContext: S
       }
       log.debug("CacheFile decided at {}", cacheFile)
 
+      val fileReader = new DriverBackedFileReader(null, projectDirectory, null)
       // Do this if we have result cache active or if we are running locally and the local cacheFile does not exist.
-      //val projectPath = Paths.get(projectDirectory)
-      val sessionFactory = new GenericSessionFactory(projectDirectory, null)
-      val gorPipeSession = sessionFactory.create() //new GorSession("")
-      val fileReader = gorPipeSession.getProjectContext.getFileReader
       val path = new org.apache.hadoop.fs.Path(cacheFile)
       val cpath = PathUtils.resolve(projectDirectory,cacheFile)
       val md5 = hash != null
@@ -453,6 +450,8 @@ class QueryRDD(private val sparkSession: SparkSession, private val sqlContext: S
         } else {
           val temp_cacheFile = AnalysisUtilities.getTempFileName(cacheFile)
           val parquet = if (temp_cacheFile.endsWith(""".parquet""")) PathUtils.resolve(projectDirectory, temp_cacheFile) else null
+          val sessionFactory = new GenericSessionFactory(projectDirectory, null)
+          val gorPipeSession = sessionFactory.create() //new GorSession("")
           DynIterator.createGorIterator = (gorContext: GorContext) => {
             PipeInstance.createGorIterator(gorContext)
           }
