@@ -31,7 +31,6 @@ import org.apache.spark.sql.expressions.UserDefinedFunction;
 
 import org.apache.spark.sql.expressions.Window;
 import org.gorpipe.exceptions.GorResourceException;
-import org.gorpipe.gor.binsearch.RowBuffer;
 import org.gorpipe.gor.driver.DataSource;
 import org.gorpipe.gor.driver.providers.stream.datatypes.bam.BamIterator;
 import org.gorpipe.gor.model.*;
@@ -43,6 +42,7 @@ import org.gorpipe.spark.*;
 import gorsat.Commands.Analysis;
 import gorsat.Commands.CommandParseUtilities;
 import gorsat.DynIterator;
+import gorsat.RowBuffer;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SamInputResource;
 import htsjdk.samtools.SamReader;
