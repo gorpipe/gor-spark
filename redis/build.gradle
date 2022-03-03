@@ -50,7 +50,7 @@ jib {
         entrypoint = '/opt/entrypoint.sh'
         workingDirectory = '/opt/spark/work-dir/'
         appRoot = '/opt/spark/'
-        environment = [JAVA_TOOL_OPTIONS:'--add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED',SPARK_EXTRA_CLASSPATH:'/opt/spark/classpath/*']
+        environment = [JAVA_TOOL_OPTIONS:'-Djdk.lang.processReaperUseDefaultStackSize=true --add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED',SPARK_EXTRA_CLASSPATH:'/opt/spark/classpath/*']
     }
     extraDirectories {
         permissions = ['/usr/bin/spark-operator':'777','/usr/bin/entrypoint.sh':'777','/usr/bin/gencerts.sh':'777']
