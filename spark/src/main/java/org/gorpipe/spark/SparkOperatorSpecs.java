@@ -51,10 +51,10 @@ public class SparkOperatorSpecs {
 
     void addArray(String[] resources) {
         for (String config : resources) {
-            String[] confSplit = CommandParseUtilities.quoteSafeSplit(config, '=');
-            if (confSplit.length==2) {
-                var key = confSplit[0];
-                var value = confSplit[1];
+            var i = config.indexOf('=');
+            if (i > 0) {
+                var key = config.substring(0,i).trim();
+                var value = config.substring(i+1).trim();
                 if (value.startsWith("'")) {
                     addConfig(key, value.substring(1,value.length()-1));
                 } else {
