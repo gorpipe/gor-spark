@@ -49,6 +49,38 @@ public class UTestSparkPCA {
     }
 
     @Test
+    @Ignore("Finish")
+    public void testSparkRFModelWrite() throws IOException {
+        var str = "Chrom\tpos\tref\talt\tlabel\tone\ttwo\ttre\n" +
+            "chr1\t1\tA\tG\t1.0\t0.0\t1.0\t0.5\n" +
+            "chr1\t2\tA\tG\t1.0\t0.0\t0.0\t0.5\n" +
+            "chr1\t3\tA\tG\t0.0\t0.0\t0.5\t0.5\n" +
+            "chr1\t4\tA\tG\t0.0\t1.0\t1.0\t0.5\n" +
+            "chr1\t5\tA\tG\t1.0\t1.0\t0.5\t0.5\n" +
+            "chr1\t6\tA\tG\t1.0\t0.0\t1.0\t1.0\n" +
+            "chr1\t7\tA\tG\t0.0\t0.0\t0.5\t1.0\n" +
+            "chr1\t8\tA\tG\t0.0\t0.0\t1.0\t0.0\n" +
+            "chr1\t9\tA\tG\t1.0\t0.0\t1.0\t0.5\n" +
+            "chr1\t10\tA\tG\t1.0\t0.0\t1.0\t0.5\n" +
+            "chr1\t11\tA\tG\t0.0\t0.0\t1.0\t0.5\n" +
+            "chr1\t12\tA\tG\t0.0\t0.0\t1.0\t0.5\n";
+        var gorfile = Path.of("test.gor");
+        Files.writeString(gorfile, str);
+        var query = "create #model# = select * from <(gor test.gor | cols2list -gc ref,alt,label one-tre features) | replace features listtovector(features) | fit -randomforest 2;" +
+                "create #predictions# = select * from <(gor test.gor | cols2list -gc ref,alt,label one-tre features) | replace features listtovector(features) | transform [#model#];" +
+                "nor [#predictions#]";
+        var res = TestUtils.runGorPipe(pi, query);
+
+        /*query = "create #model# = select * from <(gor train.gor | cols2list -gc ref,alt,label one-tre features) | replace features listtovector(features) | write -randomforest 2 /Users/sigmar/my.rf;" +
+                "create #predictions# = select * from <(gor test.gor | cols2list -gc ref,alt,label one-tre features) | replace features listtovector(features) | transform [#model#];" +
+                "create #accuracy# = select * from [#predictions#] | evaluate;" +
+                "nor [#accuracy#]";
+        res = TestUtils.runGorPipe(pi, query);*/
+
+        System.err.println(res);
+    }
+
+    @Test
     @Ignore("Investigate threading issue")
     public void testSparkPCAModelWrite() throws IOException {
         Path bucketFile = Paths.get("buckets.tsv");
