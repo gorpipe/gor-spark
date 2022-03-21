@@ -81,16 +81,14 @@ public class SparkRowSource extends ProcessSource {
         return nor;
     }
 
-    private void initFileRoot(GorSession gpSession) {
-        String root = gpSession.getProjectContext().getRoot();
+    private String initFileRoot(GorSession gpSession) {
+        var fileroot = ((DriverBackedFileReader)gpSession.getProjectContext().getFileReader()).getCommonRoot();
         String cachedir = gpSession.getProjectContext().getCacheDir();
-        if (root != null && root.length() > 0) {
-            int i = root.indexOf(' ');
-            if (i == -1) i = root.length();
-            fileroot = root.substring(0, i);
+        if (fileroot != null && fileroot.length() > 0) {
             cachepath = cachedir != null && cachedir.length() > 0 ? cachedir : "result_cache";
             if(!PathUtils.isAbsolutePath(cachepath)) cachepath = PathUtils.resolve(fileroot,cachepath);
         }
+        return fileroot;
     }
 
     private StructType loadSchema(String ddl, String root) {
@@ -145,7 +143,7 @@ public class SparkRowSource extends ProcessSource {
         if (parquet != null && Files.exists(Paths.get(parquet))) {
             dataset = gpSession.getSparkSession().read().parquet(parquet);
         } else if(format != null) {
-            initFileRoot(gpSession);
+            var fileroot = initFileRoot(gpSession);
             var dataFrameReader = gpSession.getSparkSession().read().format(format);
             for (Map.Entry<String,String> entry : options.entrySet()) {
                 dataFrameReader = dataFrameReader.option(entry.getKey(),entry.getValue());
@@ -185,7 +183,7 @@ public class SparkRowSource extends ProcessSource {
             this.start = pos;
             this.end = end;
 
-            initFileRoot(gpSession);
+            var fileroot = initFileRoot(gpSession);
 
             String[] cmdsplit = CommandParseUtilities.quoteCurlyBracketsSafeSplit(sql, ' ');
             commands.addAll(Arrays.asList(cmdsplit));
@@ -222,7 +220,7 @@ public class SparkRowSource extends ProcessSource {
                     } else {
                         RowDataType rdt;
                         try {
-                            rdt = SparkRowUtilities.translatePath(p, fileroot, standalone, fileReader);
+                            rdt = SparkRowUtilities.translatePath(p, standalone, fileReader);
                         } catch (IOException e) {
                             throw new GorResourceException("Unable to read from link file", p, e);
                         }
@@ -237,10 +235,10 @@ public class SparkRowSource extends ProcessSource {
             parqfunc = p -> {
                 try {
                     if (p.toLowerCase().endsWith(".link")) {
-                        p = SparkRowUtilities.translatePath(p, fileroot, standalone, fileReader).path;
+                        p = SparkRowUtilities.translatePath(p, standalone, fileReader).path;
                     }
                     if (p.toLowerCase().endsWith(".parquet") && !(p.toLowerCase().startsWith("parquet.") || p.startsWith("s3a://") || p.startsWith("s3://"))) {
-                        String fileName = SparkRowUtilities.translatePath(p, fileroot, standalone, fileReader).path;
+                        String fileName = SparkRowUtilities.translatePath(p, standalone, fileReader).path;
                         return "parquet.`" + fileName + "`";
                     } else return p;
                 } catch (IOException e) {
@@ -258,19 +256,19 @@ public class SparkRowSource extends ProcessSource {
                 sql = Arrays.stream(cmdsplit).map(inner).map(gorfunc).collect(Collectors.joining(" "));
                 fileNames = Arrays.stream(cmdsplit).flatMap(gorfileflat).filter(gorpred).toArray(String[]::new);
                 for (String fn : fileNames) {
-                    if (gorSparkSession.getSystemContext().getServer()) DriverBackedGorServerFileReader.validateServerFileName(fn, fileroot.toString(), true);
+                    if (gorSparkSession.getSystemContext().getServer()) DriverBackedGorServerFileReader.validateServerFileName(fn, fileroot, true);
                     StructType schema = ddl!=null ? loadSchema(ddl, fileroot) : null;
-                    SparkRowUtilities.registerFile(new String[]{fn}, profile,null, gpSession, standalone, fileroot, cachepath, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp, tag, schema, options);
+                    SparkRowUtilities.registerFile(new String[]{fn}, profile,null, gpSession, standalone, cachepath, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp, tag, schema, options);
                 }
                 dataset = gorSparkSession.getSparkSession().sql(sql);
             } else {
                 fileNames = headercommands.toArray(new String[0]);
                 if (fileNames.length == 1 && fileNames[0].toLowerCase().endsWith(".parquet")) {
-                    String parq = SparkRowUtilities.translatePath(fileNames[0], fileroot, standalone, fileReader).path;
+                    String parq = SparkRowUtilities.translatePath(fileNames[0], standalone, fileReader).path;
                     dataset = gpSession.getSparkSession().read().parquet(parq);
                 } else {
                     StructType schema = ddl != null ? loadSchema(ddl, fileroot) : null;
-                    dataset = SparkRowUtilities.registerFile(fileNames, null, profile, gpSession, standalone, fileroot, cachepath, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp, tag, schema, options);
+                    dataset = SparkRowUtilities.registerFile(fileNames, null, profile, gpSession, standalone, cachepath, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp, tag, schema, options);
                 }
             }
 
@@ -297,7 +295,6 @@ public class SparkRowSource extends ProcessSource {
     boolean nor;
     ProcessBuilder pb;
     Process p;
-    String fileroot = null;
     String cachepath = null;
     String parquetPath = null;
     String parquetType = null;
@@ -469,14 +466,14 @@ public class SparkRowSource extends ProcessSource {
         this.start = pos;
         this.end = end;
 
-        if (gpSession != null) {
+        /*if (gpSession != null) {
             String root = gpSession.getProjectContext().getRoot();
             if (root != null && root.length() > 0) {
                 int i = root.indexOf(' ');
                 if (i == -1) i = root.length();
                 fileroot = root.substring(0, i);
             }
-        }
+        }*/
 
         String[] estr = {errorStr};
         for (String cmd : cmds) {
@@ -490,6 +487,8 @@ public class SparkRowSource extends ProcessSource {
         try {
             List<String> rcmd = headercommands.stream().filter(p -> p.length() > 0).collect(Collectors.toList());
             pb = new ProcessBuilder(rcmd);
+            var fileReader = (DriverBackedFileReader)gpSession.getProjectContext().getFileReader();
+            var fileroot = fileReader.getCommonRoot();
             if (fileroot != null) pb.directory(Path.of(fileroot).toFile());
             p = pb.start();
             Thread errorThread = new Thread(() -> {
@@ -722,6 +721,7 @@ public class SparkRowSource extends ProcessSource {
                 try {
                     boolean exists;
                     FileReader fileReader = gorSparkSession.getProjectContext().getFileReader();
+                    var fileroot = ((DriverBackedFileReader) fileReader).getCommonRoot();
                     String resolvedPath;
                     if(fileReader instanceof DriverBackedFileReader) {
                         DriverBackedFileReader driverBackedFileReader = (DriverBackedFileReader)fileReader;
@@ -918,6 +918,8 @@ public class SparkRowSource extends ProcessSource {
                 p.destroy();
             }
             pb = new ProcessBuilder(seekcmd.stream().filter(p -> p.length() > 0).collect(Collectors.toList()));
+            var fileReader = (DriverBackedFileReader)gorSparkSession.getProjectContext().getFileReader();
+            var fileroot = fileReader.getCommonRoot();
             if (fileroot != null) pb.directory(Path.of(fileroot).toFile());
             p = pb.start();
 
@@ -1236,6 +1238,12 @@ public class SparkRowSource extends ProcessSource {
             dataset = gttranspose((Dataset<org.apache.spark.sql.Row>) dataset);
         } else if (gor.toLowerCase().startsWith("pcatransform ")) {
             var pcamodel = gor.substring("pcatransform".length()).trim();
+            var fileReader = (DriverBackedFileReader)gorSparkSession.getProjectContext().getFileReader();
+            try {
+                pcamodel = SparkRowUtilities.translatePath(pcamodel, "", fileReader).path;
+            } catch (IOException e) {
+                throw new GorResourceException("Unable to translate model path", pcamodel);
+            }
             dataset = pcatransform((Dataset<org.apache.spark.sql.Row>) dataset, pcamodel);
         } else if (gor.toLowerCase().startsWith("fit ")) {
             var filename = gor.substring(4).trim();
@@ -1272,6 +1280,12 @@ public class SparkRowSource extends ProcessSource {
             }
         } else if (gor.toLowerCase().startsWith("transform ")) {
             var rfmodel = gor.substring("transform".length()).trim();
+            var fileReader = (DriverBackedFileReader)gorSparkSession.getProjectContext().getFileReader();
+            try {
+                rfmodel = SparkRowUtilities.translatePath(rfmodel, "", fileReader).path;
+            } catch (IOException e) {
+                throw new GorResourceException("Unable to translate model path", rfmodel);
+            }
             dataset = transform((Dataset<org.apache.spark.sql.Row>) dataset, rfmodel);
         } else if (gor.toLowerCase().startsWith("evaluate")) {
             var evaluator = new MulticlassClassificationEvaluator()
