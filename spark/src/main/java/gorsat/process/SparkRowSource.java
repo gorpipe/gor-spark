@@ -209,7 +209,7 @@ public class SparkRowSource extends ProcessSource {
                     if (nestedQuery) {
                         fileName = p.substring(2, p.length() - 1);
                         var scmdsplit = CommandParseUtilities.quoteCurlyBracketsSafeSplit(fileName, ' ');
-                        inst = Arrays.stream(scmdsplit).flatMap(gorfileflat).filter(gorpred).map(sp -> PathUtils.isAbsolutePath(sp) ? sp : PathUtils.resolve(fileroot,sp)).map(sp -> {
+                        inst = Arrays.stream(scmdsplit).flatMap(gorfileflat).filter(gorpred).filter(pf -> !pf.startsWith("<(")).map(sp -> PathUtils.isAbsolutePath(sp) ? sp : PathUtils.resolve(fileroot,sp)).map(sp -> {
                             try {
                                 return Instant.ofEpochMilli(fileReader.resolveUrl(sp).getSourceMetadata().getLastModified());
                             } catch (IOException e) {
@@ -231,6 +231,15 @@ public class SparkRowSource extends ProcessSource {
                 }
                 return p;
             };
+            /*gorfileflat = p -> {
+                if (p.startsWith("<(")) {
+                    return Arrays.stream(CommandParseUtilities.quoteCurlyBracketsSafeSplit(p.substring(2, p.length() - 1), ' ')).flatMap(gorfileflat).filter(gorpred);
+                } else if(p.startsWith("(")) {
+                    return Arrays.stream(CommandParseUtilities.quoteCurlyBracketsSafeSplit(p.substring(1, p.length() - 1), ' ')).flatMap(gorfileflat).filter(gorpred);
+                } else {
+                    return Stream.of(p);
+                }
+            };*/
             gorfileflat = p -> p.startsWith("(") ? Arrays.stream(CommandParseUtilities.quoteCurlyBracketsSafeSplit(p.substring(1, p.length() - 1), ' ')).flatMap(gorfileflat).filter(gorpred) : Stream.of(p);
             parqfunc = p -> {
                 try {
@@ -1049,6 +1058,17 @@ public class SparkRowSource extends ProcessSource {
             var udf1 = org.apache.spark.sql.functions.udf(cda, DataTypes.createArrayType(DataTypes.DoubleType));
             var colRef = formula.substring("listtovector".length() + 1, formula.length() - 1);
             dataset = dataset.withColumn(colName, udf1.apply(dataset.col(colRef)));
+            dataset = dataset.withColumn(colName, org.apache.spark.ml.functions.array_to_vector(dataset.col(colName)));
+        } else if (formula.toLowerCase().startsWith("vector_to_array")) {
+            if (pushdownGorPipe != null) gor();
+            var dtype = "float64";
+            var options = formula.substring(16,formula.length()-1).trim();
+            var osplit = options.split(",");
+            var incol = osplit[0].trim();
+            if(osplit.length>1) dtype = osplit[1].trim();
+            dataset = dataset.withColumn(colName, org.apache.spark.ml.functions.vector_to_array(dataset.col(incol), dtype));
+        } else if (formula.toLowerCase().startsWith("array_to_vector")) {
+            if (pushdownGorPipe != null) gor();
             dataset = dataset.withColumn(colName, org.apache.spark.ml.functions.array_to_vector(dataset.col(colName)));
         } else if (pushdownGorPipe != null) {
             pushdownGor("calc " + colName + " " + formula);
