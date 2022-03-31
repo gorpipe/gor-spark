@@ -27,9 +27,11 @@ project(':gorshell') {
         }
         implementation project(':model') {
             exclude group: 'ch.qos.logback', module: 'logback-classic'
+            exclude group: 'org.scalanlp', module: 'breeze_2.12'
         }
         implementation(project(':gortools')) {
             exclude group: 'ch.qos.logback', module: 'logback-classic'
+            exclude group: 'org.scalanlp', module: 'breeze_2.12'
             exclude group: 'net.sourceforge.f2j', module: 'arpack_combined_all'
         }
         implementation project(':scripts') {
@@ -81,6 +83,12 @@ project(':gorshell') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
+        }
+
+        implementation('org.scalanlp:breeze_2.12') {
+            version {
+                strictly "1.2"
+            }
         }
 
         implementation group: 'com.redislabs', name: 'spark-redis_2.12', version: '2.6.0'

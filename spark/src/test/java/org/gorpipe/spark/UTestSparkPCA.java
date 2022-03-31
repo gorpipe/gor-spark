@@ -49,6 +49,38 @@ public class UTestSparkPCA {
     }
 
     @Test
+    @Ignore("Finish")
+    public void testSparkRFModelWrite() throws IOException {
+        var str = "Chrom\tpos\tref\talt\tlabel\tone\ttwo\ttre\n" +
+            "chr1\t1\tA\tG\t1.0\t0.0\t1.0\t0.5\n" +
+            "chr1\t2\tA\tG\t1.0\t0.0\t0.0\t0.5\n" +
+            "chr1\t3\tA\tG\t0.0\t0.0\t0.5\t0.5\n" +
+            "chr1\t4\tA\tG\t0.0\t1.0\t1.0\t0.5\n" +
+            "chr1\t5\tA\tG\t1.0\t1.0\t0.5\t0.5\n" +
+            "chr1\t6\tA\tG\t1.0\t0.0\t1.0\t1.0\n" +
+            "chr1\t7\tA\tG\t0.0\t0.0\t0.5\t1.0\n" +
+            "chr1\t8\tA\tG\t0.0\t0.0\t1.0\t0.0\n" +
+            "chr1\t9\tA\tG\t1.0\t0.0\t1.0\t0.5\n" +
+            "chr1\t10\tA\tG\t1.0\t0.0\t1.0\t0.5\n" +
+            "chr1\t11\tA\tG\t0.0\t0.0\t1.0\t0.5\n" +
+            "chr1\t12\tA\tG\t0.0\t0.0\t1.0\t0.5\n";
+        var gorfile = Path.of("test.gor");
+        Files.writeString(gorfile, str);
+        var query = "create #model# = select * from <(gor test.gor | cols2list -gc ref,alt,label one-tre features) | replace features listtovector(features) | fit -randomforest 2;" +
+                "create #predictions# = select * from <(gor test.gor | cols2list -gc ref,alt,label one-tre features) | replace features listtovector(features) | transform [#model#];" +
+                "nor [#predictions#]";
+        var res = TestUtils.runGorPipe(pi, query);
+
+        /*query = "create #model# = select * from <(gor train.gor | cols2list -gc ref,alt,label one-tre features) | replace features listtovector(features) | write -randomforest 2 /Users/sigmar/my.rf;" +
+                "create #predictions# = select * from <(gor test.gor | cols2list -gc ref,alt,label one-tre features) | replace features listtovector(features) | transform [#model#];" +
+                "create #accuracy# = select * from [#predictions#] | evaluate;" +
+                "nor [#accuracy#]";
+        res = TestUtils.runGorPipe(pi, query);*/
+
+        System.err.println(res);
+    }
+
+    @Test
     @Ignore("Investigate threading issue")
     public void testSparkPCAModelWrite() throws IOException {
         Path bucketFile = Paths.get("buckets.tsv");
@@ -80,11 +112,11 @@ public class UTestSparkPCA {
                 "variants3.gor\t3\tchr1\t0\tchrZ\t1000000000\ti,j,k,l\n");
 
         testSparkQuery(
-                /*"create xxx = select values from <(partgor -ff "+pnpath+" -partsize "+partsize+" -dict "+variantDictFile+" <(gor "+variantBucketFile1 +
+                "create xxx = select values from <(partgor -ff "+pnpath+" -partsize "+partsize+" -dict "+variantDictFile+" <(gor "+variantBucketFile1 +
                 "| select 1,2,3,4 | varjoin -r -l -e '?' <(gor "+variantDictFile+" -nf -f #{tags})" +
                 "| rename Chrom CHROM | rename ref REF | rename alt ALT " +
                 "| calc ID chrom+'_'+pos+'_'+ref+'_'+alt " +
-                "| csvsel "+bucketFile+" <(nor <(gorrow 1,1 | calc pn '#{tags}' | split pn) | select pn) -u 3 -gc id,ref,alt -vs 1 | replace values 'u'+values)) | gttranspose | calc norm_values normalize(values) | selectexpr norm_values as values | write -pca 2 /Users/sigmar/gorproject/my.pca;" +*/
+                "| csvsel "+bucketFile+" <(nor <(gorrow 1,1 | calc pn '#{tags}' | split pn) | select pn) -u 3 -gc id,ref,alt -vs 1 | replace values 'u'+values)) | gttranspose | calc norm_values normalize(values) | selectexpr norm_values as values | fit -pca 2;" +
 
                 "create yyy = select pn,values from <(partgor -ff "+pnpath+" -partsize "+partsize+" -dict "+variantDictFile+" <(gor "+variantBucketFile1 +
                 "| select 1,2,3,4 | varjoin -r -l -e '?' <(gor "+variantDictFile+" -nf -f #{tags})" +
@@ -93,7 +125,7 @@ public class UTestSparkPCA {
                 "| csvsel "+bucketFile+" <(nor <(gorrow 1,1 | calc pn '#{tags}' | split pn) | select pn) -u 3 -gc id,ref,alt -vs 1 | replace values 'u'+values " +
                 "| calc pn '#{tags}'" +
                 ")) " +
-                "| selectexpr pn,values | gttranspose | calc norm_values normalize(values) | selectexpr pn,norm_values as values | calc pca_result pcatransform('/Users/sigmar/gorproject/my.pca')" +
+                "| selectexpr pn,values | gttranspose | calc norm_values normalize(values) | selectexpr pn,norm_values as values | pcatransform [xxx] | replace pca vector_to_array(pca)" +
                 "; nor [yyy] | sort -c pn",
                 //"gorrow chr1,1",
                         "pn\tpca_result\n" +

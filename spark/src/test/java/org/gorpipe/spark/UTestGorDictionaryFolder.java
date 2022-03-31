@@ -66,8 +66,8 @@ public class UTestGorDictionaryFolder {
     public void testCreateWriteFolder() {
         Path folderpath = Paths.get("folder2.gord");
         try {
-            String results = TestUtils.runGorPipe(pi,"create a = gor -p chr21 ../tests/data/gor/genes.gor | write -d " + folderpath +
-                    "; create b = gor -p chr22 ../tests/data/gor/genes.gor | write -d " + folderpath +
+            String results = TestUtils.runGorPipe(pi,"create a = gor -p chr21 ../tests/data/gor/genes.gor | write " + folderpath +
+                    "; create b = gor -p chr22 ../tests/data/gor/genes.gor | write " + folderpath +
                     "; gor " + folderpath + " | group chrom -count");
             Assert.assertEquals("Wrong results in write folder", "Chrom\tbpStart\tbpStop\tallCount\n" +
                     "chr21\t0\t100000000\t669\n" +

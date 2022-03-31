@@ -126,7 +126,8 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
         this.useCpp = useCpp;
         this.hadoopInfer = hadoopInfer;
         if(path!=null) {
-            this.ppath = new Path(path.replace("s3://","s3a://"));
+            path = path.replace("s3://","s3a://");
+            this.ppath = new Path(path);
             Configuration conf = new Configuration();
             //conf.set("fs.s3a.endpoint","s3.amazonaws.com"); //""localhost:4566");
             //conf.set("fs.s3a.access.key","AKIAXYKEODZGJN4WLHMQ");

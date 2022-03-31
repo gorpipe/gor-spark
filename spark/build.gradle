@@ -26,6 +26,7 @@ project(':spark') {
         }
         implementation(project(':model')) {
             exclude group: 'ch.qos.logback', module: 'logback-classic'
+            exclude group: 'org.scalanlp', module: 'breeze_2.12'
         }
         implementation(project(':gortools')) {
             exclude group: 'ch.qos.logback', module: 'logback-classic'
@@ -128,6 +129,21 @@ project(':spark') {
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
         implementation group: 'org.apache.thrift', name: 'libthrift', version: '0.15.0'
+
+        implementation('org.scalanlp:breeze_2.12') {
+            version {
+                strictly "1.2"
+            }
+        }
+
+        /*constraints {
+            implementation('org.scalanlp:breeze_2.12') {
+                version {
+                    require '1.2'
+                    reject '2.0'
+                }
+            }
+        }*/
 
         implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.11.0'
         implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.0'

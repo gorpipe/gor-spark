@@ -128,7 +128,7 @@ public class SparkRowUtilities {
         return gorDataTypeToStructType(gorDataType);
     }
 
-    public static RowDataType translatePath(String fn, String fileroot, String standalone, DriverBackedFileReader fileReader) throws IOException {
+    public static RowDataType translatePath(String fn, String standalone, DriverBackedFileReader fileReader) throws IOException {
         RowDataType ret;
         if (!PathUtils.isLocal(fn)) {
             List<Instant> inst = Collections.emptyList();
@@ -159,7 +159,7 @@ public class SparkRowUtilities {
                     filePath = PathUtils.resolve(standalone.substring(0, k),fn);
                 } else {
                     if (!PathUtils.isAbsolutePath(filePath) && !fileReader.exists(filePath)) {
-                        filePath = PathUtils.resolve(fileroot,filePath);
+                        filePath = PathUtils.resolve(fileReader.getCommonRoot(),filePath);
                     }
                 }
             }
@@ -208,7 +208,7 @@ public class SparkRowUtilities {
         return gdt;
     }
 
-    public static Dataset<? extends org.apache.spark.sql.Row> registerFile(String[] fns, String name, String profile, GorSparkSession gorSparkSession, String standalone, String fileroot, String cacheDir, boolean usestreaming, String filter, String filterFile, String filterColumn, String splitFile, final boolean nor, final String chr, final int pos, final int end, final String jobid, String cacheFile, boolean cpp, boolean tag, StructType schema, Map<String,String> readOptions) throws IOException, DataFormatException {
+    public static Dataset<? extends org.apache.spark.sql.Row> registerFile(String[] fns, String name, String profile, GorSparkSession gorSparkSession, String standalone, String cacheDir, boolean usestreaming, String filter, String filterFile, String filterColumn, String splitFile, final boolean nor, final String chr, final int pos, final int end, final String jobid, String cacheFile, boolean cpp, boolean tag, StructType schema, Map<String,String> readOptions) throws IOException, DataFormatException {
         String fn = fns[0];
         boolean curlyQuery = fn.startsWith("{");
         boolean nestedQuery = fn.startsWith("<(") || curlyQuery;
@@ -223,7 +223,7 @@ public class SparkRowUtilities {
             java.util.function.Function<String, Stream<String>> gorfileflat;
             gorfileflat = p -> p.startsWith("(") ? Arrays.stream(CommandParseUtilities.quoteCurlyBracketsSafeSplit(p.substring(1, p.length() - 1), ' ')).filter(gorpred) : Stream.of(p);
             var cmdsplit = CommandParseUtilities.quoteCurlyBracketsSafeSplit(fileName, ' ');
-            inst = Arrays.stream(cmdsplit).flatMap(gorfileflat).filter(gorpred).map(p -> PathUtils.isAbsolutePath(p) ? p : PathUtils.resolve(fileroot,p)).map(p -> {
+            inst = Arrays.stream(cmdsplit).flatMap(gorfileflat).filter(gorpred).map(p -> PathUtils.isAbsolutePath(p) ? p : PathUtils.resolve(fileReader.getCommonRoot(),p)).map(p -> {
                 try {
                     return Instant.ofEpochMilli(fileReader.resolveUrl(p).getSourceMetadata().getLastModified());
                 } catch (IOException e) {
@@ -232,7 +232,7 @@ public class SparkRowUtilities {
             }).filter(Objects::nonNull).collect(Collectors.toList());
             tempViewName = generateTempViewName(fileName, usestreaming, filter, chr, pos, end, inst);
         } else {
-            var rdt = translatePath(fn, fileroot, standalone, fileReader);
+            var rdt = translatePath(fn, standalone, fileReader);
             fileName = rdt.path;
             inst = rdt.getTimestamp();
             tempViewName = generateTempViewName(fileName, usestreaming, filter, chr, pos, end, inst);
@@ -373,8 +373,9 @@ public class SparkRowUtilities {
                     DataFrameReader dfr = gorSparkSession.getSparkSession().read().format(gordatasourceClassname);
                     dfr.option("query", fileName);
                     if (tag) dfr.option("tag", true);
-                    if (fileroot != null) dfr.option("projectroot", fileroot.toString());
-                    if (cacheDir != null) dfr.option("cachedir", cacheDir.toString());
+                    var fileroot = fileReader.getCommonRoot();
+                    if (fileroot != null) dfr.option("projectroot", fileroot);
+                    if (cacheDir != null) dfr.option("cachedir", cacheDir);
                     var securityContext = gorSparkSession.getProjectContext().getFileReader().getSecurityContext();
                     if (securityContext!=null) dfr.option("securityContext", securityContext);
                     dfr.option("aliasfile", gorSparkSession.getProjectContext().getGorAliasFile());
@@ -496,7 +497,8 @@ public class SparkRowUtilities {
                             // hey SparkGorUtilities.getSparkSession(GorSparkSession).udf().register("get_pn", (UDF1<String, String>) uNames::get, DataTypes.StringType);
                             if (dictFile != null) {
                                 DataFrameReader dfr = gorSparkSession.getSparkSession().read().format(gordatasourceClassname);
-                                if (fileroot != null) dfr.option("projectroot", fileroot.toString());
+                                var fileroot = fileReader.getCommonRoot();
+                                if (fileroot != null) dfr.option("projectroot", fileroot);
                                 dfr.option("aliasfile", gorSparkSession.getProjectContext().getGorAliasFile());
                                 dfr.option("configfile", gorSparkSession.getProjectContext().getGorConfigFile());
                                 if (gorSparkSession.getRedisUri() != null && gorSparkSession.getRedisUri().length() > 0) {

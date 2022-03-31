@@ -26,7 +26,7 @@ public class SparkOperatorRunnerLocal extends SparkOperatorRunner {
      */
     @Override
     public void runJob(SparkSession sparkSession, String yaml, String prjDir, SparkOperatorSpecs sparkOperatorSpecs, GorMonitor gm, String sparkApplicationName, String[] args) {
-        String redisUrl = args[0];
+        var redisUrl = args[0];
         String requestId = args[1];
         String projectDir = args[2];
         String queries = args[3];
