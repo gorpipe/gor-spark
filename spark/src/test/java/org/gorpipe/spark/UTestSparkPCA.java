@@ -66,9 +66,9 @@ public class UTestSparkPCA {
             "chr1\t12\tA\tG\t0.0\t0.0\t1.0\t0.5\n";
         var gorfile = Path.of("test.gor");
         Files.writeString(gorfile, str);
-        var query = "create #model# = select * from <(gor test.gor | cols2list -gc ref,alt,label one-tre features) | replace features listtovector(features) | fit -randomforest 2;" +
-                "create #predictions# = select * from <(gor test.gor | cols2list -gc ref,alt,label one-tre features) | replace features listtovector(features) | transform [#model#];" +
-                "nor [#predictions#]";
+        var query = "create model = select * from <(gor test.gor | cols2list -gc ref,alt,label one-tre features) | replace features listtovector(features) | fit -randomforest 2;" +
+                "create predictions = select * from <(gor test.gor | cols2list -gc ref,alt,label one-tre features) | replace features listtovector(features) | transform [model] | replace features vector_to_array(features) | replace indexedFeatures vector_to_array(indexedFeatures) | replace rawPrediction vector_to_array(rawPrediction) | replace probability vector_to_array(probability);" +
+                "nor [predictions]";
         var res = TestUtils.runGorPipe(pi, query);
 
         /*query = "create #model# = select * from <(gor train.gor | cols2list -gc ref,alt,label one-tre features) | replace features listtovector(features) | write -randomforest 2 /Users/sigmar/my.rf;" +
