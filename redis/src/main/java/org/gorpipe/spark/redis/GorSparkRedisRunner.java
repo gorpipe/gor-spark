@@ -3,6 +3,7 @@ package org.gorpipe.spark.redis;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.Configuration;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
+import io.kubernetes.client.openapi.apis.CustomObjectsApi;
 import io.kubernetes.client.openapi.apis.NetworkingV1Api;
 import io.kubernetes.client.openapi.models.V1DeleteOptions;
 import io.kubernetes.client.util.Config;
@@ -113,12 +114,14 @@ public class GorSparkRedisRunner implements Callable<String>, AutoCloseable {
         Configuration.setDefaultApiClient(client);
         var core = new CoreV1Api(client);
         var networking = new NetworkingV1Api(client);
+        var custom = new CustomObjectsApi(client);
         var driverIdOptional = GorSparkUtilities.parseDriverId();
         if (driverIdOptional.isPresent()) {
             var driverId = driverIdOptional.get();
             var body = new V1DeleteOptions();
             core.deleteNamespacedService("svc-jupyter-" + driverId, "gorkube", null, null, null, null, null, body);
             networking.deleteNamespacedIngress("ing-jupyter-" + driverId, "gorkube", null, null, null, null, null, body);
+            custom.deleteNamespacedCustomObject("sparkoperator.k8s.io", "v1beta2", "gorkube", "sparkapplications", "sparkgor-"+driverId, null, null, null, null, body);
         }
     }
 
@@ -127,11 +130,13 @@ public class GorSparkRedisRunner implements Callable<String>, AutoCloseable {
         log.info("Closing spark session");
         try {
             GorSparkUtilities.closePySpark();
-            cleanupJupyterKubernetesService();
-        } catch (IOException | ApiException e) {
-            log.debug("Unable to cleanup jupyter resources", e);
         } finally {
-            if (sparkSession != null) sparkSession.close();
+            try {
+                if (sparkSession != null) sparkSession.close();
+                cleanupJupyterKubernetesService();
+            } catch (IOException | ApiException e) {
+                log.debug("Unable to cleanup kubernetes resources", e);
+            }
         }
     }
 }
