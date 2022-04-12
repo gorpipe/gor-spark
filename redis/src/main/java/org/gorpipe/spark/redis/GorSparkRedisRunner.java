@@ -1,5 +1,11 @@
 package org.gorpipe.spark.redis;
 
+import io.kubernetes.client.openapi.ApiException;
+import io.kubernetes.client.openapi.Configuration;
+import io.kubernetes.client.openapi.apis.CoreV1Api;
+import io.kubernetes.client.openapi.apis.NetworkingV1Api;
+import io.kubernetes.client.openapi.models.V1DeleteOptions;
+import io.kubernetes.client.util.Config;
 import org.apache.spark.SparkConf;
 import org.apache.spark.SparkContext;
 import org.apache.spark.sql.SparkSession;
@@ -13,6 +19,7 @@ import org.gorpipe.spark.GorSparkUtilities;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Objects;
@@ -101,9 +108,30 @@ public class GorSparkRedisRunner implements Callable<String>, AutoCloseable {
         }
     }
 
+    private void cleanupJupyterKubernetesService() throws IOException, ApiException {
+        var client = Config.defaultClient();
+        Configuration.setDefaultApiClient(client);
+        var core = new CoreV1Api(client);
+        var networking = new NetworkingV1Api(client);
+        var driverIdOptional = GorSparkUtilities.parseDriverId();
+        if (driverIdOptional.isPresent()) {
+            var driverId = driverIdOptional.get();
+            var body = new V1DeleteOptions();
+            core.deleteNamespacedService("svc-jupyter-" + driverId, "gorkube", null, null, null, null, null, body);
+            networking.deleteNamespacedIngress("ing-jupyter-" + driverId, "gorkube", null, null, null, null, null, body);
+        }
+    }
+
     @Override
     public void close() {
         log.info("Closing spark session");
-        if(sparkSession!=null) sparkSession.close();
+        try {
+            GorSparkUtilities.closePySpark();
+            cleanupJupyterKubernetesService();
+        } catch (IOException | ApiException e) {
+            log.debug("Unable to cleanup jupyter resources", e);
+        } finally {
+            if (sparkSession != null) sparkSession.close();
+        }
     }
 }
