@@ -30,7 +30,7 @@ public class GorSparkRedisRunner implements Callable<String>, AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(GorSparkRedisRunner.class);
     private static final String CUSTOM_SPARK_LOGLEVEL_CONFIG = "spark.logLevel";
     private static final String DEFAULT_LOG_LEVEL = "WARN";
-    public static int DEFAULT_TIMEOUT = 3600;
+    public static int DEFAULT_TIMEOUT = 3600*2;
     public static int DEFAULT_DRIVER_TIMEOUT_MINUTES = 60*12;
     public static GorSparkRedisRunner instance;
     private SparkSession sparkSession;
