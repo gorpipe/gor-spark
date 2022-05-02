@@ -108,6 +108,12 @@ project(':gorshell') {
         implementation ('org.apache.hadoop:hadoop-client:_') {
 
         }
+        implementation ('org.apache.hadoop:hadoop-client-api:_') {
+
+        }
+        implementation ('org.apache.hadoop:hadoop-client-runtime:_') {
+
+        }
         implementation ('org.apache.hadoop:hadoop-hdfs:_') {
             exclude group: 'com.google.guava', module: 'guava'
         }
