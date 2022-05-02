@@ -95,6 +95,10 @@ project(':spark') {
             }
         }
 
+        implementation('io.projectglow:glow-spark3_2.12:_') {
+            exclude group: 'org.freemarker'
+        }
+
         /*implementation('com.esotericsoftware:kryo') {
             version {
                 strictly "5.3.0"
