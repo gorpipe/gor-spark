@@ -15,6 +15,8 @@ import java.util.zip.DataFormatException;
 
 import com.databricks.spark.xml.util.XSDToSchema;
 import gorsat.commands.PysparkAnalysis;
+import io.projectglow.Glow;
+import io.projectglow.transformers.blockvariantsandsamples.VariantSampleBlockMaker;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 import org.apache.spark.ml.Pipeline;
 import org.apache.spark.ml.PipelineModel;
@@ -57,7 +59,6 @@ import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.types.*;
 import org.gorpipe.spark.udfs.CharToDoubleArray;
 import org.gorpipe.spark.udfs.CommaToDoubleArray;
-import org.gorpipe.spark.udfs.ListToVector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Option;
@@ -1255,10 +1256,23 @@ public class SparkRowSource extends ProcessSource {
                     options.put(psplit[0], psplit[1].substring(1, psplit[1].length() - 1));
                 else options.put(psplit[0], psplit[1]);
             }
-            //ret = Glow.transform("pipe", dataset, options);
+            ret = Glow.transform("pipe", dataset, options);
         } else if (gor.startsWith("split_multiallelics")) {
             Map<String, String> options = new HashMap<>();
-            //ret = Glow.transform("split_multiallelics", dataset, options);
+            ret = Glow.transform("split_multiallelics", dataset, options);
+        } else if (gor.startsWith("glowtransform")) {
+            Map<String, String> options = new HashMap<>();
+            String cmd = gor.substring("glowtransform".length()).trim();
+            String[] pipe_options = cmd.split(" ");
+            var transformcmd = pipe_options[0].trim();
+            for (int i = 0; i < pipe_options.length; i++) {
+                var popt = pipe_options[i].trim();
+                String[] psplit = popt.split("=");
+                if (psplit[1].startsWith("'"))
+                    options.put(psplit[0], psplit[1].substring(1, psplit[1].length() - 1));
+                else options.put(psplit[0], psplit[1]);
+            }
+            ret = Glow.transform(transformcmd, dataset, options);
         } else if (gor.startsWith("block_variants_and_samples")) {
             Map<String, String> options = new HashMap<>();
             String cmd = gor.substring("block_variants_and_samples".length()).trim();
@@ -1269,10 +1283,10 @@ public class SparkRowSource extends ProcessSource {
                     options.put(psplit[0], psplit[1].substring(1, psplit[1].length() - 1));
                 else options.put(psplit[0], psplit[1]);
             }
-            //ret = Glow.transform("block_variants_and_samples", dataset, options);
+            ret = Glow.transform("block_variants_and_samples", dataset, options);
         } else if (gor.startsWith("make_sample_blocks")) {
             int sampleCount = Integer.parseInt(gor.substring("make_sample_blocks".length()).trim());
-            //ret = VariantSampleBlockMaker.makeSampleBlocks(dataset, sampleCount);
+            ret = VariantSampleBlockMaker.makeSampleBlocks(dataset, sampleCount);
         }
         return ret;
     }

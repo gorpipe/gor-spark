@@ -1,5 +1,6 @@
 package org.gorpipe.spark;
 
+import io.projectglow.GlowBase;
 import org.apache.spark.SparkConf;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -64,15 +65,25 @@ public class GorSparkUtilities {
         return jupyterPath;
     }
 
+    public static Optional<String> parseDriverId() {
+        return getJupyterBaseUrl().map(u -> u.substring("jupyter-sparkgor-".length()));
+    }
+
     public static Optional<String> getRPath() {
         return rPath;
     }
 
     public static void closePySpark() {
-        shutdownPy4jServer();
-        if (rBackend!=null) rBackend.close();
-        jupyterProcess.ifPresent(Process::destroy);
-        if(es!=null) es.shutdown();
+        try {
+            jupyterProcess.ifPresent(Process::destroy);
+        } finally {
+            try {
+                shutdownPy4jServer();
+                if (rBackend != null) rBackend.close();
+            } finally {
+                if (es != null) es.shutdown();
+            }
+        }
     }
 
     public static void shutdownPy4jServer() {
@@ -90,6 +101,15 @@ public class GorSparkUtilities {
     static synchronized void setJupyterPath(String jp) {
         jupyterPath = Optional.of(jp);
         spark.createDataset(Collections.singletonList(jp), Encoders.STRING()).createOrReplaceTempView("jupyterpath");
+    }
+
+    private static Optional<String> getJupyterBaseUrl() {
+        var baseurl = System.getenv("JUPYTER_BASE_URL");
+        if(baseurl==null) baseurl = System.getProperty("JUPYTER_BASE_URL");
+        if (baseurl!=null&&!baseurl.isEmpty()) {
+            return Optional.of(baseurl);
+        }
+        return Optional.empty();
     }
 
     public static void initPySpark(Optional<String> standaloneRoot) {
@@ -119,9 +139,9 @@ public class GorSparkUtilities {
             if (notebookdir!=null&&!notebookdir.isEmpty()) {
                 plist.add("--notebook-dir="+notebookdir);
             }
-            var baseurl = System.getenv("JUPYTER_BASE_URL");
-            if(baseurl==null) baseurl = System.getProperty("JUPYTER_BASE_URL");
-            if (baseurl!=null&&!baseurl.isEmpty()) {
+            var baseurlOpt = getJupyterBaseUrl();
+            if (baseurlOpt.isPresent()) {
+                var baseurl = baseurlOpt.get();
                 plist.add("--NotebookApp.base_url=/"+baseurl);
                 plist.add("--LabApp.base_url=/"+baseurl);
             }
@@ -227,8 +247,8 @@ public class GorSparkUtilities {
         spark.udf().register("todoublematrix", new CommaToDoubleMatrix(), SQLDataTypes.MatrixType());
         spark.udf().register("tointarray", new CommaToIntArray(), DataTypes.createArrayType(DataTypes.IntegerType));
 
-        //GlowBase gb = new GlowBase();
-        //gb.register(spark, false);
+        GlowBase gb = new GlowBase();
+        gb.register(spark, false);
 
         return spark;
     }

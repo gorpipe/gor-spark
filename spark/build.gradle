@@ -136,6 +136,10 @@ project(':spark') {
             }
         }
 
+        implementation('io.projectglow:glow-spark3_2.12:_') {
+            exclude group: 'org.freemarker'
+        }
+
         /*implementation('com.esotericsoftware:kryo') {
             version {
                 strictly "5.3.0"
@@ -180,6 +184,12 @@ project(':spark') {
             exclude group: 'com.google.guava', module: 'guava'
         }
         implementation ('org.apache.hadoop:hadoop-client:_') {
+
+        }
+        implementation ('org.apache.hadoop:hadoop-client-api:_') {
+
+        }
+        implementation ('org.apache.hadoop:hadoop-client-runtime:_') {
 
         }
         implementation ('org.apache.hadoop:hadoop-hdfs:_') {
