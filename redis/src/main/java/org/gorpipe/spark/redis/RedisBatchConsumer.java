@@ -25,8 +25,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
@@ -256,7 +254,7 @@ public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long>, Au
             String[] cachefileSplit = cachefiles.split(";");
             String[] jobidSplit = jobids.split(";");
 
-            List<String[]> lstr = IntStream.range(0, fingerprintSplit.length).mapToObj(i -> new String[]{querySplit[i], fingerprintSplit[i], projectDir, requestId, jobidSplit[i], cachefileSplit[i]}).collect(Collectors.toList());
+            List<String[]> lstr = IntStream.range(0, fingerprintSplit.length).mapToObj(i -> new String[]{querySplit[i], fingerprintSplit[i], projectDir, requestId, jobidSplit[i], cachefileSplit[i], null}).collect(Collectors.toList());
             Map<String,Future<List<String>>> futMap = redisBatchConsumer.runJobBatch(lstr);
 
             log.info("Number of batches " + futMap.size());
