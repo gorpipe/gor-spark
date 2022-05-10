@@ -43,7 +43,7 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
         return lastQueryLower.startsWith("select ") || lastQueryLower.startsWith("spark ") || lastQueryLower.startsWith("gorspark ") || lastQueryLower.startsWith("norspark ") || lastQuery.contains("/*+");
     }
 
-    public static String[] executeSparkBatch(GorSparkSession session, String projectDir, String cacheDir, String[] fingerprints, String[] commandsToExecute, String[] jobIds, String[] cacheFiles, String[] securityContext) {
+    public static String[] executeSparkBatch(GorSparkSession session, String projectDir, String cacheDir, String[] fingerprints, String[] commandsToExecute, String[] jobIds, String[] cacheFiles, String[] securityContext, Boolean[] allowToFail) {
         SparkSession sparkSession = session.getSparkSession();
         String redisUri = session.getRedisUri();
         String redisKey = session.streamKey();
@@ -122,6 +122,7 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
             String[] newCacheFiles = new String[gorJobs.size()];
             String[] newJobIds = new String[gorJobs.size()];
             String[] newSecCtx = new String[gorJobs.size()];
+            Boolean[] newAllow = new Boolean[gorJobs.size()];
 
             int k = 0;
             for (int i : gorJobs) {
@@ -130,9 +131,10 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
                 newJobIds[k] = jobIds[i];
                 newCacheFiles[k] = cacheFiles[i];
                 newSecCtx[k] = securityContext[i];
+                newAllow[k] = allowToFail[i];
                 k++;
             }
-            GorQueryRDD queryRDD = new GorQueryRDD(sparkSession, newCommands, newFingerprints, newCacheFiles, projectDir, cacheDir, session.getProjectContext().getGorConfigFile(), session.getProjectContext().getGorAliasFile(), newJobIds, newSecCtx, redisUri, redisKey);
+            GorQueryRDD queryRDD = new GorQueryRDD(sparkSession, newCommands, newFingerprints, newCacheFiles, projectDir, cacheDir, session.getProjectContext().getGorConfigFile(), session.getProjectContext().getGorAliasFile(), newJobIds, newSecCtx, newAllow, redisUri, redisKey);
             return (String[]) queryRDD.collect();
         };
 
@@ -171,7 +173,8 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
         var secCtx = gpSession.getProjectContext().getFileReader().getSecurityContext();
 
         var securityContext = new ArrayList<String>();
-        List<String> cacheFileList = new ArrayList<>();
+        var cacheFileList = new ArrayList<String>();
+        var allowToFail = new ArrayList<Boolean>();
         IntStream.range(0, commandsToExecute.length).forEach(i -> {
             String command = commandsToExecute[i];
             String[] cmdsplit = CommandParseUtilities.quoteSafeSplit(command,'|');
@@ -185,9 +188,10 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
             }
             cacheFileList.add(cachePath);
             securityContext.add(secCtx);
+            allowToFail.add(batchGroupNames[i].contains("_af"));
         });
         var jobIds = Arrays.copyOf(fingerprints, fingerprints.length);
-        var res = executeSparkBatch(gpSession, projectDir, cacheDir, fingerprints, commandsToExecute, jobIds, cacheFileList.toArray(new String[0]), securityContext.toArray(new String[0]));
+        var res = executeSparkBatch(gpSession, projectDir, cacheDir, fingerprints, commandsToExecute, jobIds, cacheFileList.toArray(new String[0]), securityContext.toArray(new String[0]), allowToFail.toArray(new Boolean[0]));
         return Arrays.stream(res).map(s -> s.split("\t")[2]).toArray(String[]::new);
     }
 
