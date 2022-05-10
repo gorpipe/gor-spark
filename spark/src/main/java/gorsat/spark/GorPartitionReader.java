@@ -59,11 +59,11 @@ public class GorPartitionReader implements PartitionReader<InternalRow> {
 
     private String parseMultiplePaths(Path epath) {
         String epathstr = p.path;
-        if (Files.isDirectory(epath)) {
-            try {
+        try {
+            if (Files.isDirectory(epath)) {
                 epathstr = Files.walk(epath).skip(1).map(Path::toString).filter(p -> p.endsWith(".gorz")).collect(Collectors.joining(" "));
-            } catch (IOException e) {}
-        }
+            }
+        } catch (IOException ignored) {}
         return epathstr;
     }
 

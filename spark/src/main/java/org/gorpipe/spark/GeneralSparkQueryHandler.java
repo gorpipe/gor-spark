@@ -45,7 +45,7 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
         return lastQueryLower.startsWith("select ") || lastQueryLower.startsWith("spark ") || lastQueryLower.startsWith("gorspark ") || lastQueryLower.startsWith("norspark ") || lastQuery.contains("/*+");
     }
 
-    public static String[] executeSparkBatch(GorSparkSession session, String projectDir, String cacheDir, String[] fingerprints, String[] commandsToExecute, String[] jobIds, String[] batchGroupNames, String[] cacheFiles) {
+    public static String[] executeSparkBatch(GorSparkSession session, String projectDir, String cacheDir, String[] fingerprints, String[] commandsToExecute, String[] jobIds, String[] batchGroupNames, String[] cacheFiles, String[] securityContext, Boolean[] allowToFail) {
         SparkSession sparkSession = session.getSparkSession();
         String redisUri = session.getRedisUri();
         String redisKey = session.streamKey();
@@ -84,35 +84,38 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
                 String cacheFile = cacheFiles[i];
                 Path cachePath = Paths.get(cacheFile);
                 if (!cachePath.isAbsolute()) cachePath = root.resolve(cacheFile);
-                SparkPipeInstance pi = new SparkPipeInstance(session.getGorContext(), cachePath.toString());
-
-                pi.subProcessArguments(options);
-                pi.theInputSource().pushdownWrite(cacheFile);
-                GorRunner runner = session.getSystemContext().getRunnerFactory().create();
-                try {
-                    GenomicIterator gi = pi.theInputSource();
-                    runner.run(pi.getIterator(), pi.getPipeStep());
-                    if (gi instanceof SparkRowSource) {
-                        SparkRowSource srs = (SparkRowSource)gi;
-                        var tmpName = batchGroupNames[i];
-                        srs.getDataset().createOrReplaceTempView(tmpName.substring(1,tmpName.length()-1));
-                    }
-                } catch (Exception e) {
+                try(SparkPipeInstance pi = new SparkPipeInstance(session.getGorContext(), cachePath.toString())) {
+                    pi.subProcessArguments(options);
+                    pi.theInputSource().pushdownWrite(cacheFile);
+                    GorRunner runner = session.getSystemContext().getRunnerFactory().create();
                     try {
-                        if (Files.exists(cachePath))
-                            Files.walk(cachePath).sorted(Comparator.reverseOrder()).forEach(path -> {
-                                try {
-                                    Files.delete(path);
-                                } catch (IOException ioException) {
-                                    // Ignore
+                        GenomicIterator gi = pi.theInputSource();
+                        runner.run(pi.getIterator(), pi.getPipeStep());
+                        if (gi instanceof SparkRowSource) {
+                            SparkRowSource srs = (SparkRowSource)gi;
+                            var tmpName = batchGroupNames[i];
+                            srs.getDataset().createOrReplaceTempView(tmpName.substring(1,tmpName.length()-1));
+                        }
+                    } catch (Exception e) {
+                        try {
+                            if (Files.exists(cachePath)) {
+                                try (var fwalk = Files.walk(cachePath).sorted(Comparator.reverseOrder())) {
+                                    fwalk.forEach(path -> {
+                                        try {
+                                            Files.delete(path);
+                                        } catch (IOException ioException) {
+                                            // Ignore
+                                        }
+                                    });
                                 }
-                            });
-                    } catch (IOException ioException) {
-                        // Ignore
+                            }
+                        } catch (IOException ioException) {
+                            // Ignore
+                        }
+                        return e;
                     }
-                    return e;
+                    return cacheFile;
                 }
-                return cacheFile;
             }).collect(Collectors.toList());
 
             Optional<Exception> oe = ret.stream().filter(o -> o instanceof Exception).map(o -> (Exception)o).findFirst();
@@ -127,6 +130,8 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
             String[] newCacheFiles = new String[gorJobs.size()];
             String[] newJobIds = new String[gorJobs.size()];
             String[] newBatch = new String[gorJobs.size()];
+            String[] newSecCtx = new String[gorJobs.size()];
+            Boolean[] newAllow = new Boolean[gorJobs.size()];
 
             int k = 0;
             for (int i : gorJobs) {
@@ -135,15 +140,11 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
                 newJobIds[k] = jobIds[i];
                 newCacheFiles[k] = cacheFiles[i];
                 newBatch[k] = batchGroupNames[i];
+                newSecCtx[k] = securityContext[i];
+                newAllow[k] = allowToFail[i];
                 k++;
             }
-            GorQueryRDD queryRDD = new GorQueryRDD(sparkSession, newCommands, newFingerprints, newCacheFiles, projectDir, cacheDir, session.getProjectContext().getGorConfigFile(), session.getProjectContext().getGorAliasFile(), newJobIds, null, redisUri, redisKey);
-            /*for (int u  = 0; u < res.length; u++) {
-                var split = res[u].split("\t");
-                var batch = newBatch[u];
-                var batchName = batch.substring(1,batch.length()-1);
-                session.dataframe("pgor " + split[3], null).createOrReplaceTempView(batchName);
-            }*/
+            GorQueryRDD queryRDD = new GorQueryRDD(sparkSession, newCommands, newFingerprints, newCacheFiles, projectDir, cacheDir, session.getProjectContext().getGorConfigFile(), session.getProjectContext().getGorAliasFile(), newJobIds, newSecCtx, newAllow, redisUri, redisKey);
             return (String[]) queryRDD.collect();
         };
 
@@ -177,10 +178,13 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
 
     @Override
     public String[] executeBatch(String[] fingerprints, String[] commandsToExecute, String[] batchGroupNames, String[] cacheFiles, GorMonitor mon) {
-        String projectDir = gpSession.getProjectContext().getRoot();
+        String projectDir = gpSession.getProjectContext().getProjectRoot();
         String cacheDir = gpSession.getProjectContext().getCacheDir();
+        var secCtx = gpSession.getProjectContext().getFileReader().getSecurityContext();
 
-        List<String> cacheFileList = new ArrayList<>();
+        var securityContext = new ArrayList<String>();
+        var cacheFileList = new ArrayList<String>();
+        var allowToFail = new ArrayList<Boolean>();
         IntStream.range(0, commandsToExecute.length).forEach(i -> {
             String command = commandsToExecute[i];
             String[] cmdsplit = CommandParseUtilities.quoteSafeSplit(command,'|');
@@ -193,9 +197,11 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
                 cachePath = cacheDir + "/" + fingerprints[i] + CommandParseUtilities.getExtensionForQuery(command, false);
             }
             cacheFileList.add(cachePath);
+            securityContext.add(secCtx);
+            allowToFail.add(batchGroupNames[i].contains("_af"));
         });
-        String[] jobIds = Arrays.copyOf(fingerprints, fingerprints.length);
-        String[] res = executeSparkBatch(gpSession, projectDir, cacheDir, fingerprints, commandsToExecute, jobIds, batchGroupNames, cacheFileList.toArray(new String[0]));
+        var jobIds = Arrays.copyOf(fingerprints, fingerprints.length);
+        var res = executeSparkBatch(gpSession, projectDir, cacheDir, fingerprints, commandsToExecute, jobIds, batchGroupNames, cacheFileList.toArray(new String[0]), securityContext.toArray(new String[0]), allowToFail.toArray(new Boolean[0]));
         return Arrays.stream(res).map(s -> s.split("\t")[2]).toArray(String[]::new);
     }
 
