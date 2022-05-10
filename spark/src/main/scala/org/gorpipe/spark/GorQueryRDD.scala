@@ -44,7 +44,13 @@ class GorQueryRDD(sparkSession: SparkSession, commandsToExecute: Array[String], 
       val absCacheFilePath = PathUtils.resolve(projectDirectory, cacheFile)
       //val cacheFileMd5Path = absCacheFilePath.getParent.resolve(absCacheFilePath.getFileName+".md5")
       val cacheFileMetaPath = absCacheFilePath + ".meta"
-      if (fileReader.isDirectory(absCacheFilePath)) {
+      var isdir = false
+      try {
+        isdir = fileReader.isDirectory(absCacheFilePath)
+      } catch {
+        case _: Exception => isdir = false
+      }
+      if (isdir) {
         val sparkGorMonitor = GorSparkUtilities.getSparkGorMonitor(jobId, redisUri, redisKey)
         val engine = new SparkGorExecutionEngine(commandToExecute, projectDirectory, cacheDirectory, configFile, aliasFile, cacheFilePath, securityContext, sparkGorMonitor)
         engine.execute()

@@ -94,7 +94,7 @@ public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long>, Au
         String configFile = gss.getProjectContext() != null ? gss.getProjectContext().getGorConfigFile() : null;
         String aliasFile = gss.getProjectContext() != null ? gss.getProjectContext().getGorAliasFile() : null;
 
-        GorQueryRDD gorQueryRDD = new GorQueryRDD(gss.sparkSession(), newCommands, newFingerprints, newCacheFiles, projectDirStr, "result_cache", configFile, aliasFile, newJobIds, newSecCtxs, gss.redisUri(), gss.streamKey());
+        GorQueryRDD gorQueryRDD = new GorQueryRDD(gss.sparkSession(), newCommands, newFingerprints, newCacheFiles, projectDirStr, "result_cache", configFile, aliasFile, newJobIds, newSecCtxs, null, gss.redisUri(), gss.streamKey());
         return gorQueryRDD.toJavaRDD().collectAsync();
     }
 
