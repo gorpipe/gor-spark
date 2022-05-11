@@ -3,8 +3,8 @@
 #
 
 variables:
-  RELEASABLE_BRANCH: master
-  AUTO_DEPLOY_BRANCH: master
+  RELEASABLE_BRANCH: testbranch
+  AUTO_DEPLOY_BRANCH: testbranch
   DOCKER_HUB_REPO: nextcode/spark
   AUTO_DEVOPS_BUILD_IMAGE_EXTRA_ARGS: "--build-arg ORG_GRADLE_PROJECT_artifactory_password --build-arg ORG_GRADLE_PROJECT_artifactory_user --build-arg ORG_GRADLE_PROJECT_gitlab_gor_maven_packages_token"
   DOCKER_BUILDKIT: "1"
@@ -29,7 +29,7 @@ build:
   script:
     - |
       if [[ -z "$CI_COMMIT_TAG" ]]; then
-        if [[ "$CI_COMMIT_REF_NAME" == "master" ]]; then
+        if [[ "$CI_COMMIT_REF_NAME" == "testbranch" ]]; then
           ./gradlew -PREGISTRY_USER=${CI_REGISTRY_USER} -PREGISTRY_PASSWORD=${CI_REGISTRY_PASSWORD} -PAPPLICATION_REPOSITORY=${CI_APPLICATION_REPOSITORY:-$CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG} -PAPPLICATION_TAG=${CI_APPLICATION_TAG:-$CI_COMMIT_SHA} assemble jib
         else
           ./gradlew -PREGISTRY_USER=${CI_REGISTRY_USER} -PREGISTRY_PASSWORD=${CI_REGISTRY_PASSWORD} -PAPPLICATION_REPOSITORY=${CI_APPLICATION_REPOSITORY:-$CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG} -PAPPLICATION_TAG=${CI_APPLICATION_TAG:-$CI_COMMIT_SHA} assemble
