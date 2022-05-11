@@ -26,8 +26,9 @@ include 'redis'
 include 'gorscripts'
 include 'gortools'
 include 'model'
-//include 'gordrivers'
+include 'gordrivers'
 include 'base'
+include 'auth'
 include 'test'
 
 include 'util'
@@ -38,7 +39,8 @@ include 'util'
 project(":gorscripts").projectDir = file("../gor/gorscipts")
 project(":gortools").projectDir = file("../gor/gortools")
 project(":model").projectDir = file("../gor/model")
-//project(":gordrivers").projectDir = file("../gor/drivers")
+project(":auth").projectDir = file("../gor/auth")
+project(":gordrivers").projectDir = file("../gor/drivers")
 project(":base").projectDir = file("../gor/base")
 project(":test").projectDir = file("../gor/test")
 project(":util").projectDir = file("../gor/util")

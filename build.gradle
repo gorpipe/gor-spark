@@ -44,6 +44,7 @@ plugins {
 
     // Plugins not applied everywhere.
     id "com.github.hierynomus.license" apply false
+    id 'com.github.johnrengelman.shadow' apply false
 
     // The following plugins are support plugins that don't effect the build directly.
     id 'nebula.lint'
