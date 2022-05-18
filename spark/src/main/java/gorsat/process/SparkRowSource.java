@@ -1083,6 +1083,11 @@ public class SparkRowSource extends ProcessSource {
             var accuracy = evaluator.evaluate(dataset);
             var schema = new StructType(new StructField[] {StructField.apply("accuracy",DataTypes.DoubleType,true, Metadata.empty())});
             dataset = gorSparkSession.sparkSession().createDataset(List.of(RowFactory.create(accuracy)), RowEncoder.apply(schema));
+        } else if (formula.toLowerCase().startsWith("logreg")) {
+            var phenopath = formula.substring(7,formula.length()-1).trim();
+            if(phenopath.startsWith("'")) phenopath = phenopath.substring(1,phenopath.length()-1);
+            Dataset<org.apache.spark.sql.Row> ds = (Dataset<org.apache.spark.sql.Row>)dataset;
+            dataset = logregfit(ds, phenopath);
         } else if (formula.toLowerCase().startsWith("chartodoublearray")) {
             if (pushdownGorPipe != null) gor();
             CharToDoubleArray cda = new CharToDoubleArray();
@@ -1300,6 +1305,12 @@ public class SparkRowSource extends ProcessSource {
         return pcaresult;
     }
 
+    private Dataset<org.apache.spark.sql.Row> logregfit(Dataset<org.apache.spark.sql.Row> dataset, String modelpath) {
+        PCAModel pcamodel = PCAModel.load(modelpath);
+        Dataset<org.apache.spark.sql.Row> pcaresult = pcamodel.transform(dataset).select("pn","pca");
+        return pcaresult;
+    }
+
     private Dataset<org.apache.spark.sql.Row> transform(Dataset<org.apache.spark.sql.Row> dataset, String modelpath) {
         var rfmodel = PipelineModel.load(modelpath);
         Dataset<org.apache.spark.sql.Row> rfresult = rfmodel.transform(dataset);
@@ -1372,9 +1383,45 @@ public class SparkRowSource extends ProcessSource {
                             var c = filename.charAt(k);
                             while (c == ' ') c = filename.charAt(++k);
                             while (k < filename.length() && c != ' ') c = filename.charAt(k++);
-                            String pcompstr = filename.substring(id + 9, k).trim();
-                            numtrees = Integer.parseInt(pcompstr);
-                            this.parquetPath = filename.substring(k).trim();
+
+                            var xgstr = filename.substring(id + 9).trim();
+                            var xsplit = List.of(xgstr.split("[ ]+"));
+                            var set = IntStream.range(0,xsplit.size()).boxed().collect(Collectors.toSet());
+                            var nc = xsplit.indexOf("-numclass");
+                            if (nc>0) {
+                                numclass = Integer.parseInt(xsplit.get(nc+1));
+                                set.remove(nc);
+                                set.remove(nc+1);
+                            }
+
+                            var nr = xsplit.indexOf("-numround");
+                            if (nr>0) {
+                                numround = Integer.parseInt(xsplit.get(nr+1));
+                                set.remove(nr);
+                                set.remove(nr+1);
+                            }
+
+                            var nw = xsplit.indexOf("-numworkers");
+                            if (nw>0) {
+                                numworkers = Integer.parseInt(xsplit.get(nw+1));
+                                set.remove(nw);
+                                set.remove(nw+1);
+                            }
+
+                            var al = xsplit.indexOf("-alpha");
+                            if (al>0) {
+                                set.remove(al);
+                                set.remove(al+1);
+                                alpha = Double.parseDouble(xsplit.get(al+1));
+                            }
+
+                            var et = xsplit.indexOf("-eta");
+                            if (et>0) {
+                                set.remove(et);
+                                set.remove(et+1);
+                                eta = Double.parseDouble(xsplit.get(et+1));
+                            }
+                            this.parquetPath = set.size() == 1 ? xsplit.get(set.iterator().next()) : "";
                             this.parquetType = "xg";
                             if (this.parquetPath.length() == 0) {
                                 this.parquetPath = null; //gorSparkSession.getProjectContext().getFileCache().tempLocation(jobId, CommandParseUtilities.getExtensionForQuery(sql.startsWith("<(") ? "spark " + sql : sql, false));
