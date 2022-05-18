@@ -1,4 +1,4 @@
-buildscript {
+/*buildscript {
     repositories {
         maven { url "https://plugins.gradle.org/m2/" }
     }
@@ -6,15 +6,19 @@ buildscript {
         // Jib
         classpath('com.google.cloud.tools:jib-ownership-extension-gradle:0.1.0')
     }
-}
+}*/
 
 plugins {
     // See https://jmfayard.github.io/refreshVersions
-    id 'de.fayard.refreshVersions' version '0.23.0'
-    id 'com.google.cloud.tools.jib' version '3.1.4' apply false
+    id 'de.fayard.refreshVersions' version '0.40.1'
+    id 'com.google.cloud.tools.jib' version '3.2.1' apply false
 }
 
-enableFeaturePreview("VERSION_CATALOGS")
+refreshVersions {
+    rejectVersionIf {
+        candidate.stabilityLevel.isLessStableThan(current.stabilityLevel)
+    }
+}
 
 rootProject.name = 'gor-spark'
 rootProject.buildFileName = "build.gradle"

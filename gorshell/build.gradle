@@ -85,11 +85,11 @@ project(':gorshell') {
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
 
-        implementation('org.scalanlp:breeze_2.12') {
+        /*implementation('org.scalanlp:breeze_2.12') {
             version {
                 strictly "1.2"
             }
-        }
+        }*/
 
         implementation group: 'com.redislabs', name: 'spark-redis_2.12', version: '2.6.0'
 

@@ -193,7 +193,8 @@ class GorSparkSession(requestId: String, workers: Int = 0) extends GorSession(re
   def fingerprint(cmdName: String): String = {
     val cmd = createMap.get(cmdName)
     val scriptExecutionEngine = ScriptEngineFactory.create(this.getGorContext)
-    val signature = scriptExecutionEngine.getFileSignatureAndUpdateSignatureMap(cmd, scriptExecutionEngine.getUsedFiles(cmd))
+    val session = this.getGorContext.getSession
+    val signature = scriptExecutionEngine.getFileSignatureAndUpdateSignatureMap(session, cmd, scriptExecutionEngine.getUsedFiles(cmd, session))
     StringUtilities.createMD5(cmd+signature)
   }
 

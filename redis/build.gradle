@@ -132,11 +132,11 @@ dependencies {
         exclude group: 'org.apache.thrift', module: 'libthrift'
     }
 
-    implementation('org.scalanlp:breeze_2.12') {
+    /*implementation('org.scalanlp:breeze_2.12') {
         version {
             strictly "1.2"
         }
-    }
+    }*/
 
     annotationProcessor 'com.google.auto.service:auto-service:_'
     implementation 'com.google.auto.service:auto-service:_'

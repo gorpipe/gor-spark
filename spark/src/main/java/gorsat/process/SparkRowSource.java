@@ -18,6 +18,8 @@ import gorsat.commands.PysparkAnalysis;
 import io.projectglow.Glow;
 import io.projectglow.transformers.blockvariantsandsamples.VariantSampleBlockMaker;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
+import ml.dmlc.xgboost4j.scala.spark.TrackerConf;
+import ml.dmlc.xgboost4j.scala.spark.XGBoostClassifier;
 import org.apache.spark.ml.Pipeline;
 import org.apache.spark.ml.PipelineModel;
 import org.apache.spark.ml.PipelineStage;
@@ -272,7 +274,7 @@ public class SparkRowSource extends ProcessSource {
                 sql = Arrays.stream(cmdsplit).map(inner).map(gorfunc).collect(Collectors.joining(" "));
                 fileNames = Arrays.stream(cmdsplit).flatMap(gorfileflat).filter(gorpred).toArray(String[]::new);
                 for (String fn : fileNames) {
-                    if (gorSparkSession.getSystemContext().getServer()) DriverBackedGorServerFileReader.validateServerFileName(fn, fileroot, true);
+                    if (gorSparkSession.getSystemContext().getServer()) DriverBackedSecureFileReader.validateServerFileName(fn, fileroot, true);
                     StructType schema = ddl!=null ? loadSchema(ddl, fileroot) : null;
                     SparkRowUtilities.registerFile(new String[]{fn}, profile,null, gpSession, standalone, cachepath, usestreaming, filter, filterFile, filterColumn, splitFile, nor, chr, pos, end, jobId, cacheFile, useCpp, tag, schema, options);
                 }
@@ -318,6 +320,11 @@ public class SparkRowSource extends ProcessSource {
     int pcacomponents = 10;
     int numtrees = 10;
     int posbin = -1;
+    int numclass = -1;
+    int numworkers = -1;
+    int numround = -1;
+    double alpha = Double.NaN;
+    double eta = Double.NaN;
     String pushdownGorPipe = null;
     GorSparkSession gorSparkSession;
 
@@ -860,6 +867,41 @@ public class SparkRowSource extends ProcessSource {
                             } catch (IOException e) {
                                 throw new GorResourceException("Unable to save random forest model file", parquetPath, e);
                             }
+                        } else if (parquetType.equals("xg")) {
+                            var xg = new XGBoostClassifier();
+                            xg.set("trackerConf", TrackerConf.apply(0L, "scala", "", ""));
+                            if (numclass!=-1) xg.setNumClass(numclass);
+                            if (numworkers!=-1) xg.setNumWorkers(numworkers);
+                            if (numround!=-1) xg.setNumRound(numround);
+                            if (!Double.isNaN(alpha)) xg.setAlpha(alpha);
+                            if (!Double.isNaN(eta)) xg.setEta(eta);
+                            xg.setLabelCol("label");
+                            xg.setFeaturesCol("features");
+
+                            var labelIndexer = new StringIndexer()
+                                    .setInputCol("label")
+                                    .setOutputCol("indexedLabel")
+                                    .fit(dataset);
+
+                            var featureIndexer = new VectorIndexer()
+                                    .setInputCol("features")
+                                    .setOutputCol("indexedFeatures")
+                                    .setMaxCategories(4)
+                                    .fit(dataset);
+
+                            var labelConverter = new IndexToString()
+                                    .setInputCol("prediction")
+                                    .setOutputCol("predictedLabel")
+                                    .setLabels(labelIndexer.labelsArray()[0]);
+
+                            var pipeline = new Pipeline().setStages(new PipelineStage[]{labelIndexer, featureIndexer, xg, labelConverter});
+
+                            var rfmodel = pipeline.fit(dataset);
+                            try {
+                                rfmodel.save(parquetPath);
+                            } catch (IOException e) {
+                                throw new GorResourceException("Unable to save random forest model file", parquetPath, e);
+                            }
                         }
                     }
                 } catch (IOException e) {
@@ -1187,15 +1229,29 @@ public class SparkRowSource extends ProcessSource {
                         this.parquetPath = gorSparkSession.getProjectContext().getFileCache().tempLocation(jobId, CommandParseUtilities.getExtensionForQuery(sql.startsWith("<(") ? "spark " + sql : sql, false));
                     }
                 } else {
-                    id = filename.indexOf("-d ");
-                    if (id >= 0) {
-                        int li = filename.indexOf(' ', id + 3);
-                        if (li == -1) li = filename.length();
-                        this.parquetPath = filename.substring(id + 3, li).trim();
-                        this.dictPath = li == filename.length() ? parquetPath : filename.substring(li + 1).trim();
+                    id = filename.indexOf("-xgboost ");
+                    if (id != -1) {
+                        int k = id + 9;
+                        var c = filename.charAt(k);
+                        while (c == ' ') c = filename.charAt(++k);
+                        while (k < filename.length() && c != ' ') c = filename.charAt(k++);
+                        String pcompstr = filename.substring(id + 9, k).trim();
+                        numtrees = Integer.parseInt(pcompstr);
+                        this.parquetPath = filename.substring(k).trim();
+                        if (this.parquetPath.length() == 0) {
+                            this.parquetPath = gorSparkSession.getProjectContext().getFileCache().tempLocation(jobId, CommandParseUtilities.getExtensionForQuery(sql.startsWith("<(") ? "spark " + sql : sql, false));
+                        }
                     } else {
-                        this.parquetPath = filename;
-                        this.dictPath = filename;
+                        id = filename.indexOf("-d ");
+                        if (id >= 0) {
+                            int li = filename.indexOf(' ', id + 3);
+                            if (li == -1) li = filename.length();
+                            this.parquetPath = filename.substring(id + 3, li).trim();
+                            this.dictPath = li == filename.length() ? parquetPath : filename.substring(li + 1).trim();
+                        } else {
+                            this.parquetPath = filename;
+                            this.dictPath = filename;
+                        }
                     }
                 }
             }
@@ -1367,6 +1423,57 @@ public class SparkRowSource extends ProcessSource {
                         this.parquetType = "rf";
                         if (this.parquetPath.length() == 0) {
                             this.parquetPath = null; //gorSparkSession.getProjectContext().getFileCache().tempLocation(jobId, CommandParseUtilities.getExtensionForQuery(sql.startsWith("<(") ? "spark " + sql : sql, false));
+                        }
+                    } else {
+                        id = filename.indexOf("-xgboost ");
+                        if (id != -1) {
+                            int k = id + 9;
+                            var c = filename.charAt(k);
+                            while (c == ' ') c = filename.charAt(++k);
+                            while (k < filename.length() && c != ' ') c = filename.charAt(k++);
+
+                            var xgstr = filename.substring(id + 9).trim();
+                            var xsplit = List.of(xgstr.split("[ ]+"));
+                            var set = IntStream.range(0,xsplit.size()).boxed().collect(Collectors.toSet());
+                            var nc = xsplit.indexOf("-numclass");
+                            if (nc>0) {
+                                numclass = Integer.parseInt(xsplit.get(nc+1));
+                                set.remove(nc);
+                                set.remove(nc+1);
+                            }
+
+                            var nr = xsplit.indexOf("-numround");
+                            if (nr>0) {
+                                numround = Integer.parseInt(xsplit.get(nr+1));
+                                set.remove(nr);
+                                set.remove(nr+1);
+                            }
+
+                            var nw = xsplit.indexOf("-numworkers");
+                            if (nw>0) {
+                                numworkers = Integer.parseInt(xsplit.get(nw+1));
+                                set.remove(nw);
+                                set.remove(nw+1);
+                            }
+
+                            var al = xsplit.indexOf("-alpha");
+                            if (al>0) {
+                                set.remove(al);
+                                set.remove(al+1);
+                                alpha = Double.parseDouble(xsplit.get(al+1));
+                            }
+
+                            var et = xsplit.indexOf("-eta");
+                            if (et>0) {
+                                set.remove(et);
+                                set.remove(et+1);
+                                eta = Double.parseDouble(xsplit.get(et+1));
+                            }
+                            this.parquetPath = set.size() == 1 ? xsplit.get(set.iterator().next()) : "";
+                            this.parquetType = "xg";
+                            if (this.parquetPath.length() == 0) {
+                                this.parquetPath = null; //gorSparkSession.getProjectContext().getFileCache().tempLocation(jobId, CommandParseUtilities.getExtensionForQuery(sql.startsWith("<(") ? "spark " + sql : sql, false));
+                            }
                         }
                     }
                 }
