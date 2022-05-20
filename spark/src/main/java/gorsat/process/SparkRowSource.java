@@ -17,6 +17,7 @@ import com.databricks.spark.xml.util.XSDToSchema;
 import gorsat.commands.PysparkAnalysis;
 import io.projectglow.Glow;
 import io.projectglow.transformers.blockvariantsandsamples.VariantSampleBlockMaker;
+import ml.dmlc.xgboost4j.scala.spark.XGBoostClassificationModel;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 import ml.dmlc.xgboost4j.scala.spark.TrackerConf;
 import ml.dmlc.xgboost4j.scala.spark.XGBoostClassifier;
@@ -24,6 +25,7 @@ import org.apache.spark.ml.Pipeline;
 import org.apache.spark.ml.PipelineModel;
 import org.apache.spark.ml.PipelineStage;
 import org.apache.spark.ml.classification.RandomForestClassifier;
+import org.apache.spark.ml.evaluation.BinaryClassificationEvaluator;
 import org.apache.spark.ml.evaluation.MulticlassClassificationEvaluator;
 import org.apache.spark.ml.feature.*;
 import org.apache.spark.ml.linalg.VectorUDT;
@@ -323,6 +325,10 @@ public class SparkRowSource extends ProcessSource {
     int numclass = -1;
     int numworkers = -1;
     int numround = -1;
+
+    int maxdepth = -1;
+
+    String objective = null;
     double alpha = Double.NaN;
     double eta = Double.NaN;
     String pushdownGorPipe = null;
@@ -873,12 +879,14 @@ public class SparkRowSource extends ProcessSource {
                             if (numclass!=-1) xg.setNumClass(numclass);
                             if (numworkers!=-1) xg.setNumWorkers(numworkers);
                             if (numround!=-1) xg.setNumRound(numround);
+                            if (maxdepth!=-1) xg.setMaxDepth(maxdepth);
+                            if (objective!=null&&objective.length()>0) xg.setObjective(objective);
                             if (!Double.isNaN(alpha)) xg.setAlpha(alpha);
                             if (!Double.isNaN(eta)) xg.setEta(eta);
                             xg.setLabelCol("label");
                             xg.setFeaturesCol("features");
 
-                            var labelIndexer = new StringIndexer()
+                            /*var labelIndexer = new StringIndexer()
                                     .setInputCol("label")
                                     .setOutputCol("indexedLabel")
                                     .fit(dataset);
@@ -894,11 +902,11 @@ public class SparkRowSource extends ProcessSource {
                                     .setOutputCol("predictedLabel")
                                     .setLabels(labelIndexer.labelsArray()[0]);
 
-                            var pipeline = new Pipeline().setStages(new PipelineStage[]{labelIndexer, featureIndexer, xg, labelConverter});
+                            var pipeline = new Pipeline().setStages(new PipelineStage[]{labelIndexer, featureIndexer, xg, labelConverter});*/
 
-                            var rfmodel = pipeline.fit(dataset);
+                            var xgmodel = xg.fit(dataset);
                             try {
-                                rfmodel.save(parquetPath);
+                                xgmodel.save(parquetPath);
                             } catch (IOException e) {
                                 throw new GorResourceException("Unable to save random forest model file", parquetPath, e);
                             }
@@ -1096,6 +1104,27 @@ public class SparkRowSource extends ProcessSource {
             normalizer.setInputCol(oldcolname);
             normalizer.setOutputCol(colName);
             dataset = normalizer.transform(ds);
+        } else if (formula.toLowerCase().startsWith("stringindexer")) {
+            var inputcol = formula.substring(14,formula.length()-1).trim();
+            var sim = new StringIndexer().setInputCol(inputcol).setOutputCol(colName).fit(dataset);
+            dataset = sim.transform(dataset);
+        } else if (formula.toLowerCase().startsWith("vectorindexer")) {
+            var optionSplit = formula.substring(14, formula.length() - 1).trim().split(",");
+            var inputcol = optionSplit[0].trim();
+            var maxcat = Integer.parseInt(optionSplit[1].trim());
+            var sim = new VectorIndexer().setInputCol(inputcol).setOutputCol(colName).setMaxCategories(maxcat).fit(dataset);
+            dataset = sim.transform(dataset);
+        }  else if (formula.toLowerCase().startsWith("vectorassembler")) {
+            var inputcols = formula.substring(16, formula.length() - 1).trim().split(",");
+            var sim = new VectorAssembler().setInputCols(inputcols).setOutputCol(colName);
+            dataset = sim.transform(dataset);
+        } else if (formula.toLowerCase().startsWith("indextostring")) {
+            var options = formula.substring(14, formula.length() - 1).trim();
+            var i = options.indexOf(',');
+            var inputcol = options.substring(0,i);
+            var labels = options.substring(i+1).split(",");
+            var labelConverter = new IndexToString().setInputCol(inputcol).setOutputCol(colName).setLabels(labels);
+            dataset = labelConverter.transform(dataset);
         } else if (formula.toLowerCase().startsWith("pcatransform")) {
             //int c = formula.indexOf(',');
             //String oldcolname = formula.substring(13,formula.length()-1).trim();
@@ -1112,9 +1141,17 @@ public class SparkRowSource extends ProcessSource {
             dataset = transform(ds, modelpath).withColumnRenamed("pca",colName);
         } else if (formula.toLowerCase().startsWith("evaluate")) {
             var evaluator = new MulticlassClassificationEvaluator()
-                .setLabelCol("indexedLabel")
+                .setLabelCol("label")
                 .setPredictionCol("prediction")
                 .setMetricName("accuracy");
+            var accuracy = evaluator.evaluate(dataset);
+            var schema = new StructType(new StructField[] {StructField.apply("accuracy",DataTypes.DoubleType,true, Metadata.empty())});
+            dataset = gorSparkSession.sparkSession().createDataset(List.of(RowFactory.create(accuracy)), RowEncoder.apply(schema));
+        } else if (formula.toLowerCase().startsWith("binevaluate")) {
+            var evaluator = new BinaryClassificationEvaluator()
+                    .setLabelCol("label")
+                    .setRawPredictionCol("prediction")
+                    .setMetricName("accuracy");
             var accuracy = evaluator.evaluate(dataset);
             var schema = new StructType(new StructField[] {StructField.apply("accuracy",DataTypes.DoubleType,true, Metadata.empty())});
             dataset = gorSparkSession.sparkSession().createDataset(List.of(RowFactory.create(accuracy)), RowEncoder.apply(schema));
@@ -1349,20 +1386,22 @@ public class SparkRowSource extends ProcessSource {
 
     private Dataset<org.apache.spark.sql.Row> pcatransform(Dataset<org.apache.spark.sql.Row> dataset, String modelpath) {
         PCAModel pcamodel = PCAModel.load(modelpath);
-        Dataset<org.apache.spark.sql.Row> pcaresult = pcamodel.transform(dataset).select("pn","pca");
-        return pcaresult;
+        return pcamodel.transform(dataset).select("pn","pca");
+    }
+
+    private Dataset<org.apache.spark.sql.Row> xgboosttransform(Dataset<org.apache.spark.sql.Row> dataset, String modelpath) {
+        XGBoostClassificationModel xgmodel = XGBoostClassificationModel.load(modelpath);
+        return xgmodel.transform(dataset);
     }
 
     private Dataset<org.apache.spark.sql.Row> logregfit(Dataset<org.apache.spark.sql.Row> dataset, String modelpath) {
         PCAModel pcamodel = PCAModel.load(modelpath);
-        Dataset<org.apache.spark.sql.Row> pcaresult = pcamodel.transform(dataset).select("pn","pca");
-        return pcaresult;
+        return pcamodel.transform(dataset).select("pn","pca");
     }
 
     private Dataset<org.apache.spark.sql.Row> transform(Dataset<org.apache.spark.sql.Row> dataset, String modelpath) {
         var rfmodel = PipelineModel.load(modelpath);
-        Dataset<org.apache.spark.sql.Row> rfresult = rfmodel.transform(dataset);
-        return rfresult;
+        return rfmodel.transform(dataset);
     }
 
     @Override
@@ -1456,6 +1495,20 @@ public class SparkRowSource extends ProcessSource {
                                 set.remove(nw+1);
                             }
 
+                            var md = xsplit.indexOf("-maxdepth");
+                            if (md>0) {
+                                numworkers = Integer.parseInt(xsplit.get(md+1));
+                                set.remove(md);
+                                set.remove(md+1);
+                            }
+
+                            var ot = xsplit.indexOf("-objective");
+                            if (ot>0) {
+                                objective = xsplit.get(ot+1);
+                                set.remove(ot);
+                                set.remove(ot+1);
+                            }
+
                             var al = xsplit.indexOf("-alpha");
                             if (al>0) {
                                 set.remove(al);
@@ -1487,6 +1540,15 @@ public class SparkRowSource extends ProcessSource {
                 throw new GorResourceException("Unable to translate model path", rfmodel);
             }
             dataset = transform((Dataset<org.apache.spark.sql.Row>) dataset, rfmodel);
+        } else if (gor.toLowerCase().startsWith("xgboosttransform ")) {
+            var xgmodel = gor.substring("xgboosttransform".length()).trim();
+            var fileReader = (DriverBackedFileReader)gorSparkSession.getProjectContext().getFileReader();
+            try {
+                xgmodel = SparkRowUtilities.translatePath(xgmodel, "", fileReader).path;
+            } catch (IOException e) {
+                throw new GorResourceException("Unable to translate model path", xgmodel);
+            }
+            dataset = xgboosttransform((Dataset<org.apache.spark.sql.Row>) dataset, xgmodel);
         } else if (gor.toLowerCase().startsWith("evaluate")) {
             var evaluator = new MulticlassClassificationEvaluator()
                     .setLabelCol("indexedLabel")
