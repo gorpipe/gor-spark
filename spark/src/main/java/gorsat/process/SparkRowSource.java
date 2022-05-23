@@ -20,6 +20,7 @@ import io.projectglow.transformers.blockvariantsandsamples.VariantSampleBlockMak
 import ml.dmlc.xgboost4j.scala.spark.XGBoostClassificationModel;
 import ml.dmlc.xgboost4j.scala.spark.TrackerConf;
 import ml.dmlc.xgboost4j.scala.spark.XGBoostClassifier;
+import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 import org.apache.spark.ml.Pipeline;
 import org.apache.spark.ml.PipelineModel;
 import org.apache.spark.ml.PipelineStage;
@@ -1110,6 +1111,14 @@ public class SparkRowSource extends ProcessSource {
                 .setLabelCol("label")
                 .setPredictionCol("prediction")
                 .setMetricName("accuracy");
+            var accuracy = evaluator.evaluate(dataset);
+            var schema = new StructType(new StructField[] {StructField.apply("accuracy",DataTypes.DoubleType,true, Metadata.empty())});
+            dataset = gorSparkSession.sparkSession().createDataset(List.of(RowFactory.create(accuracy)), RowEncoder.apply(schema));
+        } else if (formula.toLowerCase().startsWith("binevaluate")) {
+            var evaluator = new BinaryClassificationEvaluator()
+                    .setLabelCol("label")
+                    .setRawPredictionCol("prediction")
+                    .setMetricName("accuracy");
             var accuracy = evaluator.evaluate(dataset);
             var schema = new StructType(new StructField[] {StructField.apply("accuracy",DataTypes.DoubleType,true, Metadata.empty())});
             dataset = gorSparkSession.sparkSession().createDataset(List.of(RowFactory.create(accuracy)), RowEncoder.apply(schema));
