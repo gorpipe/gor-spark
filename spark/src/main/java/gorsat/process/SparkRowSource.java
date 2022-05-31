@@ -327,10 +327,16 @@ public class SparkRowSource extends ProcessSource {
     int numround = -1;
 
     int maxdepth = -1;
+    int nthread = -1;
+    int numearlystoppingrounds = -1;
 
     String objective = null;
+    String evalmetric = null;
     double alpha = Double.NaN;
+    double gamma = Double.NaN;
     double eta = Double.NaN;
+    double subsample = Double.NaN;
+    double colsamplebytree = Double.NaN;
     String pushdownGorPipe = null;
     GorSparkSession gorSparkSession;
 
@@ -880,9 +886,15 @@ public class SparkRowSource extends ProcessSource {
                             if (numworkers!=-1) xg.setNumWorkers(numworkers);
                             if (numround!=-1) xg.setNumRound(numround);
                             if (maxdepth!=-1) xg.setMaxDepth(maxdepth);
+                            if (nthread!=-1) xg.setNthread(nthread);
+                            if (numearlystoppingrounds!=-1) xg.setNumEarlyStoppingRounds(numearlystoppingrounds);
                             if (objective!=null&&objective.length()>0) xg.setObjective(objective);
+                            if (evalmetric!=null&&evalmetric.length()>0) xg.setEvalMetric(evalmetric);
                             if (!Double.isNaN(alpha)) xg.setAlpha(alpha);
+                            if (!Double.isNaN(gamma)) xg.setAlpha(gamma);
                             if (!Double.isNaN(eta)) xg.setEta(eta);
+                            if (!Double.isNaN(subsample)) xg.setSubsample(subsample);
+                            if (!Double.isNaN(colsamplebytree)) xg.setColsampleBytree(colsamplebytree);
                             xg.setLabelCol("label");
                             xg.setFeaturesCol("features");
 
@@ -1144,6 +1156,22 @@ public class SparkRowSource extends ProcessSource {
                 .setLabelCol("label")
                 .setPredictionCol("prediction")
                 .setMetricName("accuracy");
+            var accuracy = evaluator.evaluate(dataset);
+            var schema = new StructType(new StructField[] {StructField.apply("accuracy",DataTypes.DoubleType,true, Metadata.empty())});
+            dataset = gorSparkSession.sparkSession().createDataset(List.of(RowFactory.create(accuracy)), RowEncoder.apply(schema));
+        } else if (formula.toLowerCase().startsWith("binevaluate")) {
+            var evaluator = new BinaryClassificationEvaluator()
+                    .setLabelCol("label")
+                    .setRawPredictionCol("prediction")
+                    .setMetricName("accuracy");
+            var accuracy = evaluator.evaluate(dataset);
+            var schema = new StructType(new StructField[] {StructField.apply("accuracy",DataTypes.DoubleType,true, Metadata.empty())});
+            dataset = gorSparkSession.sparkSession().createDataset(List.of(RowFactory.create(accuracy)), RowEncoder.apply(schema));
+        } else if (formula.toLowerCase().startsWith("binevaluate")) {
+            var evaluator = new BinaryClassificationEvaluator()
+                    .setLabelCol("label")
+                    .setRawPredictionCol("prediction")
+                    .setMetricName("accuracy");
             var accuracy = evaluator.evaluate(dataset);
             var schema = new StructType(new StructField[] {StructField.apply("accuracy",DataTypes.DoubleType,true, Metadata.empty())});
             dataset = gorSparkSession.sparkSession().createDataset(List.of(RowFactory.create(accuracy)), RowEncoder.apply(schema));
@@ -1495,11 +1523,25 @@ public class SparkRowSource extends ProcessSource {
                                 set.remove(nw+1);
                             }
 
+                            var ne = xsplit.indexOf("-numearlystoppingrounds");
+                            if (ne>0) {
+                                numearlystoppingrounds = Integer.parseInt(xsplit.get(ne+1));
+                                set.remove(ne);
+                                set.remove(ne+1);
+                            }
+
                             var md = xsplit.indexOf("-maxdepth");
                             if (md>0) {
-                                numworkers = Integer.parseInt(xsplit.get(md+1));
+                                maxdepth = Integer.parseInt(xsplit.get(md+1));
                                 set.remove(md);
                                 set.remove(md+1);
+                            }
+
+                            var nt = xsplit.indexOf("-nthread");
+                            if (nt>0) {
+                                nthread = Integer.parseInt(xsplit.get(nt+1));
+                                set.remove(nt);
+                                set.remove(nt+1);
                             }
 
                             var ot = xsplit.indexOf("-objective");
@@ -1509,6 +1551,13 @@ public class SparkRowSource extends ProcessSource {
                                 set.remove(ot+1);
                             }
 
+                            var em = xsplit.indexOf("-evalmetric");
+                            if (em>0) {
+                                evalmetric = xsplit.get(em+1);
+                                set.remove(em);
+                                set.remove(em+1);
+                            }
+
                             var al = xsplit.indexOf("-alpha");
                             if (al>0) {
                                 set.remove(al);
@@ -1516,11 +1565,32 @@ public class SparkRowSource extends ProcessSource {
                                 alpha = Double.parseDouble(xsplit.get(al+1));
                             }
 
+                            var gm = xsplit.indexOf("-gamma");
+                            if (gm>0) {
+                                set.remove(gm);
+                                set.remove(gm+1);
+                                gamma = Double.parseDouble(xsplit.get(gm+1));
+                            }
+
                             var et = xsplit.indexOf("-eta");
                             if (et>0) {
                                 set.remove(et);
                                 set.remove(et+1);
                                 eta = Double.parseDouble(xsplit.get(et+1));
+                            }
+
+                            var ss = xsplit.indexOf("-subsample");
+                            if (ss>0) {
+                                set.remove(ss);
+                                set.remove(ss+1);
+                                subsample = Double.parseDouble(xsplit.get(ss+1));
+                            }
+
+                            var ct = xsplit.indexOf("-colsamplebytree");
+                            if (ct>0) {
+                                set.remove(ct);
+                                set.remove(ct+1);
+                                colsamplebytree = Double.parseDouble(xsplit.get(ct+1));
                             }
                             this.parquetPath = set.size() == 1 ? xsplit.get(set.iterator().next()) : "";
                             this.parquetType = "xg";
