@@ -24,6 +24,7 @@ import org.gorpipe.gor.binsearch.GorIndexType
 import org.gorpipe.gor.model.{DriverBackedFileReader, GenomicIteratorBase, RowBase}
 import org.gorpipe.gor.table.TableHeader
 import org.gorpipe.gor.table.util.PathUtils
+import org.gorpipe.security.cred.CsaSecurityModule
 
 import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
@@ -633,9 +634,17 @@ object SparkGOR {
   }
 
   def createSession(sparkSession: SparkSession, root: String, cache: String, gorconfig: String, goralias: String, securityContext: String): GorSparkSession = {
+    val securityKey = if (securityContext.startsWith("{")) {
+      val csaSecurityService = CsaSecurityModule.service()
+      val creds = csaSecurityService.getCredentials(securityContext)
+      creds.addToSecurityContext("")
+    } else {
+      securityContext
+    }
+
     val standalone = System.getProperty("sm.standalone")
     if (standalone == null || standalone.isEmpty) System.setProperty("sm.standalone", root)
-    val sessionFactory = new SparkSessionFactory(sparkSession, root, cache, gorconfig, goralias, securityContext, null)
+    val sessionFactory = new SparkSessionFactory(sparkSession, root, cache, gorconfig, goralias, securityKey, null)
     val sparkGorSession = sessionFactory.create().asInstanceOf[GorSparkSession]
     sparkGorSession
   }
