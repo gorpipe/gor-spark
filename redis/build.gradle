@@ -83,6 +83,7 @@ dependencies {
         exclude group: 'ch.qos.logback', module: 'logback-classic'
         exclude group: 'ch.qos.logback', module: 'logback-core'
     }
+    implementation 'org.eclipse.microprofile.jwt:microprofile-jwt-auth-api:2.0'
 
 
     implementation ("org.apache.spark:spark-core_${scalaVersion}:_") {
