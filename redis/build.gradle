@@ -79,6 +79,11 @@ dependencies {
         exclude group: 'ch.qos.logback', module: 'logback-classic'
         exclude group: 'ch.qos.logback', module: 'logback-core'
     }
+    implementation("${gorArtifactGroupId}:gor-auth:${gorVersion}") {
+        exclude group: 'ch.qos.logback', module: 'logback-classic'
+        exclude group: 'ch.qos.logback', module: 'logback-core'
+    }
+
 
     implementation ("org.apache.spark:spark-core_${scalaVersion}:_") {
         exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
