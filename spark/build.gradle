@@ -32,7 +32,7 @@ project(':spark') {
             exclude group: 'ch.qos.logback', module: 'logback-classic'
             exclude group: 'net.sourceforge.f2j', module: 'arpack_combined_all'
         }
-        implementation("${gorArtifactGroupId}:gor-auth:${gorVersion}") {
+        implementation(project(':auth')) {
             exclude group: 'ch.qos.logback', module: 'logback-classic'
         }
 
