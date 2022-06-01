@@ -51,13 +51,24 @@ public class SparkOperatorSpecs {
 
     void addArray(String[] resources) {
         for (String config : resources) {
-            String[] confSplit = config.split("=");
-            if(confSplit.length==2) {
-                try {
-                    Integer ii = Integer.parseInt(confSplit[1]);
-                    addConfig(confSplit[0], ii);
-                } catch (NumberFormatException ne) {
-                    addConfig(confSplit[0], confSplit[1]);
+            var i = config.indexOf('=');
+            if (i > 0) {
+                var key = config.substring(0,i).trim();
+                var value = config.substring(i+1).trim();
+                if (value.startsWith("'")) {
+                    addConfig(key, value.substring(1,value.length()-1));
+                } else {
+                    try {
+                        Integer ii = Integer.parseInt(value);
+                        addConfig(key, ii);
+                    } catch (NumberFormatException ne) {
+                        try {
+                            Double dd = Double.parseDouble(value);
+                            addConfig(key, dd);
+                        } catch(NumberFormatException nfe) {
+                            addConfig(key, value);
+                        }
+                    }
                 }
             }
         }

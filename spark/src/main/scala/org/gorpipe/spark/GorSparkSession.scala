@@ -2,7 +2,6 @@ package org.gorpipe.spark
 
 import java.util
 import java.util.concurrent.ConcurrentHashMap
-
 import org.gorpipe.gor.model.RowBase
 import org.gorpipe.model.gor.RowObj.splitArray
 import gorsat.InputSources.Spark
@@ -187,7 +186,8 @@ class GorSparkSession(requestId: String, workers: Int = 0) extends GorSession(re
   def fingerprint(cmdName: String): String = {
     val cmd = createMap.get(cmdName)
     val scriptExecutionEngine = ScriptEngineFactory.create(this.getGorContext)
-    val signature = scriptExecutionEngine.getFileSignatureAndUpdateSignatureMap(cmd, scriptExecutionEngine.getUsedFiles(cmd))
+    val session = this.getGorContext.getSession
+    val signature = scriptExecutionEngine.getFileSignatureAndUpdateSignatureMap(session, cmd, scriptExecutionEngine.getUsedFiles(cmd, session))
     StringUtilities.createMD5(cmd+signature)
   }
 

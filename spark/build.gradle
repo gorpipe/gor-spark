@@ -26,8 +26,12 @@ project(':spark') {
         }
         implementation("${gorArtifactGroupId}:gor-gortools:${gorVersion}") {
             exclude group: 'ch.qos.logback', module: 'logback-classic'
+            exclude group: 'org.scalanlp', module: 'breeze_2.12'
         }
         implementation("${gorArtifactGroupId}:gor-util:${gorVersion}") {
+            exclude group: 'ch.qos.logback', module: 'logback-classic'
+        }
+        implementation("${gorArtifactGroupId}:gor-auth:${gorVersion}") {
             exclude group: 'ch.qos.logback', module: 'logback-classic'
         }
 
@@ -88,9 +92,35 @@ project(':spark') {
         }
         implementation group: 'org.apache.thrift', name: 'libthrift', version: '0.15.0'
 
-        implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.11.0'
-        implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.0'
-        implementation group: 'com.fasterxml.jackson.module', name: "jackson-module-scala_${scalaVersion}", version: '2.11.0'
+        implementation 'ml.dmlc:xgboost4j-spark_2.12:1.6.1'
+        implementation('org.scalanlp:breeze_2.12') {
+            version {
+                strictly "1.2"
+            }
+        }
+
+        implementation('io.projectglow:glow-spark3_2.12:_') {
+            exclude group: 'org.freemarker'
+        }
+
+        /*implementation('com.esotericsoftware:kryo') {
+            version {
+                strictly "5.3.0"
+            }
+        }*/
+
+        /*constraints {
+            implementation('org.scalanlp:breeze_2.12') {
+                version {
+                    require '1.2'
+                    reject '2.0'
+                }
+            }
+        }*/
+
+        implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.13.2'
+        implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.13.2'
+        implementation "com.fasterxml.jackson.module:jackson-module-scala_${scalaVersion}:2.13.2"
 
         /*compile('org.broadinstitute:gatk:_') {
             exclude group: 'com.esotericsoftware'
@@ -110,6 +140,12 @@ project(':spark') {
             exclude group: 'com.google.guava', module: 'guava'
         }
         implementation ('org.apache.hadoop:hadoop-client:_') {
+
+        }
+        implementation ('org.apache.hadoop:hadoop-client-api:_') {
+
+        }
+        implementation ('org.apache.hadoop:hadoop-client-runtime:_') {
 
         }
         implementation ('org.apache.hadoop:hadoop-hdfs:_') {

@@ -10,8 +10,8 @@ buildscript {
 
 plugins {
     // See https://jmfayard.github.io/refreshVersions
-    id 'de.fayard.refreshVersions' version '0.23.0'
-    id 'com.google.cloud.tools.jib' version '3.1.4' apply false
+    id 'de.fayard.refreshVersions' version '0.40.1'
+    id 'com.google.cloud.tools.jib' version '3.2.1' apply false
 }
 
 rootProject.name = 'gor-spark'
