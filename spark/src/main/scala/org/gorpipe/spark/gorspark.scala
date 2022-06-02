@@ -18,10 +18,14 @@ import org.apache.spark.sql.catalyst.ScalaReflection
 import org.apache.spark.sql.catalyst.encoders.{ExpressionEncoder, RowEncoder}
 import org.apache.spark.sql.types._
 import org.apache.spark.{Partition, TaskContext}
+import org.gorpipe.base.config.ConfigManager
+import org.gorpipe.exceptions.GorSystemException
+import org.gorpipe.gor.auth.{AuthConfig, GorAuthFactory, GorAuthInfo}
 import org.gorpipe.gor.session.GorContext
 import org.gorpipe.gor.function.{GorRowFilterFunction, GorRowMapFunction}
 import org.gorpipe.gor.binsearch.GorIndexType
 import org.gorpipe.gor.model.{DriverBackedFileReader, GenomicIteratorBase, RowBase}
+import org.gorpipe.gor.servers.GorConfig
 import org.gorpipe.gor.table.TableHeader
 import org.gorpipe.gor.table.util.PathUtils
 import org.gorpipe.security.cred.CsaSecurityModule
@@ -635,8 +639,12 @@ object SparkGOR {
 
   def createSession(sparkSession: SparkSession, root: String, cache: String, gorconfig: String, goralias: String, securityContext: String): GorSparkSession = {
     val securityKey = if (securityContext.startsWith("{")) {
+      val gorConfig = ConfigManager.createPrefixConfig("gor", classOf[AuthConfig], System.getenv())
+      val gorAuthFactory = new GorAuthFactory(gorConfig, CsaSecurityModule.apiService)
+      val gorAuthInfo = gorAuthFactory.getGorAuthInfo(securityKey)
+      if (gorAuthInfo == null) throw new GorSystemException("Invalid security key was provided", null)
       val csaSecurityService = CsaSecurityModule.service()
-      val creds = csaSecurityService.getCredentials(securityContext)
+      val creds = csaSecurityService.getCredentials(gorAuthInfo)
       creds.addToSecurityContext("")
     } else {
       securityContext
