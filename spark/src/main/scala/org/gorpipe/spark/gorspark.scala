@@ -641,7 +641,7 @@ object SparkGOR {
     val securityKey = if (securityContext.startsWith("{")) {
       val gorConfig = ConfigManager.createPrefixConfig("gor", classOf[AuthConfig], System.getenv())
       val gorAuthFactory = new GorAuthFactory(gorConfig, CsaSecurityModule.apiService)
-      val gorAuthInfo = gorAuthFactory.getGorAuthInfo(securityKey)
+      val gorAuthInfo = gorAuthFactory.getGorAuthInfo(securityContext)
       if (gorAuthInfo == null) throw new GorSystemException("Invalid security key was provided", null)
       val csaSecurityService = CsaSecurityModule.service()
       val creds = csaSecurityService.getCredentials(gorAuthInfo)
