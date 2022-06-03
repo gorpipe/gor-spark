@@ -649,7 +649,7 @@ object SparkGOR {
     } else {
       securityContext
     }
-    if (!securityKey.startsWith(" ")) securityKey = " " + securityKey
+    if (!securityKey.contains("-Z")) securityKey = " -Z '" + securityKey + "'";
 
     val standalone = System.getProperty("sm.standalone")
     if (standalone == null || standalone.isEmpty) System.setProperty("sm.standalone", root)
