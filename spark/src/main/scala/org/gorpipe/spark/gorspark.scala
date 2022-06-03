@@ -638,7 +638,7 @@ object SparkGOR {
   }
 
   def createSession(sparkSession: SparkSession, root: String, cache: String, gorconfig: String, goralias: String, securityContext: String): GorSparkSession = {
-    val securityKey = if (securityContext.startsWith("{")) {
+    var securityKey = if (securityContext.startsWith("{")) {
       val gorConfig = ConfigManager.createPrefixConfig("gor", classOf[AuthConfig], System.getenv())
       val gorAuthFactory = new GorAuthFactory(gorConfig, CsaSecurityModule.apiService)
       val gorAuthInfo = gorAuthFactory.getGorAuthInfo(securityContext)
@@ -649,6 +649,7 @@ object SparkGOR {
     } else {
       securityContext
     }
+    if (!securityKey.startsWith(" ")) securityKey = " " + securityKey
 
     val standalone = System.getProperty("sm.standalone")
     if (standalone == null || standalone.isEmpty) System.setProperty("sm.standalone", root)
