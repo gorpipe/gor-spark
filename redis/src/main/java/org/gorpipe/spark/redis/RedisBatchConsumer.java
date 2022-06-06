@@ -20,6 +20,7 @@ import org.gorpipe.gor.table.util.PathUtils;
 import org.gorpipe.spark.GorQueryRDD;
 import org.gorpipe.spark.GorSparkSession;
 import org.gorpipe.spark.RedisSparkQueryHandler;
+import org.gorpipe.spark.SparkGOR;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -148,6 +149,7 @@ public class RedisBatchConsumer implements VoidFunction2<Dataset<Row>, Long>, Au
             String[] cachefiles = lstr.stream().map(l -> l[5]).toArray(String[]::new);
             String[] jobIds = lstr.stream().map(l -> l[4]).toArray(String[]::new);
             String[] securityCtxs = lstr.stream().map(l -> l[6]).toArray(String[]::new);
+            SparkGOR.defaultSecurityContext_$eq(securityCtxs[0]);
 
             mont.setValue(jobIds, "status", "RUNNING");
 

@@ -614,6 +614,7 @@ object SparkGOR {
   val sparkrowEncoder: Encoder[SparkRow] = Encoders.javaSerialization(classOf[SparkRow])
   val gorSparkrowEncoder: Encoder[GorSparkRow] = Encoders.javaSerialization(classOf[GorSparkRow])
   val gorzIterator = new GorzIterator()
+  var defaultSecurityContext = ""
 
   case class Variants(chrom: String, pos: Int, ref: String, alt: String, cc: Int, cr: Double, depth: Int, gl: Int, filter: String, fs: Double, formatZip: String, pn: String)
 
@@ -659,7 +660,7 @@ object SparkGOR {
   }
 
   def createSession(sparkSession: SparkSession, root: String, cache: String, gorconfig: String, goralias: String): GorSparkSession = {
-    createSession(sparkSession, root, cache, gorconfig, goralias, "")
+    createSession(sparkSession, root, cache, gorconfig, goralias, defaultSecurityContext)
   }
 
   def createSession(sparkSession: SparkSession): GorSparkSession = {
