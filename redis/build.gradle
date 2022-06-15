@@ -12,7 +12,7 @@ repositories {
 
 jib {
     from {
-        image = 'registry.gitlab.com/wuxi-nextcode/wxnc-gor/gor-spark/nextcode/ubuntubasepyspark:3.2.1'
+        image = 'registry.gitlab.com/wuxi-nextcode/wxnc-gor/gor-spark/nextcode/ubuntubasesparkr:3.2.1'
         if (project.hasProperty('REGISTRY_USER')) {
             auth {
                 username = project.findProperty('REGISTRY_USER')
@@ -80,6 +80,12 @@ dependencies {
         exclude group: 'ch.qos.logback', module: 'logback-core'
         exclude group: 'net.sourceforge.f2j', module: 'arpack_combined_all'
     }
+    implementation("${gorArtifactGroupId}:gor-auth:${gorVersion}") {
+        exclude group: 'ch.qos.logback', module: 'logback-classic'
+        exclude group: 'ch.qos.logback', module: 'logback-core'
+    }
+    implementation 'org.eclipse.microprofile.jwt:microprofile-jwt-auth-api:2.0'
+
 
     implementation ("org.apache.spark:spark-core_${scalaVersion}:_") {
         exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
