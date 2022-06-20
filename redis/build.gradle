@@ -12,7 +12,7 @@ repositories {
 
 jib {
     from {
-        image = 'registry.gitlab.com/wuxi-nextcode/wxnc-gor/gor-spark/nextcode/ubuntubasesparkr:3.2.1'
+        image = 'registry.gitlab.com/wuxi-nextcode/wxnc-gor/gor-spark/nextcode/ubuntubasesparkr:3.3.0'
         if (project.hasProperty('REGISTRY_USER')) {
             auth {
                 username = project.findProperty('REGISTRY_USER')
