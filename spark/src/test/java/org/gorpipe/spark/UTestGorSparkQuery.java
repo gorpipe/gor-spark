@@ -79,6 +79,24 @@ public class UTestGorSparkQuery {
     }
 
     @Test
+    public void testSelectTag() {
+        testSparkQuery("select -tag * from <(pgor -split <(gor ../tests/data/gor/genes.gorz | grep 'BRCA') ../tests/data/gor/genes.gorz)", "chr1\t11868\t14412\tDDX11L1\n" +
+                "chr1\t14362\t29806\tWASH7P\n" +
+                "chr1\t34553\t36081\tFAM138A\n" +
+                "chr1\t53048\t54936\tAL627309.1\n" +
+                "chr1\t62947\t63887\tOR4G11P");
+    }
+
+    @Test
+    public void testSparkTag() {
+        testSparkQuery("create split = gor ../tests/data/gor/genes.gorz | grep 'BRCA'; spark -tag -split [split] <(gor ../tests/data/gor/genes.gorz)", "chr1\t11868\t14412\tDDX11L1\n" +
+                "chr1\t14362\t29806\tWASH7P\n" +
+                "chr1\t34553\t36081\tFAM138A\n" +
+                "chr1\t53048\t54936\tAL627309.1\n" +
+                "chr1\t62947\t63887\tOR4G11P");
+    }
+
+    @Test
     public void testSelectFromJson() throws IOException {
         var p = Paths.get("my.json");
         try {
