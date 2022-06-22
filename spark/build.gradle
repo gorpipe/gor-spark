@@ -1,7 +1,6 @@
 plugins {
     id 'gor.java-library'
     id 'gor.java-application'
-    id 'antlr'
     id 'gor.common'
     id 'gor.scala-common'
 }
@@ -97,6 +96,16 @@ project(':spark') {
         implementation('org.scalanlp:breeze_2.12') {
             version {
                 strictly "1.2"
+            }
+        }
+        implementation("org.antlr:antlr4") {
+            version {
+                strictly "4.8"
+            }
+        }
+        implementation("org.antlr:antlr4-runtime") {
+            version {
+                strictly "4.8"
             }
         }
 

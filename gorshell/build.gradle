@@ -1,7 +1,6 @@
 plugins {
     id 'gor.java-library'
     id 'gor.java-application'
-    id 'antlr'
     id 'gor.scala-common'
 }
 
@@ -77,6 +76,7 @@ project(':gorshell') {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
+            exclude group: 'org.antlr', module: 'antlr-runtime'
         }
         implementation ("org.apache.spark:spark-hive-thriftserver_2.12:_") {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
@@ -89,8 +89,18 @@ project(':gorshell') {
                 strictly "1.2"
             }
         }
+        implementation("org.antlr:antlr4") {
+            version {
+                strictly "4.8"
+            }
+        }
+        implementation("org.antlr:antlr4-runtime") {
+            version {
+                strictly "4.8"
+            }
+        }
 
-        implementation group: 'com.redislabs', name: 'spark-redis_2.12', version: '2.6.0'
+        implementation group: 'com.redislabs', name: 'spark-redis_2.12', version: '3.1.0'
 
         implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.11.0'
         implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.0'

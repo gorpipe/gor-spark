@@ -18,6 +18,14 @@ class GorRangeInputPartition implements InputPartition {
         this.tag = tag;
     }
 
+    GorRangeInputPartition(String query, String chr, int start, int end, String tag) {
+        this(query, tag);
+        this.chr = chr;
+        this.start = start;
+        this.end = end;
+
+    }
+
     GorRangeInputPartition(String path, String filter, String filterFile, String filterColumn, String chr, int start, int end, String tag) {
         this.path = path;
         this.filterFile = filterFile;

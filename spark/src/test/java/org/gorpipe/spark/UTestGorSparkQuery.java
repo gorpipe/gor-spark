@@ -77,6 +77,30 @@ public class UTestGorSparkQuery {
                 "chr1\t62947\t63887\tOR4G11P");
     }
 
+    /*@Test
+    public void testSelectTag() {
+        testSparkQuery("select -tag * from <(pgor -split <(gor ../tests/data/gor/genes.gorz | grep 'BRCA') ../tests/data/gor/genes.gorz)",
+                "chr1\t11868\t14412\tDDX11L1\n" +
+                "chr1\t14362\t29806\tWASH7P\n" +
+                "chr1\t34553\t36081\tFAM138A\n" +
+                "chr1\t53048\t54936\tAL627309.1\n" +
+                "chr1\t62947\t63887\tOR4G11P");
+    }*/
+
+    @Test
+    public void testSparkTag() {
+        testSparkQuery("create split = gor ../tests/data/gor/genes.gorz | grep 'BRCA'; spark -tag -split [split] <(gor ../tests/data/gor/genes.gorz)",
+                "chr13\t32889610\t32973805\tBRCA2\tBRCA2\n" +
+                        "chr13\t32958796\t32960245\tIFIT1P1\tBRCA2\n" +
+                        "chr17\t41196311\t41322290\tBRCA1\tBRCA1\n" +
+                        "chr17\t41231318\t41231797\tRPL21P4\tBRCA1\n" +
+                        "chr17\t41277626\t41305688\tNBR2\tBRCA1\n" +
+                        "chr17\t41296972\t41297272\tCTD-3199J23.6\tBRCA1\n" +
+                        "chr17\t41316199\t41322420\tRP11-242D8.1\tBRCA1\n" +
+                        "chr17\t41320186\t41320266\tRP11-242D8.2\tBRCA1\n" +
+                        "chr17\t41321896\t41322094\tRP11-242D8.3\tBRCA1");
+    }
+
     @Test
     public void testSelectFromJson() throws IOException {
         var p = Paths.get("my.json");

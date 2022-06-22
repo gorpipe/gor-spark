@@ -384,8 +384,9 @@ public class SparkRowUtilities {
                     if (gorSparkSession.streamKey() != null && gorSparkSession.streamKey().length() > 0) {
                         dfr.option("streamkey", gorSparkSession.streamKey());
                     }
+                    if (splitFile != null) dfr = dfr.option("split", splitFile);
                     if (jobid!=null) dfr.option("jobid", jobid);
-                    if(schema!=null) dfr.schema(schema);
+                    if (schema!=null) dfr.schema(schema);
                     gor = dfr.load();
                     dataTypes = Arrays.stream(gor.schema().fields()).map(StructField::dataType).toArray(DataType[]::new);
                 } else if (fileName.toLowerCase().endsWith(".json")) {

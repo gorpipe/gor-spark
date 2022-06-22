@@ -641,10 +641,10 @@ object SparkGOR {
   def createSession(sparkSession: SparkSession, root: String, cache: String, gorconfig: String, goralias: String, securityContext: String): GorSparkSession = {
     var securityKey = if (securityContext.startsWith("{")) {
       val gorConfig = ConfigManager.createPrefixConfig("gor", classOf[AuthConfig], System.getenv())
-      val gorAuthFactory = new GorAuthFactory(gorConfig, CsaSecurityModule.apiService)
+      val gorAuthFactory = new GorAuthFactory(gorConfig, CsaSecurityModule.get().apiService())
       val gorAuthInfo = gorAuthFactory.getGorAuthInfo(securityContext)
       if (gorAuthInfo == null) throw new GorSystemException("Invalid security key was provided", null)
-      val csaSecurityService = CsaSecurityModule.service()
+      val csaSecurityService = CsaSecurityModule.get().service()
       val creds = csaSecurityService.getCredentials(gorAuthInfo)
       creds.addToSecurityContext("")
     } else {
