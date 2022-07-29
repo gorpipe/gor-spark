@@ -144,12 +144,12 @@ dependencies {
     }
     implementation("org.antlr:antlr4") {
         version {
-            strictly "4.8"
+            strictly "4.10.1"
         }
     }
     implementation("org.antlr:antlr4-runtime") {
         version {
-            strictly "4.8"
+            strictly "4.10.1"
         }
     }
 
