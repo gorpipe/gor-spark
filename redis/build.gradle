@@ -12,7 +12,7 @@ repositories {
 
 jib {
     from {
-        image = 'registry.gitlab.com/wuxi-nextcode/wxnc-gor/gor-spark/nextcode/ubuntubasesparkr:3.2.1'
+        image = 'registry.gitlab.com/wuxi-nextcode/wxnc-gor/gor-spark/nextcode/ubuntubasesparkr:3.3.0'
         if (project.hasProperty('REGISTRY_USER')) {
             auth {
                 username = project.findProperty('REGISTRY_USER')
@@ -138,9 +138,19 @@ dependencies {
         exclude group: 'org.apache.thrift', module: 'libthrift'
     }
 
-    /*implementation('org.scalanlp:breeze_2.12') {
+    implementation('org.scalanlp:breeze_2.13') {
         version {
-            strictly "1.2"
+            strictly "1.3"
+        }
+    }
+    implementation("org.antlr:antlr4") {
+        version {
+            strictly "4.10.1"
+        }
+    }
+    implementation("org.antlr:antlr4-runtime") {
+        version {
+            strictly "4.10.1"
         }
     }*/
 
@@ -150,7 +160,7 @@ dependencies {
     implementation 'io.kubernetes:client-java:_'
 
     implementation("redis.clients:jedis:_")
-    implementation "com.redislabs:spark-redis_2.12:_"
+    implementation "com.redislabs:spark-redis_2.12:_" //${scalaVersion}:_"
 
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.11.0'
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.0'

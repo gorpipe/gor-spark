@@ -24,7 +24,7 @@ import scala.Function1;
 import scala.Option;
 import scala.collection.Iterator;
 import scala.collection.immutable.Map;
-import scala.collection.Seq;
+import scala.collection.immutable.Seq;
 
 import java.io.IOException;
 import java.io.InputStream;

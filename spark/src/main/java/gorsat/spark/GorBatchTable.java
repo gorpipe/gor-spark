@@ -11,8 +11,10 @@ import org.apache.spark.sql.connector.write.LogicalWriteInfo;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.StructField;
+import org.gorpipe.gor.driver.GorDriverFactory;
+import org.gorpipe.gor.driver.PluggableGorDriver;
+import org.gorpipe.gor.driver.meta.SourceReference;
 import org.gorpipe.gor.reference.ReferenceBuildDefaults;
-import org.gorpipe.spark.GeneralSparkQueryHandler;
 import org.gorpipe.spark.GorSparkSession;
 import org.apache.spark.sql.connector.catalog.SupportsRead;
 import org.apache.spark.sql.connector.catalog.SupportsWrite;
@@ -341,7 +343,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
             @Override
             public InputPartition[] planInputPartitions() {
                 InputPartition[] partitions = null;
-                if( commands != null ) {
+                if( commands != null && commands.length > 1 ) {
                     partitions = Arrays.stream(commands).map(cmd -> {
                         String tagstr = null;
                         if(tag) {
@@ -359,11 +361,33 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
                     partitions = new InputPartition[1];
                     partitions[0] = new GorRangeInputPartition(path, filter, filterFile, filterColumn, filterChrom, start, stop, filterChrom);
                 } else {
+                    partitions = new InputPartition[0];
                     if (splitFile != null) {
-                        try {
-                            partitions = Files.lines(Paths.get(splitFile)).skip(1).map(line -> line.split("\t")).map(s -> new GorRangeInputPartition(path, filter, filterFile, filterColumn, s[0], Integer.parseInt(s[1]), Integer.parseInt(s[2]), s.length > 3 ? s[3] : s[0] + ":" + s[1] + "-" + s[2])).toArray(InputPartition[]::new);
-                        } catch (IOException e) {
-                            e.printStackTrace();
+                        if (splitFile.toLowerCase().endsWith(".gorz")) {
+                            var sourceReference = new SourceReference(splitFile);
+                            try (var genomicIterator = GorDriverFactory.fromConfig().createIterator(sourceReference);) {
+                                var listInputParitions = new ArrayList<InputPartition>();
+                                while (genomicIterator.hasNext()) {
+                                    var row = genomicIterator.next();
+                                    var end = row.colAsInt(2);
+                                    GorRangeInputPartition gorRangeInputPartition;
+                                    if (path!=null) {
+                                        gorRangeInputPartition = new GorRangeInputPartition(path, filter, filterFile, filterColumn, row.chr, row.pos, end, row.numCols() > 3 ? row.colAsString(3).toString() : row.chr + ":" + row.pos + "-" + end);
+                                    } else {
+                                        gorRangeInputPartition = new GorRangeInputPartition(commands[0], row.chr, row.pos, end, row.numCols() > 3 ? row.colAsString(3).toString() : row.chr + ":" + row.pos + "-" + end);
+                                    }
+                                    listInputParitions.add(gorRangeInputPartition);
+                                }
+                                partitions = listInputParitions.toArray(InputPartition[]::new);
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        } else {
+                            try (var fstream = Files.lines(Paths.get(splitFile))) {
+                                partitions = fstream.skip(1).map(line -> line.split("\t")).map(s -> new GorRangeInputPartition(path, filter, filterFile, filterColumn, s[0], Integer.parseInt(s[1]), Integer.parseInt(s[2]), s.length > 3 ? s[3] : s[0] + ":" + s[1] + "-" + s[2])).toArray(InputPartition[]::new);
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
                         }
                     }
 
@@ -401,7 +425,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
-                    } else partitions = new InputPartition[0];
+                    }
                 }
                 return partitions;
             }

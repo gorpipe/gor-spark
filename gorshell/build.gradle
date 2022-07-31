@@ -1,7 +1,6 @@
 plugins {
     id 'gor.java-library'
     id 'gor.java-application'
-    id 'antlr'
     id 'gor.scala-common'
 }
 
@@ -27,75 +26,86 @@ project(':gorshell') {
         }
         implementation project(':model') {
             exclude group: 'ch.qos.logback', module: 'logback-classic'
-            exclude group: 'org.scalanlp', module: 'breeze_2.12'
+            exclude group: 'org.scalanlp', module: "breeze_${scalaVersion}"
         }
         implementation(project(':gortools')) {
             exclude group: 'ch.qos.logback', module: 'logback-classic'
-            exclude group: 'org.scalanlp', module: 'breeze_2.12'
+            exclude group: 'org.scalanlp', module: "breeze_${scalaVersion}"
             exclude group: 'net.sourceforge.f2j', module: 'arpack_combined_all'
         }
         implementation project(':scripts') {
             exclude group: 'ch.qos.logback', module: 'logback-classic'
         }
 
-        implementation ("org.apache.spark:spark-core_2.12:_") {
+        implementation ("org.apache.spark:spark-core_${scalaVersion}:_") {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
-        implementation ("org.apache.spark:spark-sql_2.12:_") {
+        implementation ("org.apache.spark:spark-sql_${scalaVersion}:_") {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
-        implementation ("org.apache.spark:spark-mllib_2.12:_") {
+        implementation ("org.apache.spark:spark-mllib_${scalaVersion}:_") {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
-        implementation ("org.apache.spark:spark-tags_2.12:_") {
+        implementation ("org.apache.spark:spark-tags_${scalaVersion}:_") {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
-        implementation ("org.apache.spark:spark-kubernetes_2.12:_") {
+        implementation ("org.apache.spark:spark-kubernetes_${scalaVersion}:_") {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
-            exclude group: 'org.apache.spark', module: 'spark-tags_2.12'
+            exclude group: 'org.apache.spark', module: "spark-tags_${scalaVersion}"
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
-        implementation ("org.apache.spark:spark-catalyst_2.12:_") {
-            exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
-            exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
-            exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
-        }
-        implementation ("org.apache.spark:spark-repl_2.12:_") {
+        implementation ("org.apache.spark:spark-catalyst_${scalaVersion}:_") {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
-        implementation ("org.apache.spark:spark-hive_2.12:_") {
+        implementation ("org.apache.spark:spark-repl_${scalaVersion}:_") {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
-        implementation ("org.apache.spark:spark-hive-thriftserver_2.12:_") {
+        implementation ("org.apache.spark:spark-hive_${scalaVersion}:_") {
+            exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
+            exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
+            exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
+            exclude group: 'org.antlr', module: 'antlr-runtime'
+        }
+        implementation ("org.apache.spark:spark-hive-thriftserver_${scalaVersion}:_") {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
 
-        /*implementation('org.scalanlp:breeze_2.12') {
+        implementation('org.scalanlp:breeze_2.13') {
             version {
-                strictly "1.2"
+                strictly "1.3"
+            }
+        }
+        implementation("org.antlr:antlr4") {
+            version {
+                strictly "4.10.1"
+            }
+        }
+        implementation("org.antlr:antlr4-runtime") {
+            version {
+                strictly "4.10.1"
             }
         }*/
 
-        implementation group: 'com.redislabs', name: 'spark-redis_2.12', version: '2.6.0'
+        implementation group: 'com.redislabs', name: 'spark-redis_2.12', version: '3.1.0'
 
         implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.11.0'
         implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.0'
-        implementation group: 'com.fasterxml.jackson.module', name: 'jackson-module-scala_2.12', version: '2.11.0'
+        implementation group: 'com.fasterxml.jackson.module', name: "jackson-module-scala_${scalaVersion}", version: '2.11.0'
 
         implementation "org.apache.logging.log4j:log4j:_"
         implementation "org.apache.logging.log4j:log4j-core:_"
