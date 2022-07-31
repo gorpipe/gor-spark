@@ -148,7 +148,7 @@ project(':spark') {
             version {
                 strictly "4.10.1"
             }
-        }*/
+        }
 
         /*implementation('io.projectglow:glow-spark3_2.12:_') {
             exclude group: 'org.freemarker'
