@@ -173,12 +173,12 @@ project(':spark') {
         implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.13.2'
         implementation "com.fasterxml.jackson.module:jackson-module-scala_${scalaVersion}:2.13.2"
 
-        implementation(group: 'org.bdgenomics.adam', name: 'adam-core-spark3_2.12', version: '0.37.0') {
+        /*implementation(group: 'org.bdgenomics.adam', name: 'adam-core-spark3_2.13', version: '1.0') {
             exclude group: 'com.esotericsoftware.kryo', module: 'kryo'
         }
-        implementation(group: 'org.bdgenomics.adam', name: 'adam-apis-spark3_2.12', version: '0.37.0') {
+        implementation(group: 'org.bdgenomics.adam', name: 'adam-apis-spark3_2.13', version: '1.0') {
             exclude group: 'com.esotericsoftware.kryo', module: 'kryo'
-        }
+        }*/
 
         /*compile('org.broadinstitute:gatk:_') {
             exclude group: 'com.esotericsoftware'

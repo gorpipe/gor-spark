@@ -36,8 +36,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.spark.sql.*;
 import org.apache.spark.sql.expressions.UserDefinedFunction;
 
-import org.bdgenomics.adam.ds.variant.VariantDataset;
-import org.bdgenomics.adam.sql.Variant;
+//import org.bdgenomics.adam.ds.variant.VariantDataset;
+//import org.bdgenomics.adam.sql.Variant;
 import org.gorpipe.exceptions.GorResourceException;
 import org.gorpipe.gor.driver.DataSource;
 import org.gorpipe.gor.driver.providers.stream.datatypes.bam.BamIterator;
@@ -809,9 +809,9 @@ public class SparkRowSource extends ProcessSource {
                             Arrays.stream(dataset.columns()).filter(c -> c.contains("(")).forEach(c -> dataset = dataset.withColumnRenamed(c, c.replace('(', '_').replace(')', '_')));
 
                             if (posbin != -1) {
-                                Dataset<Variant> variantDataset = ((Dataset<org.apache.spark.sql.Row>) dataset).map((MapFunction<org.apache.spark.sql.Row, Variant>) value -> Variant.apply(null, null, null, null, null, null, null, null, null, null, null, null), ScalaUtils.variantEncoder());
-                                VariantDataset vd = VariantDataset.apply(variantDataset);
-                                vd.saveAsPartitionedParquet(parquetPath, CompressionCodecName.GZIP, posbin);
+                                //Dataset<Variant> variantDataset = ((Dataset<org.apache.spark.sql.Row>) dataset).map((MapFunction<org.apache.spark.sql.Row, Variant>) value -> Variant.apply(null, null, null, null, null, null, null, null, null, null, null, null), ScalaUtils.variantEncoder());
+                                //VariantDataset vd = VariantDataset.apply(variantDataset);
+                                //vd.saveAsPartitionedParquet(parquetPath, CompressionCodecName.GZIP, posbin);
                             } else {
                                 DataFrameWriter dfw = dataset.write();
                                 if (parts != null) {
