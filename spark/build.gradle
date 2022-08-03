@@ -93,7 +93,7 @@ project(':spark') {
 
         implementation "com.auth0:java-jwt:_"
         //implementation 'ml.dmlc:xgboost4j-spark_2.13:1.6.1'
-        implementation('org.scalanlp:breeze_2.13') {
+        implementation('org.scalanlp:breeze_2.12') {
             version {
                 strictly "1.3"
             }

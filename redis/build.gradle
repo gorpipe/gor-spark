@@ -137,7 +137,7 @@ dependencies {
         exclude group: 'org.apache.thrift', module: 'libthrift'
     }
 
-    implementation('org.scalanlp:breeze_2.13') {
+    implementation('org.scalanlp:breeze_2.12') {
         version {
             strictly "1.3"
         }
