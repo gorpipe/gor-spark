@@ -159,7 +159,7 @@ dependencies {
     implementation 'io.kubernetes:client-java:_'
 
     implementation("redis.clients:jedis:_")
-    implementation "com.redislabs:spark-redis_2.12:_" //${scalaVersion}:_"
+    implementation "com.redislabs:spark-redis_${scalaVersion}:_"
 
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.11.0'
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.0'
