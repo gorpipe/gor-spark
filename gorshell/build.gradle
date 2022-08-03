@@ -84,7 +84,7 @@ project(':gorshell') {
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
 
-        implementation('org.scalanlp:breeze_2.12') {
+        implementation("org.scalanlp:breeze_${scalaVersion}") {
             version {
                 strictly "1.3"
             }
@@ -100,7 +100,7 @@ project(':gorshell') {
             }
         }
 
-        implementation group: 'com.redislabs', name: 'spark-redis_2.12', version: '3.1.0'
+        implementation group: 'com.redislabs', name: "spark-redis_${scalaVersion}", version: '3.1.0'
 
         implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.11.0'
         implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.0'
@@ -135,7 +135,7 @@ project(':gorshell') {
         }
         implementation 'org.apache.commons:commons-compress:_'
 
-        implementation('io.projectglow:glow-spark3_2.12:_') {
+        implementation("io.projectglow:glow-spark3_${scalaVersion}:_") {
             exclude group: 'org.freemarker'
         }
 

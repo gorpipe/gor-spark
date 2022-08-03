@@ -93,7 +93,7 @@ project(':spark') {
 
         implementation "com.auth0:java-jwt:_"
         //implementation 'ml.dmlc:xgboost4j-spark_2.13:1.6.1'
-        implementation('org.scalanlp:breeze_2.12') {
+        implementation("org.scalanlp:breeze_${scalaVersion}") {
             version {
                 strictly "1.3"
             }
@@ -169,7 +169,7 @@ project(':spark') {
         }
         implementation 'org.apache.commons:commons-compress:_'
 
-        implementation group: 'com.databricks', name: 'spark-xml_2.12', version: '0.14.0'
+        implementation group: 'com.databricks', name: "spark-xml_${scalaVersion}", version: '0.14.0'
 
         implementation "org.aeonbits.owner:owner:_"
         implementation 'info.picocli:picocli-shell-jline3:_'
