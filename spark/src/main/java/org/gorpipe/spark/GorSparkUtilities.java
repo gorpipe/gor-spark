@@ -1,6 +1,6 @@
 package org.gorpipe.spark;
 
-//import io.projectglow.GlowBase;
+import io.projectglow.GlowBase;
 import org.apache.spark.SparkConf;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -247,8 +247,8 @@ public class GorSparkUtilities {
         spark.udf().register("todoublematrix", new CommaToDoubleMatrix(), SQLDataTypes.MatrixType());
         spark.udf().register("tointarray", new CommaToIntArray(), DataTypes.createArrayType(DataTypes.IntegerType));
 
-        //GlowBase gb = new GlowBase();
-        //gb.register(spark, false);
+        GlowBase gb = new GlowBase();
+        gb.register(spark, false);
 
         return spark;
     }

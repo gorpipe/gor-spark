@@ -15,11 +15,11 @@ import java.util.zip.DataFormatException;
 
 import com.databricks.spark.xml.util.XSDToSchema;
 import gorsat.commands.PysparkAnalysis;
-//import io.projectglow.Glow;
-//import io.projectglow.transformers.blockvariantsandsamples.VariantSampleBlockMaker;
-//import ml.dmlc.xgboost4j.scala.spark.XGBoostClassificationModel;
-//import ml.dmlc.xgboost4j.scala.spark.TrackerConf;
-//import ml.dmlc.xgboost4j.scala.spark.XGBoostClassifier;
+import io.projectglow.Glow;
+import io.projectglow.transformers.blockvariantsandsamples.VariantSampleBlockMaker;
+import ml.dmlc.xgboost4j.scala.spark.XGBoostClassificationModel;
+import ml.dmlc.xgboost4j.scala.spark.TrackerConf;
+import ml.dmlc.xgboost4j.scala.spark.XGBoostClassifier;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 import org.apache.spark.ml.Pipeline;
 import org.apache.spark.ml.PipelineModel;
@@ -880,7 +880,7 @@ public class SparkRowSource extends ProcessSource {
                                 throw new GorResourceException("Unable to save random forest model file", parquetPath, e);
                             }
                         } else if (parquetType.equals("xg")) {
-                            /*var xg = new XGBoostClassifier();
+                            var xg = new XGBoostClassifier();
                             xg.set("trackerConf", TrackerConf.apply(0L, "scala", "", ""));
                             if (numclass!=-1) xg.setNumClass(numclass);
                             if (numworkers!=-1) xg.setNumWorkers(numworkers);
@@ -914,14 +914,14 @@ public class SparkRowSource extends ProcessSource {
                                     .setOutputCol("predictedLabel")
                                     .setLabels(labelIndexer.labelsArray()[0]);
 
-                            var pipeline = new Pipeline().setStages(new PipelineStage[]{labelIndexer, featureIndexer, xg, labelConverter});*
+                            var pipeline = new Pipeline().setStages(new PipelineStage[]{labelIndexer, featureIndexer, xg, labelConverter});*/
 
                             var xgmodel = xg.fit(dataset);
                             try {
                                 xgmodel.save(parquetPath);
                             } catch (IOException e) {
                                 throw new GorResourceException("Unable to save random forest model file", parquetPath, e);
-                            }*/
+                            }
                         }
                     }
                 } catch (IOException e) {
@@ -1377,10 +1377,10 @@ public class SparkRowSource extends ProcessSource {
                     options.put(psplit[0], psplit[1].substring(1, psplit[1].length() - 1));
                 else options.put(psplit[0], psplit[1]);
             }
-            //ret = Glow.transform("pipe", dataset, options);
+            ret = Glow.transform("pipe", dataset, options);
         } else if (gor.startsWith("split_multiallelics")) {
             Map<String, String> options = new HashMap<>();
-            //ret = Glow.transform("split_multiallelics", dataset, options);
+            ret = Glow.transform("split_multiallelics", dataset, options);
         } else if (gor.startsWith("glowtransform")) {
             Map<String, String> options = new HashMap<>();
             String cmd = gor.substring("glowtransform".length()).trim();
@@ -1393,7 +1393,7 @@ public class SparkRowSource extends ProcessSource {
                     options.put(psplit[0], psplit[1].substring(1, psplit[1].length() - 1));
                 else options.put(psplit[0], psplit[1]);
             }
-            //ret = Glow.transform(transformcmd, dataset, options);
+            ret = Glow.transform(transformcmd, dataset, options);
         } else if (gor.startsWith("block_variants_and_samples")) {
             Map<String, String> options = new HashMap<>();
             String cmd = gor.substring("block_variants_and_samples".length()).trim();
@@ -1404,10 +1404,10 @@ public class SparkRowSource extends ProcessSource {
                     options.put(psplit[0], psplit[1].substring(1, psplit[1].length() - 1));
                 else options.put(psplit[0], psplit[1]);
             }
-            //ret = Glow.transform("block_variants_and_samples", dataset, options);
+            ret = Glow.transform("block_variants_and_samples", dataset, options);
         } else if (gor.startsWith("make_sample_blocks")) {
             int sampleCount = Integer.parseInt(gor.substring("make_sample_blocks".length()).trim());
-            //ret = VariantSampleBlockMaker.makeSampleBlocks(dataset, sampleCount);
+            ret = VariantSampleBlockMaker.makeSampleBlocks(dataset, sampleCount);
         }
         return ret;
     }
@@ -1418,9 +1418,8 @@ public class SparkRowSource extends ProcessSource {
     }
 
     private Dataset<org.apache.spark.sql.Row> xgboosttransform(Dataset<org.apache.spark.sql.Row> dataset, String modelpath) {
-        //XGBoostClassificationModel xgmodel = XGBoostClassificationModel.load(modelpath);
-        //return xgmodel.transform(dataset);
-        return null;
+        XGBoostClassificationModel xgmodel = XGBoostClassificationModel.load(modelpath);
+        return xgmodel.transform(dataset);
     }
 
     private Dataset<org.apache.spark.sql.Row> logregfit(Dataset<org.apache.spark.sql.Row> dataset, String modelpath) {

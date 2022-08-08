@@ -85,7 +85,7 @@ project(':gorshell') {
             exclude group: 'org.apache.hadoop', module: 'hadoop-yarn-server-nodemanager'
         }
 
-        implementation('org.scalanlp:breeze_2.13') {
+        implementation("org.scalanlp:breeze_${scalaVersion}") {
             version {
                 strictly "1.3"
             }
