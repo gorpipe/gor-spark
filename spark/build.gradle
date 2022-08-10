@@ -141,18 +141,18 @@ project(':spark') {
         }
         implementation("org.antlr:antlr4") {
             version {
-                strictly "4.10.1"
+                strictly "4.8"
             }
         }
         implementation("org.antlr:antlr4-runtime") {
             version {
-                strictly "4.10.1"
+                strictly "4.8"
             }
         }
 
-        implementation("io.projectglow:glow-spark3_${scalaVersion}:_") {
+        /*implementation("io.projectglow:glow-spark3_${scalaVersion}:_") {
             exclude group: 'org.freemarker'
-        }
+        }*/
 
         /*implementation('com.esotericsoftware:kryo') {
             version {

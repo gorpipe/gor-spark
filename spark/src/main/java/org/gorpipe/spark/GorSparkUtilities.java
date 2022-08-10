@@ -1,6 +1,6 @@
 package org.gorpipe.spark;
 
-import io.projectglow.GlowBase;
+//import io.projectglow.GlowBase;
 import org.apache.spark.SparkConf;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -206,7 +206,8 @@ public class GorSparkUtilities {
         if (SparkGorMonitor.localProgressMonitor != null) {
             return SparkGorMonitor.localProgressMonitor;
         } else {
-            var srvList = ServiceLoader.load(SparkMonitorFactory.class).stream().collect(Collectors.toList());
+            List<ServiceLoader.Provider<SparkMonitorFactory>> srvList;
+            srvList = ServiceLoader.load(SparkMonitorFactory.class).stream().toList();
             if (srvList.size() > 0) {
                 SparkMonitorFactory sparkMonitorFactory;
                 sparkMonitorFactory = srvList.get(0).get();
@@ -247,8 +248,8 @@ public class GorSparkUtilities {
         spark.udf().register("todoublematrix", new CommaToDoubleMatrix(), SQLDataTypes.MatrixType());
         spark.udf().register("tointarray", new CommaToIntArray(), DataTypes.createArrayType(DataTypes.IntegerType));
 
-        GlowBase gb = new GlowBase();
-        gb.register(spark, false);
+        //GlowBase gb = new GlowBase();
+        //gb.register(spark, false);
 
         return spark;
     }
