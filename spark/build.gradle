@@ -217,7 +217,7 @@ project(':spark') {
         }
         implementation 'org.apache.commons:commons-compress:_'
 
-        implementation group: 'com.databricks', name: "spark-xml_${scalaVersion}", version: '0.14.0'
+        implementation group: 'com.databricks', name: "spark-xml_${scalaVersion}", version: '0.15.0'
 
         implementation "org.aeonbits.owner:owner:_"
         implementation 'info.picocli:picocli-shell-jline3:_'
