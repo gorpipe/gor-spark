@@ -358,8 +358,8 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
                     partitions = new InputPartition[1];
                     partitions[0] = new GorRangeInputPartition(path, filter, filterFile, filterColumn, filterChrom, start, stop, filterChrom);
                 } else {
-                    partitions = new InputPartition[0];
                     if (splitFile != null) {
+                        partitions = new InputPartition[0];
                         if (splitFile.toLowerCase().endsWith(".gorz")) {
                             var sourceReference = new SourceReference(splitFile);
                             try (var genomicIterator = GorDriverFactory.fromConfig().createIterator(sourceReference);) {
