@@ -1,6 +1,6 @@
 package org.gorpipe.spark;
 
-import io.projectglow.GlowBase;
+//import io.projectglow.GlowBase;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.python.Py4JServer;
 import org.apache.spark.api.r.RAuthHelper;

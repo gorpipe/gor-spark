@@ -133,9 +133,9 @@ project(':gorshell') {
         }
         implementation 'org.apache.commons:commons-compress:_'
 
-        implementation("io.projectglow:glow-spark3_${scalaVersion}:_") {
+        /*implementation("io.projectglow:glow-spark3_${scalaVersion}:_") {
             exclude group: 'org.freemarker'
-        }
+        }*/
 
         implementation "org.aeonbits.owner:owner:_"
         implementation 'info.picocli:picocli-shell-jline3:_'
