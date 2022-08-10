@@ -100,8 +100,6 @@ project(':gorshell') {
             }
         }
 
-        implementation group: 'com.redislabs', name: "spark-redis_${scalaVersion}", version: '3.1.0'
-
         implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.11.0'
         implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.0'
         implementation group: 'com.fasterxml.jackson.module', name: "jackson-module-scala_${scalaVersion}", version: '2.11.0'
@@ -141,8 +139,6 @@ project(':gorshell') {
 
         implementation "org.aeonbits.owner:owner:_"
         implementation 'info.picocli:picocli-shell-jline3:_'
-
-        implementation("redis.clients:jedis:_")
 
         implementation 'io.kubernetes:client-java:_'
 
