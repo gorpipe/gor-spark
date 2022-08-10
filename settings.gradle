@@ -2,16 +2,11 @@
     repositories {
         maven { url "https://plugins.gradle.org/m2/" }
     }
-    dependencies {
-        // Jib
-        classpath('com.google.cloud.tools:jib-ownership-extension-gradle:0.1.0')
-    }
 }*/
 
 plugins {
     // See https://jmfayard.github.io/refreshVersions
     id 'de.fayard.refreshVersions' version '0.40.1'
-    id 'com.google.cloud.tools.jib' version '3.2.1' apply false
 }
 
 refreshVersions {
@@ -24,7 +19,6 @@ rootProject.name = 'gor-spark'
 rootProject.buildFileName = "build.gradle"
 
 include 'spark'
-include 'redis'
 
 //include 'querydialogs'
 include 'gorscripts'

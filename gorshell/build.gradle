@@ -143,8 +143,6 @@ project(':gorshell') {
         implementation "org.aeonbits.owner:owner:_"
         implementation 'info.picocli:picocli-shell-jline3:_'
 
-        implementation("redis.clients:jedis:_")
-
         implementation 'io.kubernetes:client-java:_'
 
         /*testImplementation("${gorArtifactGroupId}:gor-test:${gorVersion}") {
