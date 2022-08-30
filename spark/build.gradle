@@ -70,16 +70,20 @@ project(':spark') {
         }
         implementation("${gorArtifactGroupId}:gor-model:${gorVersion}") {
             exclude group: 'ch.qos.logback', module: 'logback-classic'
+            exclude group: 'ch.qos.logback', module: 'logback-core'
         }
         implementation("${gorArtifactGroupId}:gor-gortools:${gorVersion}") {
             exclude group: 'ch.qos.logback', module: 'logback-classic'
+            exclude group: 'ch.qos.logback', module: 'logback-core'
             exclude group: 'org.scalanlp', module: 'breeze_2.12'
         }
         implementation("${gorArtifactGroupId}:gor-util:${gorVersion}") {
             exclude group: 'ch.qos.logback', module: 'logback-classic'
+            exclude group: 'ch.qos.logback', module: 'logback-core'
         }
         implementation("${gorArtifactGroupId}:gor-auth:${gorVersion}") {
             exclude group: 'ch.qos.logback', module: 'logback-classic'
+            exclude group: 'ch.qos.logback', module: 'logback-core'
         }
 
         annotationProcessor 'com.google.auto.service:auto-service:_'
@@ -224,12 +228,16 @@ project(':spark') {
         implementation "com.github.samtools:htsjdk:_"
 
         runtimeOnly "io.prometheus.jmx:jmx_prometheus_javaagent:_"
-        runtimeOnly "${gorArtifactGroupId}:gor-drivers:${gorVersion}"
+        runtimeOnly("${gorArtifactGroupId}:gor-drivers:${gorVersion}") {
+            exclude group: 'ch.qos.logback', module: 'logback-classic'
+            exclude group: 'ch.qos.logback', module: 'logback-core'
+        }
 
         implementation 'io.kubernetes:client-java:_'
 
         testImplementation("${gorArtifactGroupId}:gor-test:${gorVersion}") {
             exclude group: 'ch.qos.logback', module: 'logback-classic'
+            exclude group: 'ch.qos.logback', module: 'logback-core'
         }
     }
 }
