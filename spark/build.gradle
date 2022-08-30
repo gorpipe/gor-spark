@@ -3,6 +3,54 @@ plugins {
     id 'gor.java-application'
     id 'gor.common'
     id 'gor.scala-common'
+    id 'com.google.cloud.tools.jib'
+}
+
+jib {
+    from {
+        image = 'registry.gitlab.com/wuxi-nextcode/wxnc-gor/gor-spark/nextcode/ubuntubasesparkr:3.3.0'
+        if (project.hasProperty('REGISTRY_USER')) {
+            auth {
+                username = project.findProperty('REGISTRY_USER')
+                password = project.findProperty('REGISTRY_PASSWORD')
+            }
+        }
+    }
+    to {
+        image = project.findProperty('APPLICATION_REPOSITORY') ?: "nextcode/spark"
+        //credHelper = 'osxkeychain'
+        tags = [project.findProperty('APPLICATION_TAG') ?: "${version}"]
+        if (project.hasProperty('REGISTRY_USER')) {
+            auth {
+                username = project.findProperty('REGISTRY_USER')
+                password = project.findProperty('REGISTRY_PASSWORD')
+            }
+        }
+    }
+    containerizingMode = 'packaged'
+    pluginExtensions {
+        pluginExtension {
+            implementation = 'com.google.cloud.tools.jib.gradle.extension.ownership.JibOwnershipExtension'
+            configuration {
+                rules {
+                    rule {
+                        glob = '/opt/spark/**'
+                        ownership = '3000:3000'
+                    }
+                }
+            }
+        }
+    }
+    container {
+        user = 'app'
+        entrypoint = '/opt/entrypoint.sh'
+        workingDirectory = '/opt/spark/work-dir/'
+        appRoot = '/opt/spark/'
+        environment = [JAVA_TOOL_OPTIONS:'-Djdk.lang.processReaperUseDefaultStackSize=true --add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED',SPARK_EXTRA_CLASSPATH:'/opt/spark/classpath/*']
+    }
+    extraDirectories {
+        permissions = ['/usr/bin/spark-operator':'777','/usr/bin/entrypoint.sh':'777','/usr/bin/gencerts.sh':'777']
+    }
 }
 
 project(':spark') {
