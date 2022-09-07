@@ -41,7 +41,7 @@ ext {
     gorArtifactGroupId = 'org.gorpipe'
     gorVersion = new File("${rootDir}/GOR_VERSION").text.trim()
     sparkVersion = '3.3.0'
-    scalaVersion = '2.13'
+    scalaVersion = '2.12'
 }
 
 // -----------------------------------------------------
