@@ -130,6 +130,13 @@ class UTestGorSparkSDK {
     }
 
     @Test
+    def testPGor(): Unit = {
+        val df = sparkGorSession.dataframe("pgor gor/genes.gor | top 1")
+        val res2 = df.collect().mkString("\n")
+        Assert.assertEquals("Wrong results from nested gorrows", "[chr1,4]", res2)
+    }
+
+    @Test
     def testGorrowsWithSchema(): Unit = {
         val df = sparkGorSession.dataframe("gorrows -p chr1:1-5")
         val res = df.gorschema("where pos > 3",df.schema)(sparkGorSession)
@@ -354,6 +361,6 @@ class UTestGorSparkSDK {
     def close() {
         Files.deleteIfExists(goraliaspath)
         Files.deleteIfExists(gorconfigpath)
-        sparkGorSession.close()
+        if (sparkGorSession != null) sparkGorSession.close()
     }
 }
