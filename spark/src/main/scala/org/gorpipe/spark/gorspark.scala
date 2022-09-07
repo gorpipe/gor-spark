@@ -615,6 +615,8 @@ object SparkGOR {
   val gorSparkrowEncoder: Encoder[GorSparkRow] = Encoders.javaSerialization(classOf[GorSparkRow])
   val gorzIterator = new GorzIterator()
   var defaultSecurityContext = ""
+  var defaultProjectPath = Paths.get("").toAbsolutePath.toString
+  var defaultCachePath = Paths.get(System.getProperty("java.io.tmpdir")).toString
 
   case class Variants(chrom: String, pos: Int, ref: String, alt: String, cc: Int, cr: Double, depth: Int, gl: Int, filter: String, fs: Double, formatZip: String, pn: String)
 
@@ -664,14 +666,14 @@ object SparkGOR {
   }
 
   def createSession(sparkSession: SparkSession): GorSparkSession = {
-    createSession(sparkSession, Paths.get("").toAbsolutePath.toString, Paths.get(System.getProperty("java.io.tmpdir")).toString, null, null)
+    createSession(sparkSession, defaultProjectPath, defaultCachePath, null, null)
   }
 
   def createSession(sparkSession: SparkSession, gorconfig: String, goralias: String, securityContext: String): GorSparkSession = {
-    createSession(sparkSession, Paths.get("").toAbsolutePath.toString, Paths.get(System.getProperty("java.io.tmpdir")).toString, gorconfig, goralias, securityContext)
+    createSession(sparkSession, defaultProjectPath, defaultCachePath, gorconfig, goralias, securityContext)
   }
 
   def createSession(sparkSession: SparkSession, gorconfig: String, goralias: String): GorSparkSession = {
-    createSession(sparkSession, Paths.get("").toAbsolutePath.toString, Paths.get(System.getProperty("java.io.tmpdir")).toString, gorconfig, goralias)
+    createSession(sparkSession, defaultProjectPath, defaultCachePath, gorconfig, goralias)
   }
 }
