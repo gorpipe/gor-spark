@@ -112,7 +112,7 @@ public class UTestGorSparkQuery {
     }
 
     @Test
-    public void testSparkTag() {
+    public void testSparkTag2() {
         testSparkQuery("create split = gor ../tests/data/gor/genes.gorz | grep 'BRCA'; spark -tag -split [split] <(gor ../tests/data/gor/genes.gorz)", "chr1\t11868\t14412\tDDX11L1\n" +
                 "chr1\t14362\t29806\tWASH7P\n" +
                 "chr1\t34553\t36081\tFAM138A\n" +
