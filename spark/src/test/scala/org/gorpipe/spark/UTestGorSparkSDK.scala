@@ -160,6 +160,13 @@ class UTestGorSparkSDK {
     }
 
     @Test
+    def testPGor(): Unit = {
+        val df = sparkGorSession.dataframe("pgor gor/genes.gor | top 1")
+        val res2 = df.collect().mkString("\n")
+        Assert.assertEquals("Wrong results from nested gorrows", "[chr1,4]", res2)
+    }
+
+    @Test
     def testGorrowsWithSchema(): Unit = {
         val df = sparkGorSession.dataframe("gorrows -p chr1:1-5")
         val res = df.gorschema("where pos > 3",df.schema)(sparkGorSession)
@@ -266,10 +273,10 @@ class UTestGorSparkSDK {
         val spark = sparkGorSession.sparkSession
         import spark.implicits._
         val myGenes = List("BRCA1","BRCA2").toDF("gene")
-        myGenes.createOrReplaceTempView("myGenes")
-        sparkGorSession.setCreateAndDefs("create #mygenes# = select gene from myGenes; def #genes# = gor/genes.gorz; def #exons# = gor/ensgenes_exons.gorz; def #dbsnp# = gor/dbsnp_test.gorz;")
-        sparkGorSession.setCreate("#myexons#", "gor #exons# | inset -c gene_symbol [#mygenes#]")
-        val exonSnps = sparkGorSession.dataframe("pgor [#myexons#] | join -segsnp -ir #dbsnp# | join -snpseg -r #genes#")
+        myGenes.createOrReplaceTempView("myGenesView")
+        sparkGorSession.setCreateAndDefs("create AmygenesA = select gene from myGenesView; def AgenesA = gor/genes.gorz; def AexonsA = gor/ensgenes_exons.gorz; def AdbsnpA = gor/dbsnp_test.gorz;")
+        sparkGorSession.setCreate("AmyexonsA", "gor AexonsA | inset -c gene_symbol [AmygenesA]")
+        val exonSnps = sparkGorSession.dataframe("pgor [AmyexonsA] | join -segsnp -ir AdbsnpA | join -snpseg -r AgenesA")
 
         exonSnps.show()
 
@@ -406,6 +413,6 @@ class UTestGorSparkSDK {
     def close() {
         Files.deleteIfExists(goraliaspath)
         Files.deleteIfExists(gorconfigpath)
-        sparkGorSession.close()
+        if (sparkGorSession != null) sparkGorSession.close()
     }
 }

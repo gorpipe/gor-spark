@@ -23,7 +23,7 @@ import org.apache.spark.sql.types.StructType;
 import scala.Function1;
 import scala.Option;
 import scala.collection.Iterator;
-import scala.collection.immutable.Seq;
+import scala.collection.Seq;
 import scala.collection.immutable.Map;
 
 import java.io.IOException;

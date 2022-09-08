@@ -343,7 +343,7 @@ public abstract class GorBatchTable implements Table, SupportsRead, SupportsWrit
             @Override
             public InputPartition[] planInputPartitions() {
                 InputPartition[] partitions = null;
-                if( commands != null && commands.length > 1 ) {
+                if( commands != null && commands.length > 0 ) {
                     partitions = Arrays.stream(commands).map(cmd -> {
                         String tagstr = null;
                         if(tag) {

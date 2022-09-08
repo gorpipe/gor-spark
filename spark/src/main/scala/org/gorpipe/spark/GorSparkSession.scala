@@ -138,7 +138,9 @@ class GorSparkSession(requestId: String, workers: Int = 0) extends GorSession(re
 
   def dataframe(qry: String, sc: StructType = null): Dataset[_ <: Row] = spark(qry, sc)
 
-  def spark(qry: String, sc: StructType = null): Dataset[_ <: Row] = {
+  def dataframeNoAlias(qry: String, sc: StructType = null): Dataset[_ <: Row] = spark(qry, sc, false)
+
+  def spark(qry: String, sc: StructType = null, includeCreates: Boolean = true): Dataset[_ <: Row] = {
     val qryspl = CommandParseUtilities.quoteSafeSplit(qry,';')
     val pi = new SparkPipeInstance(this.getGorContext)
     val lastqry : String = replaceAllAliases(qryspl.last.trim, fileAliasMap)
@@ -152,7 +154,7 @@ class GorSparkSession(requestId: String, workers: Int = 0) extends GorSession(re
       lastqry.substring(0,li) + " -schema {"+sc.toDDL+"}" + lastqry.substring(li)
     } else lastqry
     val createQueries = getCreateQueries(increates)
-    val fullQuery = if (createQueries.nonEmpty) createQueries + query else query
+    val fullQuery = if (includeCreates && createQueries.nonEmpty) createQueries + query else query
 
     val args = Array[String](fullQuery)
     val options = new PipeOptions

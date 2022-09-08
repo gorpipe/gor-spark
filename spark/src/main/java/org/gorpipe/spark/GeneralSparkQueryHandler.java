@@ -202,7 +202,25 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
         });
         var jobIds = Arrays.copyOf(fingerprints, fingerprints.length);
         var res = executeSparkBatch(gpSession, projectDir, cacheDir, fingerprints, commandsToExecute, jobIds, batchGroupNames, cacheFileList.toArray(new String[0]), securityContext.toArray(new String[0]), allowToFail.toArray(new Boolean[0]));
-        return Arrays.stream(res).map(s -> s.split("\t")[2]).toArray(String[]::new);
+        var ret = Arrays.stream(res).map(s -> s.split("\t")[2]).toArray(String[]::new);
+        for(int k = 0; k < ret.length; k++) {
+            var fileName = ret[k];
+            if (fileName!=null) {
+                var viewName = batchGroupNames[k];
+                var tableName = viewName.substring(1, viewName.length() - 1);
+                if (!tableName.contains("#")) {
+                    var fileNameLower = fileName.toLowerCase();
+                    if (fileNameLower.endsWith(".gor") || fileNameLower.endsWith(".gorz") || fileNameLower.endsWith(".gord")) {
+                        gpSession.dataframeNoAlias("pgor " + fileName, null).createOrReplaceTempView(tableName);
+                    } else if (fileNameLower.endsWith(".parquet")) {
+                        gpSession.getSparkSession().read().load(Path.of(projectDir).resolve(fileName).toString()).createOrReplaceTempView(tableName);
+                    } else {
+                        gpSession.dataframeNoAlias("nor " + fileName, null).createOrReplaceTempView(tableName);
+                    }
+                }
+            }
+        }
+        return ret;
     }
 
     @Override

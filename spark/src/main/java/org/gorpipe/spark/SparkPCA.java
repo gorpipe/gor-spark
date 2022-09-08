@@ -232,13 +232,13 @@ public class SparkPCA {
 
         String freezevariants = freezepath.resolve("variants.gord").toString();
 
-        Dataset<Row> pnidx = (Dataset<Row>)gorSparkSession.spark("spark <(partgor -ff "+pnpath.toString()+" -partsize "+partsize+" -dict "+freezevariants+" <(gorrow 1,1 | calc pn '#{tags}' | split pn))",null);
-        Dataset<Row> ds = (Dataset<Row>)gorSparkSession.spark("spark -tag <(partgor -ff "+pnpath.toString()+" -partsize "+partsize+" -dict "+freezevariants+" <(gor "+varpath.toString() +
+        Dataset<Row> pnidx = (Dataset<Row>)gorSparkSession.spark("spark <(partgor -ff "+pnpath.toString()+" -partsize "+partsize+" -dict "+freezevariants+" <(gorrow 1,1 | calc pn '#{tags}' | split pn))",null, true);
+        Dataset<Row> ds = (Dataset<Row>)gorSparkSession.spark("spark -tag <(partgor -ff "+ pnpath +" -partsize "+partsize+" -dict "+freezevariants+" <(gor "+varpath.toString() +
                         "| varjoin -r -l -e '?' <(gor "+freezevariants+" -nf -f #{tags})" +
                         "| rename Chrom CHROM | rename ref REF | rename alt ALT " +
                         "| calc ID chrom+'_'+pos+'_'+ref+'_'+alt " +
-                        "| csvsel "+freezepath.resolve("buckets.tsv").toString()+" <(nor <(gorrow 1,1 | calc pn '#{tags}' | split pn) | select pn) -u 3 -gc id,ref,alt -vs 1 | replace values 'u'+values))"
-                , null);
+                        "| csvsel "+ freezepath.resolve("buckets.tsv") +" <(nor <(gorrow 1,1 | calc pn '#{tags}' | split pn) | select pn) -u 3 -gc id,ref,alt -vs 1 | replace values 'u'+values))"
+                , null, true);
 
         labelPoint(spark, ds, pnidx, varcount, pcacomponents, outpath);
 
@@ -346,7 +346,7 @@ public class SparkPCA {
         Dataset<Row> dsmap = (Dataset<Row>)gorSparkSession.spark("spark -tag <(pgor -split <(gor /gorproject/brca.gor) /gorproject/plink_wes/metadata/AF.gorz" +
                 "| varjoin -r -l -e '?' /gorproject/plink_wes/vep_single.gorz" +
                 "| where max_consequence in ('frameshift_variant','splice_acceptor_variant','splice_donor_variant','start_lost','stop_gained','stop_lost','incomplete_terminal_codon_variant','inframe_deletion','inframe_insertion','missense_variant','protein_altering_variant','splice_region_variant')" +
-                "| group chrom -count)",null);
+                "| group chrom -count)",null, true);
         Map<String,Integer> rangeCount = dsmap.collectAsList().stream().collect(Collectors.toMap(r -> r.getString(4),r -> r.getInt(3)));
         Map<String,Integer> rangeSum = dsmap.collectAsList().stream().collect(Collectors.toMap(r -> r.getString(4), new Function<Row,Integer>() {
             int sum = 0;
@@ -375,7 +375,7 @@ public class SparkPCA {
                 //"| where isfloat(AF) and float(AF) <= 0.05 " +
                 "| calc ID chrom+'_'+pos+'_'+ref+'_'+alt " +
                 "| csvsel /gorproject/plink_wes/buckets.tsv <(nor -h /gorproject/plink_wes/buckets.tsv | select 1 | top 50) -u 3 -gc id,ref,alt -vs 1))"
-                , null);
+                , null, true);
 
         //ds = ds.select("values","tag");
                 //withColumn("count",org.apache.spark.sql.functions.callUDF("lookupSize", org.apache.spark.sql.functions.col("tag"))).
