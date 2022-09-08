@@ -198,13 +198,15 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
             if (fileName!=null) {
                 var viewName = batchGroupNames[k];
                 var tableName = viewName.substring(1, viewName.length() - 1);
-                var fileNameLower = fileName.toLowerCase();
-                if (fileNameLower.endsWith(".gor") || fileNameLower.endsWith(".gorz") || fileNameLower.endsWith(".gord")) {
-                    gpSession.dataframe("pgor " + fileName, null).createOrReplaceTempView(tableName);
-                } else if (fileNameLower.endsWith(".parquet")) {
-                    gpSession.getSparkSession().read().load(Path.of(projectDir).resolve(fileName).toString()).createOrReplaceTempView(tableName);
-                } else {
-                    gpSession.dataframe("nor " + fileName, null).createOrReplaceTempView(tableName);
+                if (!tableName.contains("#")) {
+                    var fileNameLower = fileName.toLowerCase();
+                    if (fileNameLower.endsWith(".gor") || fileNameLower.endsWith(".gorz") || fileNameLower.endsWith(".gord")) {
+                        gpSession.dataframeNoAlias("pgor " + fileName, null).createOrReplaceTempView(tableName);
+                    } else if (fileNameLower.endsWith(".parquet")) {
+                        gpSession.getSparkSession().read().load(Path.of(projectDir).resolve(fileName).toString()).createOrReplaceTempView(tableName);
+                    } else {
+                        gpSession.dataframeNoAlias("nor " + fileName, null).createOrReplaceTempView(tableName);
+                    }
                 }
             }
         }

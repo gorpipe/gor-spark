@@ -246,10 +246,10 @@ class UTestGorSparkSDK {
         val spark = sparkGorSession.sparkSession
         import spark.implicits._
         val myGenes = List("BRCA1","BRCA2").toDF("gene")
-        myGenes.createOrReplaceTempView("myGenes")
-        sparkGorSession.setCreateAndDefs("create #mygenes# = select gene from myGenes; def #genes# = gor/genes.gorz; def #exons# = gor/ensgenes_exons.gorz; def #dbsnp# = gor/dbsnp_test.gorz;")
-        sparkGorSession.setCreate("#myexons#", "gor #exons# | inset -c gene_symbol [#mygenes#]")
-        val exonSnps = sparkGorSession.dataframe("pgor [#myexons#] | join -segsnp -ir #dbsnp# | join -snpseg -r #genes#")
+        myGenes.createOrReplaceTempView("myGenesView")
+        sparkGorSession.setCreateAndDefs("create AmygenesA = select gene from myGenesView; def AgenesA = gor/genes.gorz; def AexonsA = gor/ensgenes_exons.gorz; def AdbsnpA = gor/dbsnp_test.gorz;")
+        sparkGorSession.setCreate("AmyexonsA", "gor AexonsA | inset -c gene_symbol [AmygenesA]")
+        val exonSnps = sparkGorSession.dataframe("pgor [AmyexonsA] | join -segsnp -ir AdbsnpA | join -snpseg -r AgenesA")
         val snpCount = exonSnps.groupBy("gene_symbol").count().collect().mkString("\n")
         Assert.assertEquals("Wrong result","",snpCount)
 
