@@ -14,11 +14,7 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
 import org.gorpipe.gor.model.Row;
 import org.gorpipe.gor.monitor.GorMonitor;
-import org.gorpipe.spark.udfs.CharToDoubleArray;
-import org.gorpipe.spark.udfs.CharToDoubleArrayParallel;
-import org.gorpipe.spark.udfs.CommaToDoubleArray;
-import org.gorpipe.spark.udfs.CommaToDoubleMatrix;
-import org.gorpipe.spark.udfs.CommaToIntArray;
+import org.gorpipe.spark.udfs.*;
 import org.gorpipe.util.standalone.GorStandalone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -256,6 +252,8 @@ public class GorSparkUtilities {
         spark.udf().register("todoublematrix", new CommaToDoubleMatrix(), SQLDataTypes.MatrixType());
         spark.udf().register("tointarray", new CommaToIntArray(), DataTypes.createArrayType(DataTypes.IntegerType));
 
+        spark.udf().register("double_array_to_vector", new ArrayToVector(), SQLDataTypes.VectorType());
+        spark.udf().register("vector_to_double_array", new VectorToArray(), DataTypes.createArrayType(DataTypes.DoubleType));
         //GlowBase gb = new GlowBase();
         //gb.register(spark, false);
 

@@ -1,5 +1,7 @@
 package org.gorpipe.spark
 
+import org.apache.spark.ml.linalg.SQLDataTypes
+import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 import org.apache.spark.sql.types.{DoubleType, IntegerType, StringType, StructField, StructType}
 
 import java.nio.file.{Files, Path, Paths}
@@ -7,6 +9,7 @@ import java.util.stream.Collectors
 import org.apache.spark.sql.{Encoders, SparkSession}
 import org.gorpipe.gor.model.Row
 import org.gorpipe.spark.GorDatasetFunctions.addCustomFunctions
+import org.gorpipe.spark.udfs.ArrayToVector
 import org.junit.{After, Assert, Before, Ignore, Test}
 
 class UTestGorSparkSDK {
@@ -31,7 +34,8 @@ class UTestGorSparkSDK {
         goraliaspath = project.resolve("goralias.txt")
         gorconfigpath = project.resolve("gorconfig.txt")
         genesPath = project.resolve("gor/genes.gor").toAbsolutePath.normalize().toString
-        val sparkSession = SparkSession.builder().master("local[1]").getOrCreate()
+        val sparkSession = SparkSession.builder().master("local[2]").getOrCreate()
+        sparkSession.udf.register("array_to_vector", new ArrayToVector, SQLDataTypes.VectorType)
         Files writeString(goraliaspath, "#genesalias#\tgor/genes.gorz\n")
         Files writeString(gorconfigpath, "buildPath\tref_mini/chromSeq\nbuildSizeFile\tref_mini/buildsize.gor\nbuildSplitFile\tref_mini/buildsplit.txt\n")
         sparkGorSession = SparkGOR.createSession(sparkSession, project.toAbsolutePath.normalize().toString, System.getProperty("java.io.tmpdir"), gorconfigpath.toAbsolutePath.normalize().toString, goraliaspath.toAbsolutePath.normalize().toString)
@@ -298,6 +302,27 @@ class UTestGorSparkSDK {
         val snpCount = exonSnps.collect().mkString("\n")
 
         Assert.assertEquals("Wrong result","[BRCA1]\n[BRCA2]",snpCount)
+    }
+
+    @Test
+    def testSparkArray(): Unit = {
+        val l1 = TestCase("test1", 1, Array[Double](1, 2, 3))
+        val l2 = TestCase("test2", 2, Array[Double](2, 3, 4))
+        val l: Seq[TestCase] = Seq(l1, l2)
+
+        //Encoders.bean(classOf[TestCase]).schema.printTreeString()
+        //Encoders.javaSerialization(classOf[TestCase]).schema.printTreeString()
+        //ExpressionEncoder.javaBean(classOf[TestCase]).schema.printTreeString()
+        val enc = Encoders.product[TestCase]
+        //Encoders.product[TestRecord].schema.printTreeString()
+        //val la: util.List[TestCase] = util.Arrays.asList(l)
+        val ds = sparkGorSession.sparkSession.createDataset(l)(enc)
+        //val df = ds.toDF
+        //val ls = df.collectAsList
+        //ls.forEach((l -> System.err.println(l.mkString("Array(", ", ", ")"))
+        //System.err.println("hello " + ds.schema.toDDL)
+        val dds = ds.selectExpr("name","id","array_to_vector(array) as vector")
+        System.err.println("hoho " + dds.schema.toDDL);
     }
 
     @Test
