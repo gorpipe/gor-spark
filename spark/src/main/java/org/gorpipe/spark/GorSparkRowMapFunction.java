@@ -32,13 +32,17 @@ public class GorSparkRowMapFunction extends GorRowMapFunction implements MapFunc
         return schema;
     }
 
+    public static void fillSchema(StructField[] fields, String[] header, String[] types) {
+        IntStream.range(0, types.length).forEach(i -> {
+            if(types[i].equals("I")) fields[i] = new StructField(header[i], DataTypes.IntegerType, true, Metadata.empty());
+            else if(types[i].equals("D")) fields[i] = new StructField(header[i], DataTypes.DoubleType, true, Metadata.empty());
+            else fields[i] = new StructField(header[i], DataTypes.StringType, true, Metadata.empty());
+        });
+    }
+
     private StructType deriveSchema(String name, String[] header, String[] types) {
         StructField[] fields = new StructField[header.length+1];
-        IntStream.range(0, types.length).forEach(i -> {
-            if(types[i].equals("I")) fields[i] = new StructField(name, DataTypes.IntegerType, true, Metadata.empty());
-            else if(types[i].equals("D")) fields[i] = new StructField(name, DataTypes.DoubleType, true, Metadata.empty());
-            else fields[i] = new StructField(name, DataTypes.StringType, true, Metadata.empty());
-        });
+        fillSchema(fields, header, types);
         if( calcType.equals("Int") ) fields[fields.length-1] = new StructField(name, DataTypes.IntegerType, true, Metadata.empty());
         else if( calcType.equals("Double") ) fields[fields.length-1] = new StructField(name, DataTypes.DoubleType, true, Metadata.empty());
         else fields[fields.length-1] = new StructField(name, DataTypes.StringType, true, Metadata.empty());

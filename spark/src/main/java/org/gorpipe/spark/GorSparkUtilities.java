@@ -155,7 +155,7 @@ public class GorSparkUtilities {
             System.err.println(pyServerPort+";"+pyServerSecret);
 
             ProcessBuilder pb = new ProcessBuilder(plist);
-            standaloneRoot.ifPresent(sroot -> pb.directory(Paths.get(sroot).toFile()));
+            standaloneRoot.filter(p -> !p.startsWith("s3")).ifPresent(sroot -> pb.directory(Paths.get(sroot).toFile()));
             Map<String,String> env = pb.environment();
             env.put("PYSPARK_GATEWAY_PORT",pyServerPort);
             env.put("PYSPARK_GATEWAY_SECRET",pyServerSecret);

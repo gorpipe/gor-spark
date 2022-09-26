@@ -5,7 +5,8 @@ import gorsat.process.PipeOptions;
 import gorsat.process.SparkPipeInstance;
 import gorsat.process.SparkRowSource;
 import org.apache.spark.sql.SparkSession;
-import org.gorpipe.gor.model.GenomicIterator;
+import org.apache.spark.sql.types.StructField;
+import org.apache.spark.sql.types.StructType;
 import org.gorpipe.gor.model.GorParallelQueryHandler;
 import org.gorpipe.gor.monitor.GorMonitor;
 import org.gorpipe.gor.session.GorRunner;
@@ -180,7 +181,8 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
     public String[] executeBatch(String[] fingerprints, String[] commandsToExecute, String[] batchGroupNames, String[] cacheFiles, GorMonitor mon) {
         String projectDir = gpSession.getProjectContext().getProjectRoot();
         String cacheDir = gpSession.getProjectContext().getCacheDir();
-        var secCtx = gpSession.getProjectContext().getFileReader().getSecurityContext();
+        var fileReader = gpSession.getProjectContext().getFileReader();
+        var secCtx = fileReader.getSecurityContext();
 
         var securityContext = new ArrayList<String>();
         var cacheFileList = new ArrayList<String>();
@@ -211,9 +213,32 @@ public class GeneralSparkQueryHandler implements GorParallelQueryHandler {
                 if (!tableName.contains("#")) {
                     var fileNameLower = fileName.toLowerCase();
                     if (fileNameLower.endsWith(".gor") || fileNameLower.endsWith(".gorz") || fileNameLower.endsWith(".gord")) {
-                        gpSession.dataframeNoAlias("pgor " + fileName, null).createOrReplaceTempView(tableName);
+                        StructType sc = null;
+                        if (fileReader.exists(fileName+".meta")) {
+                            try {
+                                var lines = fileReader.readAll(fileName+".meta");
+                                var cols = Arrays.stream(lines).filter(p -> p.startsWith("## COLUMNS")).findAny().orElse(null);
+                                var schm = Arrays.stream(lines).filter(p -> p.startsWith("## SCHEMA")).findAny().orElse(null);
+                                if (cols!=null && schm!=null) {
+                                    var header = cols.substring(cols.indexOf('=')+1).trim().split(",");
+                                    var types = schm.substring(cols.indexOf('=')+1).trim().split(",");
+                                    var fields = new StructField[header.length];
+                                    GorSparkRowMapFunction.fillSchema(fields, header, types);
+                                    sc = new StructType(fields);
+                                }
+                            } catch (IOException e) {
+                                // Ignore, infer schema
+                            }
+                        }
+                        gpSession.dataframeNoAlias("pgor " + fileName, sc).createOrReplaceTempView(tableName);
                     } else if (fileNameLower.endsWith(".parquet")) {
-                        gpSession.getSparkSession().read().load(Path.of(projectDir).resolve(fileName).toString()).createOrReplaceTempView(tableName);
+                        var path = Path.of(projectDir).resolve(fileName).toString();
+                        if (path.contains("s3://")) {
+                            path = path.replace("s3://","s3a://");
+                        } else {
+                            path = path.replace("s3:/","s3a://");
+                        }
+                        gpSession.getSparkSession().read().load(path).createOrReplaceTempView(tableName);
                     } else {
                         gpSession.dataframeNoAlias("nor " + fileName, null).createOrReplaceTempView(tableName);
                     }
