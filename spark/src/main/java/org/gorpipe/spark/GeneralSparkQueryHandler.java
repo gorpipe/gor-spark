@@ -7,6 +7,7 @@ import gorsat.process.SparkRowSource;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
+import org.gorpipe.gor.model.GenomicIterator;
 import org.gorpipe.gor.model.GorParallelQueryHandler;
 import org.gorpipe.gor.monitor.GorMonitor;
 import org.gorpipe.gor.session.GorRunner;
