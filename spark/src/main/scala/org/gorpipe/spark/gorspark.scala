@@ -468,7 +468,7 @@ class QueryRDD(private val sparkSession: SparkSession, private val sqlContext: S
             val nor = theSource.isNor
             val grc = if (gorPipeSession.getSystemContext.getRunnerFactory != null) gorPipeSession.getSystemContext.getRunnerFactory else new GenericRunnerFactory()
             val runner = grc.create()
-            runner.run(theSource, if (parquet != null) null else OutFile(oldName, gorPipeSession.getProjectContext.getFileReader, theHeader, skipHeader = false, columnCompress = nor, nor = true, md5 = true, md5File = true, GorIndexType.NONE, Option.empty))
+            runner.run(theSource, if (parquet != null) null else OutFile(oldName, gorPipeSession.getProjectContext.getFileReader, theHeader, skipHeader = false, columnCompress = nor, nor = true, md5 = true, md5File = true, infer = true, GorIndexType.NONE, Option.empty))
             fileReader.move(oldName, cpath)
           } catch {
             case e: Exception =>

@@ -29,6 +29,7 @@ import org.gorpipe.util.collection.ByteArray;
 import scala.collection.JavaConverters;
 
 import java.io.*;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -128,6 +129,9 @@ public class SparkRowUtilities {
 
     public static RowDataType translatePath(String fn, String standalone, DriverBackedFileReader fileReader) throws IOException {
         RowDataType ret;
+        if (!PathUtils.isLocal(standalone)) {
+            fn = URI.create(standalone).resolve(fn).toString();
+        }
         if (!PathUtils.isLocal(fn)) {
             List<Instant> inst = Collections.emptyList();
             if (fileReader!=null) {

@@ -791,7 +791,7 @@ public class SparkRowSource extends ProcessSource {
                             }
                             boolean gorformat = parquetPath.toLowerCase().endsWith(".gorz");
                             dfw = gorformat ? dfw.format("gor") : dfw.format("parquet");
-                            dfw.mode(SaveMode.Overwrite).save(resolvedPath);
+                            dfw.mode(SaveMode.Overwrite).save(resolvedPath.replace("s3://","s3a://"));
 
                             if (gorformat) {
                                 org.apache.hadoop.fs.Path hp = new org.apache.hadoop.fs.Path(resolvedPath);

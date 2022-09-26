@@ -56,7 +56,7 @@ class GorQueryRDD(sparkSession: SparkSession, commandsToExecute: Array[String], 
         engine.execute()
       } else if (!fileReader.exists(absCacheFilePath)) {
         val absCacheFileName = PathUtils.getFileName(absCacheFilePath)
-        val temp_cacheFile = if (absCacheFileName.startsWith("tmp")) absCacheFilePath else PathUtils.resolve(PathUtils.getParent(absCacheFilePath), "tmp" + UUID.randomUUID() + absCacheFileName)
+        val temp_cacheFile = if (!PathUtils.isLocal(absCacheFilePath) || absCacheFileName.startsWith("tmp")) absCacheFilePath else PathUtils.resolve(PathUtils.getParent(absCacheFilePath), "tmp" + UUID.randomUUID() + absCacheFileName)
         //val temp_cacheMd5File = temp_cacheFile.getParent.resolve(temp_cacheFile.getFileName.toString+".md5")
         val temp_cacheMetaFile = temp_cacheFile + ".meta"
         val tempFile_absolutepath = PathUtils.resolve(projectDirectory, temp_cacheFile)
