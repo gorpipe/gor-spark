@@ -8,7 +8,7 @@ plugins {
 
 jib {
     from {
-        image = 'registry.gitlab.com/wuxi-nextcode/wxnc-gor/gor-spark/nextcode/ubuntubasesparkr:3.3.0'
+        image = 'registry.gitlab.com/wuxi-nextcode/wxnc-gor/gor-spark/nextcode/ubuntubasesparkregenie:3.3.0'
         if (project.hasProperty('REGISTRY_USER')) {
             auth {
                 username = project.findProperty('REGISTRY_USER')
