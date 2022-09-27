@@ -129,7 +129,7 @@ public class SparkRowUtilities {
 
     public static RowDataType translatePath(String fn, String standalone, DriverBackedFileReader fileReader) throws IOException {
         RowDataType ret;
-        if (!PathUtils.isLocal(standalone)) {
+        if (standalone!=null && standalone.length()>0 && !PathUtils.isLocal(standalone)) {
             fn = URI.create(standalone).resolve(fn).toString();
         }
         if (!PathUtils.isLocal(fn)) {
