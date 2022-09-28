@@ -192,14 +192,14 @@ project(':spark') {
             }
         }
         implementation("org.antlr:antlr4") {
-            version {
+            /*version {
                 strictly "4.8"
-            }
+            }*/
         }
         implementation("org.antlr:antlr4-runtime") {
-            version {
+            /*version {
                 strictly "4.8"
-            }
+            }*/
         }
 
         /*implementation("io.projectglow:glow-spark3_${scalaVersion}:_") {
