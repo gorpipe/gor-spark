@@ -74,6 +74,10 @@ repositories {
             header(HttpHeaderAuthentication)
         }
     }
+    maven {
+        name "xgboost"
+        url "https://s3-us-west-2.amazonaws.com/xgboost-maven-repo/snapshot/"
+    }
 }
 
 // Copy resources also from the source folder (in addition to the default
