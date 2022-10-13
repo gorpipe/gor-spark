@@ -41,7 +41,7 @@ ext {
     gorArtifactGroupId = 'org.gorpipe'
     gorVersion = new File("${rootDir}/GOR_VERSION").text.trim()
     sparkVersion = '3.3.0'
-    scalaVersion = '2.13'
+    scalaVersion = '2.12'
 }
 
 // -----------------------------------------------------
@@ -73,6 +73,10 @@ repositories {
         authentication {
             header(HttpHeaderAuthentication)
         }
+    }
+    maven {
+        name "xgboost"
+        url "https://s3-us-west-2.amazonaws.com/xgboost-maven-repo/snapshot/"
     }
 }
 
