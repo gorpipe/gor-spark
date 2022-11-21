@@ -1,6 +1,8 @@
 /*buildscript {
     repositories {
         maven { url "https://plugins.gradle.org/m2/" }
+        //jcenter()
+        mavenCentral()
     }
     dependencies {
         // Jib
@@ -11,7 +13,7 @@
 plugins {
     // See https://jmfayard.github.io/refreshVersions
     id 'de.fayard.refreshVersions' version '0.40.1'
-    id 'com.google.cloud.tools.jib' version '3.2.1' apply false
+    id 'com.google.cloud.tools.jib' version '3.3.1' apply false
 }
 
 refreshVersions {

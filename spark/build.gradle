@@ -8,7 +8,7 @@ plugins {
 
 jib {
     from {
-        image = 'registry.gitlab.com/wuxi-nextcode/wxnc-gor/gor-spark/nextcode/ubuntubasesparkregenie:3.3.0'
+        image = 'registry.gitlab.com/wuxi-nextcode/wxnc-gor/gor-spark/nextcode/ubuntubasesparkxgboost:3.3.1'
         if (project.hasProperty('REGISTRY_USER')) {
             auth {
                 username = project.findProperty('REGISTRY_USER')
@@ -185,7 +185,7 @@ project(':spark') {
         implementation group: 'org.apache.thrift', name: 'libthrift', version: '0.15.0'
 
         implementation "com.auth0:java-jwt:_"
-        implementation "ml.dmlc:xgboost4j-spark_${scalaVersion}:1.7.0-SNAPSHOT"
+        implementation "ml.dmlc:xgboost4j-spark_${scalaVersion}:_"
         implementation("org.scalanlp:breeze_${scalaVersion}") {
             version {
                 strictly "1.3"

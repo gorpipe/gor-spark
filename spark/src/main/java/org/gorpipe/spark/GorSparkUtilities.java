@@ -122,7 +122,7 @@ public class GorSparkUtilities {
             System.err.println(rPath);
 
             System.err.println("Sys.setenv(\"JAVA_HOME\" = \"/Library/Java/JavaVirtualMachines/graalvm-ce-java17-22.2.0/Contents/Home\")\n" +
-                    "Sys.setenv(\"SPARK_HOME\" = \"/opt/homebrew/Cellar/apache-spark/3.3.0/libexec\")" +
+                    "Sys.setenv(\"SPARK_HOME\" = \"/opt/homebrew/Cellar/apache-spark/3.3.1/libexec\")" +
                     "Sys.setenv(\"EXISTING_SPARKR_BACKEND_PORT\" = \""+rbackendPort+"\")" +
                     "Sys.setenv(\"SPARKR_BACKEND_AUTH_SECRET\" = \""+rbackendSecret+"\")" +
                     "library(SparkR, lib.loc = c(file.path(Sys.getenv(\"SPARK_HOME\"), \"R\", \"lib\")))" +

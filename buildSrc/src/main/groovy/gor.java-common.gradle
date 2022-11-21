@@ -40,7 +40,7 @@ plugins {
 ext {
     gorArtifactGroupId = 'org.gorpipe'
     gorVersion = new File("${rootDir}/GOR_VERSION").text.trim()
-    sparkVersion = '3.3.0'
+    sparkVersion = '3.3.1'
     scalaVersion = '2.12'
 }
 
@@ -53,7 +53,9 @@ repositories {
     if (project.hasProperty('useMavenLocal')) {
         mavenLocal()
     }
-    jcenter {
+    //jcenter();
+    mavenCentral();
+    /*jcenter {
         content {
             excludeGroupByRegex "com\\.(wuxi)?nextcode.*"
         }
@@ -62,7 +64,7 @@ repositories {
         content {
             excludeGroupByRegex "com\\.(wuxi)?nextcode.*"
         }
-    }
+    }*/
     maven {
         name "gitlab-maven"
         url uri("https://gitlab.com/api/v4/groups/2443025/-/packages/maven")
@@ -74,10 +76,10 @@ repositories {
             header(HttpHeaderAuthentication)
         }
     }
-    maven {
+    /*maven {
         name "xgboost"
         url "https://s3-us-west-2.amazonaws.com/xgboost-maven-repo/snapshot/"
-    }
+    }*/
 }
 
 // Copy resources also from the source folder (in addition to the default
