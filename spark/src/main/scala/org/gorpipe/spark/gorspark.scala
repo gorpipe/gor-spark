@@ -517,7 +517,7 @@ class PgorRDD[T: ClassTag](@transient private val sparkSession: SparkSession, go
   override def compute(split: Partition, context: TaskContext): Iterator[org.gorpipe.gor.model.Row] = {
 
     var newgorcmd = gorcmd
-    if (filter != null && filter.length > 0) {
+    if (filter != null && filter.nonEmpty) {
       val i = split.index
       val fsel = filter.split(",")(i)
       newgorcmd = newgorcmd.substring(0, 4) + "-f" + fsel + newgorcmd.substring(3)
@@ -539,7 +539,7 @@ class PgorRDD[T: ClassTag](@transient private val sparkSession: SparkSession, go
 
   override protected def getPartitions: Array[Partition] = {
     val plist = ListBuffer[Partition]()
-    if (filter != null && filter.length > 0) {
+    if (filter != null && filter.nonEmpty) {
       var i = 0
       val s = filter.split(",")
       while (i < s.length) {
